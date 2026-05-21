@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: swaggergenerator
+
+services:
+  list:
+    - name: tarjeta
+      basePackage: com.mercantilbanco.osba
+      host: http://127.0.0.1:8091
+      basePath: /tarjeta
+
+    - name: pagos
+      basePackage: com.mercantilbanco.pagos
+      host: http://127.0.0.1:8082
+      basePath: /pagos
