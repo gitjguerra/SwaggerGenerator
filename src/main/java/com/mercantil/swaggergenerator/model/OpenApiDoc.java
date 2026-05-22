@@ -11,6 +11,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
+
 public class OpenApiDoc {
 
     public String openapi = "3.0.1";
@@ -19,11 +20,28 @@ public class OpenApiDoc {
 
     public List<Map<String, String>> servers = new ArrayList<>();
 
+    public List<Map<String, String>> tags = new ArrayList<>(); // ✅ NUEVO
+
     public Map<String, Object> paths = new LinkedHashMap<>();
 
     public Map<String, Object> components = new HashMap<>();
+    
+    public List<Map<String, List<String>>> security;
 
-    public OpenApiDoc() {
-        components.put("schemas", new LinkedHashMap<>());
-    }
+	public OpenApiDoc() {
+	
+	    components.put("schemas", new LinkedHashMap<>());
+	
+	    // ✅ 🔐 SECURITY SCHEME
+	    Map<String, Object> securitySchemes = new LinkedHashMap<>();
+	
+	    securitySchemes.put("bearerAuth", Map.of(
+	        "type", "http",
+	        "scheme", "bearer",
+	        "bearerFormat", "JWT"
+	    ));
+	
+	    components.put("securitySchemes", securitySchemes);
+	}
+
 }

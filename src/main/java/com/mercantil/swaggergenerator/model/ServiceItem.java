@@ -12,4 +12,7 @@ public class ServiceItem {
     private String host;
     private String basePath;
 
+	private String controllersPath;
+	private String beansPath;
+
 }

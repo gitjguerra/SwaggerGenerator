@@ -1,389 +1,582 @@
 package com.mercantil.swaggergenerator.service;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.lang.reflect.ParameterizedType;
+import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.reflections.Reflections;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
 import com.mercantil.swaggergenerator.model.OpenApiDoc;
 import com.mercantil.swaggergenerator.model.ServiceItem;
 
 @Service
 public class OpenApiGeneratorService {
 
-    public OpenApiDoc generate(ServiceItem service) {
+	private Map<String, Map<String, Object>> schemaMap = new LinkedHashMap<>();
+	private Map<String, Object> exampleMap = new LinkedHashMap<>();
 
-        OpenApiDoc doc = new OpenApiDoc();
+	public OpenApiDoc generate(ServiceItem service) {
 
-        doc.info.title = "API " + service.getName();
+		OpenApiDoc doc = new OpenApiDoc();
 
-        doc.servers.add(
-            Map.of("url", service.getHost() + service.getBasePath())
-        );
+		doc.security = List.of(Map.of("bearerAuth", List.of()));
 
-        Reflections reflections = new Reflections(service.getBasePackage());
+		doc.info.title = "API " + service.getName();
 
-        Set<Class<?>> controllers =
-            reflections.getTypesAnnotatedWith(RestController.class);
+		doc.servers.add(Map.of("url", service.getHost() + service.getBasePath()));
 
-        for (Class<?> controller : controllers) {
-            processController(controller, doc);
-        }
+		// ✅ 1. cargar beans primero
+		List<File> beanFiles = findJavaFiles(service.getBeansPath());
+		beanFiles.forEach(f -> processBeanFile(f, doc));
 
-        return doc;
-    }
-    
+		// ✅ 2. luego controllers
+		List<File> controllerFiles = findJavaFiles(service.getControllersPath());
+		controllerFiles.forEach(f -> processControllerFile(f, doc));
 
-	private void processController(Class<?> controller, OpenApiDoc doc) {
-	
-	    String basePath = "";
-	
-	    if (controller.isAnnotationPresent(RequestMapping.class)) {
-	        basePath = controller.getAnnotation(RequestMapping.class).value()[0];
-	    }
-	
-	    for (Method method : controller.getDeclaredMethods()) {
-	
-			if (method.isAnnotationPresent(GetMapping.class)) {
-			    addPath(doc, method, "get");
-			
-			} else if (method.isAnnotationPresent(PostMapping.class)) {
-			    addPath(doc, method, "post");
-			
-			} else if (method.isAnnotationPresent(PutMapping.class)) {
-			    addPath(doc, method, "put");
-			
-			} else if (method.isAnnotationPresent(DeleteMapping.class)) {
-			    addPath(doc, method, "delete");
+		// ✅ 3. inyectar schemas
+		doc.components.put("schemas", schemaMap);
+
+		return doc;
+	}
+
+	private void processControllerFile(File file, OpenApiDoc doc) {
+
+		try {
+
+			CompilationUnit cu = StaticJavaParser.parse(file);
+
+			cu.findAll(ClassOrInterfaceDeclaration.class).forEach(clazz -> {
+
+				if (!clazz.getAnnotationByName("RestController").isPresent()) {
+					return;
+				}
+
+				String controllerName = clazz.getNameAsString();
+
+				String tag = controllerName.replace("Controller", "").replaceAll("([a-z])([A-Z])", "$1 $2").trim();
+
+				// ✅ evitar duplicados + generar descripción correctamente
+				if (doc.tags.stream().noneMatch(t -> t.get("name").equals(tag))) {
+
+					String description = "Operaciones " + tag;
+
+					if (clazz.getJavadoc().isPresent()) {
+
+						String docText = cleanDoc(clazz.getJavadoc().get().getDescription().toText());
+
+						if (!docText.isEmpty()) {
+							description = docText;
+						}
+					}
+
+					doc.tags.add(Map.of("name", tag, "description", description));
+				}
+
+				// ✅ base path del controller
+				String basePath = extractClassMapping(clazz);
+
+				// ✅ procesar métodos
+				clazz.getMethods().forEach(method -> {
+					processMethod(method, doc, tag, basePath);
+				});
+			});
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void processBeanFile(File file, OpenApiDoc doc) {
+
+		try {
+
+			CompilationUnit cu = StaticJavaParser.parse(file);
+
+			cu.findAll(ClassOrInterfaceDeclaration.class).forEach(clazz -> {
+
+				String className = clazz.getNameAsString();
+
+				// ✅ ❌ IGNORAR CLASES BASE DEL FRAMEWORK
+				if (className.equals("ConstructorRequired") || className.equals("BeansZOS")) {
+					return;
+				}
+
+				// ✅ ❌ ignorar clases sin fields (normalmente helpers)
+				if (clazz.getFields().isEmpty() && !clazz.isEnumDeclaration()) {
+					return;
+				}
+
+				// ✅ evitar duplicados schema
+				if (!schemaMap.containsKey(className)) {
+
+					Map<String, Object> schema = buildSchemaFromClass(clazz);
+
+					schemaMap.put(className, schema);
+				}
+
+				// ✅ generar ejemplo
+				if (!exampleMap.containsKey(className)) {
+
+					Object example = buildExampleFromClass(clazz);
+
+					exampleMap.put(className, example);
+				}
+			});
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	private Map<String, Object> buildSchemaFromClass(ClassOrInterfaceDeclaration clazz) {
+
+		List<String> required = new ArrayList<>();
+
+		boolean isResponseClass = clazz.getNameAsString().endsWith("Response");
+
+		// ✅ ENUM
+		if (clazz.isEnumDeclaration()) {
+
+			List<String> values = clazz.asEnumDeclaration().getEntries().stream().map(e -> e.getNameAsString())
+					.collect(Collectors.toList());
+
+			return Map.of("type", "string", "enum", values);
+		}
+
+		Map<String, Object> properties = new LinkedHashMap<>();
+
+		clazz.getFields().forEach(field -> {
+
+			boolean isRequired = field.getAnnotations().stream().anyMatch(a -> a.getNameAsString().equals("NotNull"));
+
+			field.getVariables().forEach(var -> {
+
+				String name = var.getNameAsString();
+				String type = field.getElementType().asString();
+
+				// ✅ =========================
+				// ✅ 🔥 FILTRO INTELIGENTE RESPONSE
+				// ✅ =========================
+				if (isResponseClass) {
+
+					// ❌ eliminar campos heredados del framework
+					if (name.equals("bodyEntrada") || name.equals("bodySalida") || name.equals("headerEntrada")
+							|| name.equals("code")) {
+						return;
+					}
+
+					// ✅ permitir SOLO lo válido
+					boolean allowed = name.equals("headerSalida") || name.equals("message")
+							|| name.matches("bodySalida[A-Z].*");
+
+					if (!allowed) {
+						return;
+					}
+				}
+
+				// ✅ agregar required
+				if (isRequired) {
+					required.add(name);
+				}
+
+				Map<String, Object> prop = new LinkedHashMap<>();
+
+				// ✅ =========================
+				// ✅ TIPOS
+				// ✅ =========================
+
+				// ✅ LISTA
+				if (type.startsWith("List")) {
+
+					String generic = extractGeneric(type);
+
+					prop.put("type", "array");
+					prop.put("items", Map.of("$ref", "#/components/schemas/" + generic));
+				}
+
+				// ✅ PRIMITIVOS
+				else if (isPrimitive(type)) {
+
+					prop.put("type", mapType(type));
+				}
+
+				// ✅ OBJETOS
+				else {
+
+					prop.put("$ref", "#/components/schemas/" + type);
+				}
+
+				properties.put(name, prop);
+			});
+		});
+
+		// ✅ RESULTADO FINAL
+		Map<String, Object> schema = new LinkedHashMap<>();
+
+		schema.put("type", "object");
+		schema.put("properties", properties);
+
+		if (!required.isEmpty()) {
+			schema.put("required", required);
+		}
+
+		return schema;
+	}
+
+	private String extractClassMapping(ClassOrInterfaceDeclaration clazz) {
+
+		return clazz.getAnnotationByName("RequestMapping").map(a -> {
+			try {
+				return a.asNormalAnnotationExpr().getPairs().stream()
+						.filter(p -> p.getNameAsString().equals("value") || p.getNameAsString().equals("path"))
+						.findFirst().get().getValue().asStringLiteralExpr().getValue();
+			} catch (Exception e) {
+				try {
+					return a.asSingleMemberAnnotationExpr().getMemberValue().asStringLiteralExpr().getValue();
+				} catch (Exception ex) {
+					return "";
+				}
+			}
+		}).orElse("");
+	}
+
+	private String cleanDoc(String text) {
+
+		if (text == null)
+			return "";
+
+		return text.replaceAll("\\*", "").replaceAll("\\n", " ").replaceAll("\\s+", " ") // elimina espacios duplicados
+				.trim();
+	}
+
+	private void processMethod(MethodDeclaration method, OpenApiDoc doc, String tag, String basePath) {
+
+		String path = "";
+		String httpMethod = "";
+
+		if (method.getAnnotationByName("GetMapping").isPresent()) {
+			httpMethod = "get";
+			path = extractMapping(method, "GetMapping");
+		} else if (method.getAnnotationByName("PostMapping").isPresent()) {
+			httpMethod = "post";
+			path = extractMapping(method, "PostMapping");
+		} else if (method.getAnnotationByName("PutMapping").isPresent()) {
+			httpMethod = "put";
+			path = extractMapping(method, "PutMapping");
+		} else if (method.getAnnotationByName("DeleteMapping").isPresent()) {
+			httpMethod = "delete";
+			path = extractMapping(method, "DeleteMapping");
+		} else {
+			return;
+		}
+
+		String fullPath = ("/" + basePath + "/" + path).replaceAll("//+", "/");
+
+		Map<String, Object> op = new LinkedHashMap<>();
+
+		op.put("tags", List.of(tag));
+		op.put("summary", formatMethodName(method.getNameAsString()));
+
+		// ✅ JAVADOC
+		method.getJavadoc().ifPresent(javadoc -> {
+			String description = javadoc.getDescription().toText();
+			if (description != null && !description.isEmpty()) {
+				op.put("description", cleanDoc(description));
+			}
+		});
+
+		// ✅ ===========================
+		// ✅ PARAMETERS + REQUEST BODY
+		// ✅ ===========================
+		List<Object> parameters = new ArrayList<>();
+
+		method.getParameters().forEach(p -> {
+
+			// ✅ PATH PARAM
+			if (p.getAnnotationByName("PathVariable").isPresent()) {
+
+				parameters.add(Map.of("name", p.getNameAsString(), "in", "path", "required", true, "schema",
+						Map.of("type", "string")));
 			}
 
-	    }
-	}
+			// ✅ QUERY PARAM
+			else if (p.getAnnotationByName("RequestParam").isPresent()) {
 
-	private Map<String, Object> buildOperation(Method method, OpenApiDoc doc) {
-	
-	    Map<String, Object> operation = new LinkedHashMap<>();
-	
-	    operation.put("summary", method.getName());
-	
-	    // ✅ Request
-	    if (method.getParameterCount() > 0) {
-	
-	        Class<?> req = method.getParameterTypes()[0];
-	
-	        addSchema(req, doc);
-	
-	        operation.put("requestBody", Map.of(
-	            "content", Map.of(
-	                "application/json", Map.of(
-	                    "schema", Map.of(
-	                        "$ref", "#/components/schemas/" + req.getSimpleName()
-	                    )
-	                )
-	            )
-	        ));
-	    }
-	
-	    // ✅ Response
-	    Class<?> res = method.getReturnType();
-	
-	    addSchema(res, doc);
-	
-	    operation.put("responses", Map.of(
-	        "200", Map.of(
-	            "description", "OK",
-	            "content", Map.of(
-	                "application/json", Map.of(
-	                    "schema", Map.of(
-	                        "$ref", "#/components/schemas/" + res.getSimpleName()
-	                    )
-	                )
-	            )
-	        )
-	    ));
-	
-	    return operation;
-	}
-
-	private void addSchema(Class<?> clazz, OpenApiDoc doc) {
-	
-	    Map<String, Object> schemas =
-	        (Map<String, Object>) doc.components.get("schemas");
-	
-	    if (schemas.containsKey(clazz.getSimpleName())) {
-	        return;
-	    }
-	
-	    schemas.put(clazz.getSimpleName(), Map.of()); // placeholder
-	
-	    schemas.put(clazz.getSimpleName(),
-	        buildSchema(clazz, doc));
-	}
-
-	private Map<String, Object> buildSchema(Class<?> clazz, OpenApiDoc doc) {
-	
-	    Map<String, Object> properties = new LinkedHashMap<>();
-	
-	    for (Field f : clazz.getDeclaredFields()) {
-	
-	        Class<?> type = f.getType();
-	
-	        // ✅ LISTAS
-	        if (List.class.isAssignableFrom(type)) {
-	
-	            Class<?> generic = getGenericType(f);
-	
-	            addSchema(generic, doc);
-	
-	            properties.put(f.getName(), Map.of(
-	                "type", "array",
-	                "items", Map.of(
-	                    "$ref", "#/components/schemas/" + generic.getSimpleName()
-	                )
-	            ));
-	        }
-	
-	        // ✅ TIPOS SIMPLES
-	        else if (isPrimitive(type)) {
-	
-	            properties.put(f.getName(), Map.of(
-	                "type", mapType(type)
-	            ));
-	        }
-
-			else if (type.isEnum()) {
-			
-			    Object[] values = type.getEnumConstants();
-			
-			    properties.put(f.getName(), Map.of(
-			        "type", "string",
-			        "enum", Arrays.stream(values)
-			                      .map(Object::toString)
-			                      .toArray()
-			    ));
+				parameters.add(Map.of("name", p.getNameAsString(), "in", "query", "required", false, "schema",
+						Map.of("type", "string")));
 			}
-	        
-	        // ✅ OBJETO COMPLEJO
-	        else {
-	
-	            addSchema(type, doc);
-	
-	            properties.put(f.getName(), Map.of(
-	                "$ref", "#/components/schemas/" + type.getSimpleName()
-	            ));
-	        }
-	    }
-	
-	    return Map.of(
-	        "type", "object",
-	        "properties", properties
-	    );
+
+			// ✅ REQUEST BODY
+			else if (p.getAnnotationByName("RequestBody").isPresent()) {
+
+				String type = cleanType(p.getType().asString());
+				Object example = exampleMap.get(type);
+
+				Map<String, Object> jsonContent = new LinkedHashMap<>();
+
+				jsonContent.put("schema", Map.of("$ref", "#/components/schemas/" + type));
+
+				// ✅ SOLO SI EXISTE
+				if (example != null) {
+					jsonContent.put("example", example);
+				}
+
+				op.put("requestBody", Map.of("content", Map.of("application/json", jsonContent)));
+			}
+		});
+
+		if (!parameters.isEmpty()) {
+			op.put("parameters", parameters);
+		}
+
+		// ✅ ===========================
+		// ✅ RESPONSE
+		// ✅ ===========================
+		String returnType = cleanType(method.getType().asString());
+
+		if (!returnType.equals("void")) {
+
+			Object example = exampleMap.get(returnType);
+
+			Map<String, Object> jsonContent = new LinkedHashMap<>();
+
+			jsonContent.put("schema", Map.of("$ref", "#/components/schemas/" + returnType));
+
+			// ✅ SOLO SI EXISTE
+			if (example != null) {
+				jsonContent.put("example", example);
+			}
+
+			op.put("responses",
+					Map.of("200", Map.of("description", "OK", "content", Map.of("application/json", jsonContent))));
+
+		} else {
+
+			op.put("responses", Map.of("200", Map.of("description", "OK (sin contenido)")));
+		}
+
+		// ✅ guardar en paths
+		if (doc.paths.containsKey(fullPath)) {
+
+			((Map<String, Object>) doc.paths.get(fullPath)).put(httpMethod, op);
+
+		} else {
+
+			doc.paths.put(fullPath, new LinkedHashMap<>(Map.of(httpMethod, op)));
+		}
+
+		// ✅ DEBUG
+		System.out.println("✅ " + httpMethod.toUpperCase() + " " + fullPath);
 	}
 
-	private Class<?> getGenericType(Field field) {
-	
-	    ParameterizedType type =
-	        (ParameterizedType) field.getGenericType();
-	
-	    return (Class<?>) type.getActualTypeArguments()[0];
+	private String extractMapping(MethodDeclaration method, String annotation) {
+
+		return method.getAnnotationByName(annotation).map(a -> {
+			try {
+				return a.asNormalAnnotationExpr().getPairs().stream().findFirst().get().getValue().asStringLiteralExpr()
+						.getValue();
+			} catch (Exception e) {
+				try {
+					return a.asSingleMemberAnnotationExpr().getMemberValue().asStringLiteralExpr().getValue();
+				} catch (Exception ex) {
+					return "";
+				}
+			}
+		}).orElse("");
 	}
 
-	private boolean isPrimitive(Class<?> type) {
-	
-	    return type == String.class ||
-	           type == Integer.class || type == int.class ||
-	           type == Double.class  || type == double.class ||
-	           type == Boolean.class || type == boolean.class ||
-	           type == Long.class    || type == long.class;
+	private List<File> findJavaFiles(String root) {
+
+		List<File> files = new ArrayList<>();
+
+		File dir = new File(root);
+
+		File[] list = dir.listFiles();
+
+		if (list == null)
+			return files;
+
+		for (File f : list) {
+
+			if (f.isDirectory()) {
+				files.addAll(findJavaFiles(f.getAbsolutePath()));
+			} else if (f.getName().endsWith(".java")) {
+				files.add(f);
+			}
+		}
+
+		return files;
 	}
 
-	private String mapType(Class<?> type) {
-	
-	    if (type == String.class) return "string";
-	    if (type == Integer.class || type == int.class) return "integer";
-	    if (type == Double.class || type == double.class) return "number";
-	    if (type == Boolean.class || type == boolean.class) return "boolean";
-	
-	    return "string";
-	}
-	
-	private void addPath(OpenApiDoc doc, Method method, String httpMethod) {
-	
-	    String path = extractPath(method);
-	
-	    Map<String, Object> operation = buildOperationWithParams(method, doc);
-	
-	    doc.paths.put(path, Map.of(httpMethod, operation));
+	private String formatMethodName(String name) {
+
+		// separar camelCase
+		String result = name.replaceAll("([a-z])([A-Z])", "$1 $2");
+
+		// primera en mayúscula
+		result = result.substring(0, 1).toUpperCase() + result.substring(1);
+
+		return result;
 	}
 
-	private String extractPath(Method method) {
-	
-	    if (method.isAnnotationPresent(GetMapping.class)) {
-	        return method.getAnnotation(GetMapping.class).value()[0];
-	    }
-	    if (method.isAnnotationPresent(PostMapping.class)) {
-	        return method.getAnnotation(PostMapping.class).value()[0];
-	    }
-	
-	    return "";
+	private boolean isPrimitive(String type) {
+
+		return type.equals("String") || type.equals("Integer") || type.equals("int") || type.equals("Double")
+				|| type.equals("double") || type.equals("Boolean") || type.equals("boolean") || type.equals("Long")
+				|| type.equals("long");
 	}
 
-	private List<Object> extractParameters(Method method, OpenApiDoc doc) {
-	
-	    List<Object> params = new ArrayList<>();
-	
-	    Parameter[] parameters = method.getParameters();
-	
-	    for (Parameter p : parameters) {
-	
-	        // 🔥 PATH VARIABLE
-	        if (p.isAnnotationPresent(PathVariable.class)) {
-	
-	            String name = p.getAnnotation(PathVariable.class).value();
-	
-	            params.add(Map.of(
-	                "name", name,
-	                "in", "path",
-	                "required", true,
-	                "schema", Map.of(
-	                    "type", mapType(p.getType())
-	                )
-	            ));
-	        }
-	
-	        // 🔥 REQUEST PARAM (query)
-	        else if (p.isAnnotationPresent(RequestParam.class)) {
-	
-	            RequestParam rp = p.getAnnotation(RequestParam.class);
-	
-	            String name = rp.value();
-	
-	            params.add(Map.of(
-	                "name", name,
-	                "in", "query",
-	                "required", rp.required(),
-	                "schema", Map.of(
-	                    "type", mapType(p.getType())
-	                )
-	            ));
-	        }
-	
-	        // 🔥 BODY (POST/PUT)
-	        else {
-	
-	            Class<?> req = p.getType();
-	
-	            addSchema(req, doc);
-	
-	            params.add(Map.of(
-	                "in", "body",   // ⚠️ OpenAPI real es requestBody (lo hacemos abajo)
-	                "name", "body",
-	                "schema", Map.of(
-	                    "$ref", "#/components/schemas/" + req.getSimpleName()
-	                )
-	            ));
-	        }
-	    }
-	
-	    return params;
+	private String mapType(String type) {
+
+		if (type.equals("String"))
+			return "string";
+		if (type.equals("Integer") || type.equals("int"))
+			return "integer";
+		if (type.equals("Double") || type.equals("double"))
+			return "number";
+		if (type.equals("Boolean") || type.equals("boolean"))
+			return "boolean";
+		if (type.equals("Long") || type.equals("long"))
+			return "integer";
+
+		return "string";
 	}
 
-	private Map<String, Object> buildOperationWithParams(Method method, OpenApiDoc doc) {
+	private String extractGeneric(String type) {
+
+		int start = type.indexOf("<");
+		int end = type.indexOf(">");
+
+		if (start != -1 && end != -1) {
+			return type.substring(start + 1, end);
+		}
+
+		return "Object";
+	}
+
+	private Object cleanExampleObject(Object obj) {
 	
-	    Map<String, Object> op = new LinkedHashMap<>();
-	
-	    op.put("summary", method.getName());
-	
-	    List<Object> parameters = new ArrayList<>();
-	
-	    Parameter[] params = method.getParameters();
-	
-	    for (Parameter p : params) {
-	
-	        if (p.isAnnotationPresent(PathVariable.class)) {
-	
-	            String name = p.getAnnotation(PathVariable.class).value();
-	
-	            parameters.add(Map.of(
-	                "name", name,
-	                "in", "path",
-	                "required", true,
-	                "schema", Map.of(
-	                    "type", mapType(p.getType())
-	                )
-	            ));
-	        }
-	        else if (p.isAnnotationPresent(RequestParam.class)) {
-	
-	            RequestParam rp = p.getAnnotation(RequestParam.class);
-	
-	            parameters.add(Map.of(
-	                "name", rp.value(),
-	                "in", "query",
-	                "required", rp.required(),
-	                "schema", Map.of(
-	                    "type", mapType(p.getType())
-	                )
-	            ));
-	        }
-	        else {
-	            // ✅ BODY
-	            Class<?> req = p.getType();
-	
-	            addSchema(req, doc);
-	
-	            op.put("requestBody", Map.of(
-	                "content", Map.of(
-	                    "application/json", Map.of(
-	                        "schema", Map.of(
-	                            "$ref", "#/components/schemas/" + req.getSimpleName()
-	                        )
-	                    )
-	                )
-	            ));
-	        }
+	    if (!(obj instanceof Map)) {
+	        return obj;
 	    }
 	
-	    if (!parameters.isEmpty()) {
-	        op.put("parameters", parameters);
-	    }
+	    Map<String, Object> cleaned = new LinkedHashMap<>();
 	
-	    // ✅ RESPONSE
-	    Class<?> res = method.getReturnType();
+	    ((Map<?, ?>) obj).forEach((k, v) -> {
 	
-	    addSchema(res, doc);
+	        String key = k.toString();
 	
-	    op.put("responses", Map.of(
-	        "200", Map.of(
-	            "description", "OK",
-	            "content", Map.of(
-	                "application/json", Map.of(
-	                    "schema", Map.of(
-	                        "$ref", "#/components/schemas/" + res.getSimpleName()
-	                    )
-	                )
-	            )
-	        )
-	    ));
+	        // ❌ eliminar basura heredada SIEMPRE
+	        if (key.equals("bodyEntrada") ||
+	            key.equals("bodySalida") ||
+	            key.equals("headerEntrada") ||
+	            key.equals("code")) {
+	            return;
+	        }
 	
-	    return op;
+	        // ✅ limpiar recursivo
+	        cleaned.put(key, cleanExampleObject(v));
+	    });
+	
+	    return cleaned;
+	}
+
+	private Object buildExampleFromClass(ClassOrInterfaceDeclaration clazz) {
+	
+	    Map<String, Object> example = new LinkedHashMap<>();
+	
+	    boolean isResponseClass =
+	        clazz.getNameAsString().endsWith("Response");
+	
+	    clazz.getFields().forEach(field -> {
+	
+	        field.getVariables().forEach(var -> {
+	
+	            String name = var.getNameAsString();
+	            String type = field.getElementType().asString();
+	
+	            // ✅ FILTRO RESPONSE (MISMO QUE SCHEMA)
+	            if (isResponseClass) {
+	
+	                if (name.equals("bodyEntrada") ||
+	                    name.equals("bodySalida") ||
+	                    name.equals("headerEntrada") ||
+	                    name.equals("code")) {
+	                    return;
+	                }
+	
+	                boolean allowed =
+	                        name.equals("headerSalida") ||
+	                        name.equals("message") ||
+	                        name.matches("bodySalida[A-Z].*");
+	
+	                if (!allowed) {
+	                    return;
+	                }
+	            }
+	
+	            // ✅ STRING
+	            if (type.equals("String")) {
+	                example.put(name, "string");
+	            }
+	
+	            // ✅ NUMERICOS
+	            else if (type.equals("Integer") || type.equals("int")) {
+	                example.put(name, 0);
+	            }
+	            else if (type.equals("Long") || type.equals("long")) {
+	                example.put(name, 1);
+	            }
+	            else if (type.equals("Double") || type.equals("double")) {
+	                example.put(name, 0.0);
+	            }
+	
+	            // ✅ BOOLEAN
+	            else if (type.equals("Boolean") || type.equals("boolean")) {
+	                example.put(name, true);
+	            }
+	
+	            // ✅ LISTA
+	            else if (type.startsWith("List")) {
+	
+	                String generic = extractGeneric(type);
+	
+	                Object nested = exampleMap.get(generic);
+	
+	                example.put(name,
+	                    List.of(cleanExampleObject(nested))
+	                );
+	            }
+	
+	            // ✅ OBJETO
+	            else {
+	
+	                Object nested = exampleMap.get(type);
+	
+	                example.put(name,
+	                    cleanExampleObject(nested)
+	                );
+	            }
+	        });
+	    });
+	
+	    return example;
+	}
+
+	private String cleanType(String type) {
+
+		if (type.contains(".")) {
+			return type.substring(type.lastIndexOf(".") + 1);
+		}
+		return type;
 	}
 
 }
