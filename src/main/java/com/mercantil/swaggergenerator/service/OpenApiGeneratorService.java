@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -20,33 +19,50 @@ import com.mercantil.swaggergenerator.model.ServiceItem;
 @Service
 public class OpenApiGeneratorService {
 
+	// ✅ mapa de schemas
 	private Map<String, Map<String, Object>> schemaMap = new LinkedHashMap<>();
+
+	// ✅ mapa de ejemplos
 	private Map<String, Object> exampleMap = new LinkedHashMap<>();
 
+	// ✅ =========================
+	// ✅ GENERADOR PRINCIPAL
+	// ✅ =========================
 	public OpenApiDoc generate(ServiceItem service) {
 
 		OpenApiDoc doc = new OpenApiDoc();
+
+		// ✅ limpiar estado
+		schemaMap = new LinkedHashMap<>();
+		exampleMap = new LinkedHashMap<>();
 
 		doc.security = List.of(Map.of("bearerAuth", List.of()));
 
 		doc.info.title = "API " + service.getName();
 
-		doc.servers.add(Map.of("url", service.getHost() + service.getBasePath()));
+		doc.servers.add(Map.of("url", (service.getHost() == null ? "" : service.getHost()) + service.getBasePath()));
 
-		// ✅ 1. cargar beans primero
+		// ✅ 1. cargar beans
 		List<File> beanFiles = findJavaFiles(service.getBeansPath());
-		beanFiles.forEach(f -> processBeanFile(f, doc));
 
-		// ✅ 2. luego controllers
+		// ✅ registro previo (evita dependencias rotas)
+		preloadSchemas(beanFiles);
+
+		// ✅ procesar beans
+		beanFiles.forEach(f -> processBeanFile(f, doc, service.getBasePackage()));
+
+		// ✅ 2. controllers
 		List<File> controllerFiles = findJavaFiles(service.getControllersPath());
 		controllerFiles.forEach(f -> processControllerFile(f, doc));
 
-		// ✅ 3. inyectar schemas
 		doc.components.put("schemas", schemaMap);
 
 		return doc;
 	}
 
+	// ✅ =========================
+	// ✅ PROCESAR CONTROLLERS
+	// ✅ =========================
 	private void processControllerFile(File file, OpenApiDoc doc) {
 
 		try {
@@ -55,38 +71,21 @@ public class OpenApiGeneratorService {
 
 			cu.findAll(ClassOrInterfaceDeclaration.class).forEach(clazz -> {
 
-				if (!clazz.getAnnotationByName("RestController").isPresent()) {
+				if (!clazz.getAnnotationByName("RestController").isPresent())
 					return;
-				}
 
 				String controllerName = clazz.getNameAsString();
 
-				String tag = controllerName.replace("Controller", "").replaceAll("([a-z])([A-Z])", "$1 $2").trim();
+				String tag = controllerName.replace("Controller", "").replaceAll("([a-z])([A-Z])", "$1 $2");
 
-				// ✅ evitar duplicados + generar descripción correctamente
 				if (doc.tags.stream().noneMatch(t -> t.get("name").equals(tag))) {
 
-					String description = "Operaciones " + tag;
-
-					if (clazz.getJavadoc().isPresent()) {
-
-						String docText = cleanDoc(clazz.getJavadoc().get().getDescription().toText());
-
-						if (!docText.isEmpty()) {
-							description = docText;
-						}
-					}
-
-					doc.tags.add(Map.of("name", tag, "description", description));
+					doc.tags.add(Map.of("name", tag, "description", "Operaciones " + tag));
 				}
 
-				// ✅ base path del controller
 				String basePath = extractClassMapping(clazz);
 
-				// ✅ procesar métodos
-				clazz.getMethods().forEach(method -> {
-					processMethod(method, doc, tag, basePath);
-				});
+				clazz.getMethods().forEach(method -> processMethod(method, doc, tag, basePath));
 			});
 
 		} catch (Exception e) {
@@ -94,186 +93,20 @@ public class OpenApiGeneratorService {
 		}
 	}
 
-	private void processBeanFile(File file, OpenApiDoc doc) {
-
-		try {
-
-			CompilationUnit cu = StaticJavaParser.parse(file);
-
-			cu.findAll(ClassOrInterfaceDeclaration.class).forEach(clazz -> {
-
-				String className = clazz.getNameAsString();
-
-				// ✅ ❌ IGNORAR CLASES BASE DEL FRAMEWORK
-				if (className.equals("ConstructorRequired") || className.equals("BeansZOS")) {
-					return;
-				}
-
-				// ✅ ❌ ignorar clases sin fields (normalmente helpers)
-				if (clazz.getFields().isEmpty() && !clazz.isEnumDeclaration()) {
-					return;
-				}
-
-				// ✅ evitar duplicados schema
-				if (!schemaMap.containsKey(className)) {
-
-					Map<String, Object> schema = buildSchemaFromClass(clazz);
-
-					schemaMap.put(className, schema);
-				}
-
-				// ✅ generar ejemplo
-				if (!exampleMap.containsKey(className)) {
-
-					Object example = buildExampleFromClass(clazz);
-
-					exampleMap.put(className, example);
-				}
-			});
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	private Map<String, Object> buildSchemaFromClass(ClassOrInterfaceDeclaration clazz) {
-
-		List<String> required = new ArrayList<>();
-
-		boolean isResponseClass = clazz.getNameAsString().endsWith("Response");
-
-		// ✅ ENUM
-		if (clazz.isEnumDeclaration()) {
-
-			List<String> values = clazz.asEnumDeclaration().getEntries().stream().map(e -> e.getNameAsString())
-					.collect(Collectors.toList());
-
-			return Map.of("type", "string", "enum", values);
-		}
-
-		Map<String, Object> properties = new LinkedHashMap<>();
-
-		clazz.getFields().forEach(field -> {
-
-			boolean isRequired = field.getAnnotations().stream().anyMatch(a -> a.getNameAsString().equals("NotNull"));
-
-			field.getVariables().forEach(var -> {
-
-				String name = var.getNameAsString();
-				String type = field.getElementType().asString();
-
-				// ✅ =========================
-				// ✅ 🔥 FILTRO INTELIGENTE RESPONSE
-				// ✅ =========================
-				if (isResponseClass) {
-
-					// ❌ eliminar campos heredados del framework
-					if (name.equals("bodyEntrada") || name.equals("bodySalida") || name.equals("headerEntrada")
-							|| name.equals("code")) {
-						return;
-					}
-
-					// ✅ permitir SOLO lo válido
-					boolean allowed = name.equals("headerSalida") || name.equals("message")
-							|| name.matches("bodySalida[A-Z].*");
-
-					if (!allowed) {
-						return;
-					}
-				}
-
-				// ✅ agregar required
-				if (isRequired) {
-					required.add(name);
-				}
-
-				Map<String, Object> prop = new LinkedHashMap<>();
-
-				// ✅ =========================
-				// ✅ TIPOS
-				// ✅ =========================
-
-				// ✅ LISTA
-				if (type.startsWith("List")) {
-
-					String generic = extractGeneric(type);
-
-					prop.put("type", "array");
-					prop.put("items", Map.of("$ref", "#/components/schemas/" + generic));
-				}
-
-				// ✅ PRIMITIVOS
-				else if (isPrimitive(type)) {
-
-					prop.put("type", mapType(type));
-				}
-
-				// ✅ OBJETOS
-				else {
-
-					prop.put("$ref", "#/components/schemas/" + type);
-				}
-
-				properties.put(name, prop);
-			});
-		});
-
-		// ✅ RESULTADO FINAL
-		Map<String, Object> schema = new LinkedHashMap<>();
-
-		schema.put("type", "object");
-		schema.put("properties", properties);
-
-		if (!required.isEmpty()) {
-			schema.put("required", required);
-		}
-
-		return schema;
-	}
-
-	private String extractClassMapping(ClassOrInterfaceDeclaration clazz) {
-
-		return clazz.getAnnotationByName("RequestMapping").map(a -> {
-			try {
-				return a.asNormalAnnotationExpr().getPairs().stream()
-						.filter(p -> p.getNameAsString().equals("value") || p.getNameAsString().equals("path"))
-						.findFirst().get().getValue().asStringLiteralExpr().getValue();
-			} catch (Exception e) {
-				try {
-					return a.asSingleMemberAnnotationExpr().getMemberValue().asStringLiteralExpr().getValue();
-				} catch (Exception ex) {
-					return "";
-				}
-			}
-		}).orElse("");
-	}
-
-	private String cleanDoc(String text) {
-
-		if (text == null)
-			return "";
-
-		return text.replaceAll("\\*", "").replaceAll("\\n", " ").replaceAll("\\s+", " ") // elimina espacios duplicados
-				.trim();
-	}
-
+	// ✅ =========================
+	// ✅ PROCESAR MÉTODOS
+	// ✅ =========================
 	private void processMethod(MethodDeclaration method, OpenApiDoc doc, String tag, String basePath) {
 
-		String path = "";
 		String httpMethod = "";
+		String path = "";
 
-		if (method.getAnnotationByName("GetMapping").isPresent()) {
-			httpMethod = "get";
-			path = extractMapping(method, "GetMapping");
-		} else if (method.getAnnotationByName("PostMapping").isPresent()) {
+		if (method.getAnnotationByName("PostMapping").isPresent()) {
 			httpMethod = "post";
 			path = extractMapping(method, "PostMapping");
-		} else if (method.getAnnotationByName("PutMapping").isPresent()) {
-			httpMethod = "put";
-			path = extractMapping(method, "PutMapping");
-		} else if (method.getAnnotationByName("DeleteMapping").isPresent()) {
-			httpMethod = "delete";
-			path = extractMapping(method, "DeleteMapping");
+		} else if (method.getAnnotationByName("GetMapping").isPresent()) {
+			httpMethod = "get";
+			path = extractMapping(method, "GetMapping");
 		} else {
 			return;
 		}
@@ -283,128 +116,409 @@ public class OpenApiGeneratorService {
 		Map<String, Object> op = new LinkedHashMap<>();
 
 		op.put("tags", List.of(tag));
-		op.put("summary", formatMethodName(method.getNameAsString()));
+		op.put("summary", method.getNameAsString());
 
-		// ✅ JAVADOC
-		method.getJavadoc().ifPresent(javadoc -> {
-			String description = javadoc.getDescription().toText();
-			if (description != null && !description.isEmpty()) {
-				op.put("description", cleanDoc(description));
-			}
-		});
-
-		// ✅ ===========================
-		// ✅ PARAMETERS + REQUEST BODY
-		// ✅ ===========================
-		List<Object> parameters = new ArrayList<>();
-
+		// ✅ REQUEST BODY
 		method.getParameters().forEach(p -> {
 
-			// ✅ PATH PARAM
-			if (p.getAnnotationByName("PathVariable").isPresent()) {
+			if (p.getAnnotationByName("RequestBody").isPresent()) {
 
-				parameters.add(Map.of("name", p.getNameAsString(), "in", "path", "required", true, "schema",
-						Map.of("type", "string")));
-			}
+				String type = resolveFinalType(p.getType().asString());
 
-			// ✅ QUERY PARAM
-			else if (p.getAnnotationByName("RequestParam").isPresent()) {
+				Map<String, Object> json = new LinkedHashMap<>();
 
-				parameters.add(Map.of("name", p.getNameAsString(), "in", "query", "required", false, "schema",
-						Map.of("type", "string")));
-			}
+				json.put("schema", Map.of("$ref", "#/components/schemas/" + type));
 
-			// ✅ REQUEST BODY
-			else if (p.getAnnotationByName("RequestBody").isPresent()) {
-
-				String type = cleanType(p.getType().asString());
 				Object example = exampleMap.get(type);
 
-				Map<String, Object> jsonContent = new LinkedHashMap<>();
-
-				jsonContent.put("schema", Map.of("$ref", "#/components/schemas/" + type));
-
-				// ✅ SOLO SI EXISTE
 				if (example != null) {
-					jsonContent.put("example", example);
+					json.put("example", example);
 				}
 
-				op.put("requestBody", Map.of("content", Map.of("application/json", jsonContent)));
+				op.put("requestBody", Map.of("content", Map.of("application/json", json)));
 			}
 		});
 
-		if (!parameters.isEmpty()) {
-			op.put("parameters", parameters);
-		}
-
-		// ✅ ===========================
 		// ✅ RESPONSE
-		// ✅ ===========================
-		String returnType = cleanType(method.getType().asString());
+		String returnType = resolveFinalType(method.getType().asString());
 
-		if (!returnType.equals("void")) {
+		Map<String, Object> jsonContent = new LinkedHashMap<>();
 
-			Object example = exampleMap.get(returnType);
+		jsonContent.put("schema", Map.of("$ref", "#/components/schemas/" + returnType));
 
-			Map<String, Object> jsonContent = new LinkedHashMap<>();
+		Object example = exampleMap.get(returnType);
 
-			jsonContent.put("schema", Map.of("$ref", "#/components/schemas/" + returnType));
-
-			// ✅ SOLO SI EXISTE
-			if (example != null) {
-				jsonContent.put("example", example);
-			}
-
-			op.put("responses",
-					Map.of("200", Map.of("description", "OK", "content", Map.of("application/json", jsonContent))));
-
-		} else {
-
-			op.put("responses", Map.of("200", Map.of("description", "OK (sin contenido)")));
+		if (example != null) {
+			jsonContent.put("example", example);
 		}
 
-		// ✅ guardar en paths
-		if (doc.paths.containsKey(fullPath)) {
+		op.put("responses",
+				Map.of("200", Map.of("description", "OK", "content", Map.of("application/json", jsonContent))));
 
-			((Map<String, Object>) doc.paths.get(fullPath)).put(httpMethod, op);
-
-		} else {
-
-			doc.paths.put(fullPath, new LinkedHashMap<>(Map.of(httpMethod, op)));
-		}
-
-		// ✅ DEBUG
-		System.out.println("✅ " + httpMethod.toUpperCase() + " " + fullPath);
+		doc.paths.put(fullPath, new LinkedHashMap<>(Map.of(httpMethod, op)));
 	}
 
-	private String extractMapping(MethodDeclaration method, String annotation) {
+	// ✅ =========================
+	// ✅ PROCESAR BEANS
+	// ✅ =========================
+	private void processBeanFile(File file, OpenApiDoc doc, String basePackage) {
 
-		return method.getAnnotationByName(annotation).map(a -> {
-			try {
-				return a.asNormalAnnotationExpr().getPairs().stream().findFirst().get().getValue().asStringLiteralExpr()
-						.getValue();
-			} catch (Exception e) {
-				try {
-					return a.asSingleMemberAnnotationExpr().getMemberValue().asStringLiteralExpr().getValue();
-				} catch (Exception ex) {
-					return "";
+		try {
+
+			CompilationUnit cu = StaticJavaParser.parse(file);
+
+			cu.findAll(ClassOrInterfaceDeclaration.class).forEach(clazz -> {
+
+				if (!isInBasePackage(clazz, basePackage))
+					return;
+
+				String className = clazz.getNameAsString();
+
+				// ✅ ignorar base
+				if (className.equals("ConstructorRequired") || className.equals("BeansZOS"))
+					return;
+
+				// ✅ filtrar DTO
+				if (!className.startsWith("Request") && !className.startsWith("Response")
+						&& !className.startsWith("Body") && !className.startsWith("Header"))
+					return;
+
+				schemaMap.put(className, buildSchemaFromClass(clazz));
+
+				exampleMap.put(className, buildExampleFromClass(clazz));
+			});
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	// ✅ =========================
+	// ✅ SCHEMA
+	// ✅ =========================
+	private Map<String, Object> buildSchemaFromClass(ClassOrInterfaceDeclaration clazz) {
+
+	    // ✅ propiedades del objeto
+	    Map<String, Object> properties = new LinkedHashMap<>();
+
+	    // ✅ campos requeridos (@NotNull)
+	    List<String> required = new ArrayList<>();
+
+	    String className = clazz.getNameAsString();
+
+	    // ✅ ========================================
+	    // ✅ ENUM → convertir a lista de valores
+	    // ✅ ========================================
+	    if (clazz.isEnumDeclaration()) {
+
+	        List<String> values = clazz.asEnumDeclaration()
+	            .getEntries()
+	            .stream()
+	            .map(e -> e.getNameAsString())
+	            .collect(Collectors.toList());
+
+	        return Map.of(
+	            "type", "string",
+	            "enum", values
+	        );
+	    }
+
+	    // ✅ ========================================
+	    // ✅ PROCESAR CAMPOS
+	    // ✅ ========================================
+	    clazz.getFields().forEach(field -> {
+
+	        field.getVariables().forEach(var -> {
+
+	            String name = var.getNameAsString();
+
+	            // ✅ JsonProperty → usar nombre real JSON
+	            if (field.getAnnotationByName("JsonProperty").isPresent()) {
+
+	                String annotation = field.getAnnotationByName("JsonProperty").get().toString();
+
+	                if (annotation.contains("\"")) {
+	                    name = annotation.split("\"")[1];
+	                }
+	            }
+
+	            // ✅ tipo Java → limpio (sin paquetes)
+	            String rawType = field.getElementType().asString();
+
+	            // ✅ NotNull → required
+	            if (field.getAnnotationByName("NotNull").isPresent()) {
+	                required.add(name);
+	            }
+
+	            Map<String, Object> prop = new LinkedHashMap<>();
+
+	            // ✅ ========================================
+	            // ✅ LISTAS
+	            // ✅ ========================================
+	            if (rawType.startsWith("List<")) {
+
+	                String generic = extractGeneric(rawType);
+
+	                prop.put("type", "array");
+	                prop.put("items", Map.of(
+	                    "$ref", "#/components/schemas/" + generic
+	                ));
+	            }
+
+	            // ✅ ========================================
+	            // ✅ TIPOS PRIMITIVOS + FORMAT
+	            // ✅ ========================================
+	            else if (isPrimitive(rawType)) {
+
+	                prop.put("type", mapType(rawType));
+
+	                // ✅ formatos especiales OpenAPI
+	                if (rawType.equals("UUID")) {
+	                    prop.put("format", "uuid");
+	                }
+
+	                if (rawType.equals("LocalDate")) {
+	                    prop.put("format", "date");
+	                }
+
+	                if (rawType.equals("LocalDateTime") || rawType.equals("Date")) {
+	                    prop.put("format", "date-time");
+	                }
+
+	                if (rawType.equals("BigDecimal")) {
+	                    prop.put("format", "double");
+	                }
+	            }
+
+	            // ✅ ========================================
+	            // ✅ BYTE / BINARIO
+	            // ✅ ========================================
+	            else if (rawType.equals("byte") || rawType.equals("byte[]")) {
+
+	                prop.put("type", "string");
+	                prop.put("format", "byte");
+	            }
+
+	            // ✅ ========================================
+	            // ✅ OBJETO COMPLEJO ($ref)
+	            // ✅ ========================================
+	            else {
+
+	                prop.put("$ref", "#/components/schemas/" + rawType);
+	            }
+
+	            // ✅ ========================================
+	            // ✅ ANOTACIÓN @Schema (description + example)
+	            // ✅ ========================================
+	            if (field.getAnnotationByName("Schema").isPresent()) {
+
+	                String annotation = field.getAnnotationByName("Schema").get().toString();
+
+	                // ✅ description
+	                if (annotation.contains("description")) {
+	                    String desc = annotation.split("description\\s*=\\s*\"")[1].split("\"")[0];
+	                    prop.put("description", desc);
+	                }
+
+	                // ✅ example
+	                if (annotation.contains("example")) {
+	                    String ex = annotation.split("example\\s*=\\s*\"")[1].split("\"")[0];
+	                    prop.put("example", ex);
+	                }
+	            }
+
+	            // ✅ ========================================
+	            // ✅ VALIDACIONES
+	            // ✅ ========================================
+
+	            // ✅ @Size
+	            if (field.getAnnotationByName("Size").isPresent()) {
+
+	                String annotation = field.getAnnotationByName("Size").get().toString();
+
+	                if (annotation.contains("min")) {
+	                    String min = annotation.split("min\\s*=\\s*")[1].split("[,)]")[0];
+	                    prop.put("minLength", Integer.parseInt(min));
+	                }
+
+	                if (annotation.contains("max")) {
+	                    String max = annotation.split("max\\s*=\\s*")[1].split("[,)]")[0];
+	                    prop.put("maxLength", Integer.parseInt(max));
+	                }
+	            }
+
+	            // ✅ @Min
+	            if (field.getAnnotationByName("Min").isPresent()) {
+
+	                String annotation = field.getAnnotationByName("Min").get().toString();
+
+	                String min = annotation.split("\\(")[1].replace(")", "");
+
+	                prop.put("minimum", Integer.parseInt(min));
+	            }
+
+	            // ✅ @Max
+	            if (field.getAnnotationByName("Max").isPresent()) {
+
+	                String annotation = field.getAnnotationByName("Max").get().toString();
+
+	                String max = annotation.split("\\(")[1].replace(")", "");
+
+	                prop.put("maximum", Integer.parseInt(max));
+	            }
+
+	            // ✅ Agregar propiedad
+	            properties.put(name, prop);
+	        });
+	    });
+
+	    Map<String, Object> schema = new LinkedHashMap<>();
+
+	    // ✅ ========================================
+	    // ✅ HERENCIA → allOf
+	    // ✅ ========================================
+	    if (!clazz.getExtendedTypes().isEmpty()) {
+
+	        List<Object> allOf = new ArrayList<>();
+
+	        clazz.getExtendedTypes().forEach(parent -> {
+
+	            String parentName = parent.getNameAsString();
+
+	            allOf.add(Map.of(
+	                "$ref", "#/components/schemas/" + parentName
+	            ));
+	        });
+
+	        Map<String, Object> child = new LinkedHashMap<>();
+	        child.put("type", "object");
+	        child.put("properties", properties);
+
+	        if (!required.isEmpty()) {
+	            child.put("required", required);
+	        }
+
+	        allOf.add(child);
+
+	        schema.put("allOf", allOf);
+	    }
+
+	    // ✅ ========================================
+	    // ✅ OBJETO NORMAL
+	    // ✅ ========================================
+	    else {
+
+	        schema.put("type", "object");
+	        schema.put("properties", properties);
+
+	        if (!required.isEmpty()) {
+	            schema.put("required", required);
+	        }
+	    }
+
+	    return schema;
+	}
+
+	// ✅ =========================
+	// ✅ EXAMPLE
+	// ✅ =========================
+	private Object buildExampleFromClass(ClassOrInterfaceDeclaration clazz) {
+
+		Map<String, Object> example = new LinkedHashMap<>();
+
+		clazz.getFields().forEach(field -> {
+
+			field.getVariables().forEach(var -> {
+
+				String name = var.getNameAsString();
+
+				// ✅ JsonProperty override (CLAVE 🔥)
+				if (field.getAnnotationByName("JsonProperty").isPresent()) {
+
+					String annotation = field.getAnnotationByName("JsonProperty").get().toString();
+
+					if (annotation.contains("\"")) {
+						name = annotation.split("\"")[1];
+					}
 				}
-			}
-		}).orElse("");
+
+				String rawType = field.getElementType().asString();
+				String type = resolveFinalType(rawType);
+
+				// ✅ STRING
+				if (type.equals("String")) {
+					example.put(name, "string");
+				}
+
+				// ✅ NUMERICOS
+				else if (type.equals("Integer") || type.equals("int")) {
+					example.put(name, 0);
+				} else if (type.equals("Long") || type.equals("long")) {
+					example.put(name, 1);
+				} else if (type.equals("Double") || type.equals("double")) {
+					example.put(name, 0.0);
+				} else if (type.equals("Boolean") || type.equals("boolean")) {
+					example.put(name, true);
+				}
+
+				// ✅ ✅ NUEVOS TIPOS PRO 🔥
+
+				else if (type.equals("UUID")) {
+					example.put(name, "550e8400-e29b-41d4-a716-446655440000");
+				}
+
+				else if (type.equals("LocalDate")) {
+					example.put(name, "2026-01-01");
+				}
+
+				else if (type.equals("LocalDateTime")) {
+					example.put(name, "2026-01-01T10:00:00");
+				}
+
+				else if (type.equals("Date")) {
+					example.put(name, "2026-01-01T10:00:00");
+				}
+
+				else if (type.equals("BigDecimal")) {
+					example.put(name, 100.50);
+				}
+
+				// ✅ LISTA
+				else if (rawType.startsWith("List<")) {
+
+					String generic = extractGeneric(type);
+
+					Object nested = buildExampleFromType(generic);
+
+					example.put(name, List.of(nested));
+				}
+
+				// ✅ OBJETO
+				else {
+
+					Object nested = buildExampleFromType(type);
+
+					example.put(name, nested);
+				}
+			});
+		});
+
+		return example;
 	}
 
+	// ✅ =========================
+	// ✅ UTILIDADES
+	// ✅ =========================
 	private List<File> findJavaFiles(String root) {
 
 		List<File> files = new ArrayList<>();
 
 		File dir = new File(root);
 
-		File[] list = dir.listFiles();
-
-		if (list == null)
+		if (!dir.exists())
 			return files;
 
-		for (File f : list) {
+		for (File f : dir.listFiles()) {
 
 			if (f.isDirectory()) {
 				files.addAll(findJavaFiles(f.getAbsolutePath()));
@@ -416,38 +530,20 @@ public class OpenApiGeneratorService {
 		return files;
 	}
 
-	private String formatMethodName(String name) {
+	private String extractMapping(MethodDeclaration method, String name) {
 
-		// separar camelCase
-		String result = name.replaceAll("([a-z])([A-Z])", "$1 $2");
-
-		// primera en mayúscula
-		result = result.substring(0, 1).toUpperCase() + result.substring(1);
-
-		return result;
+		return method.getAnnotationByName(name)
+				.flatMap(a -> a.toString().contains("\"") ? java.util.Optional.of(a.toString().split("\"")[1])
+						: java.util.Optional.empty())
+				.orElse("");
 	}
 
-	private boolean isPrimitive(String type) {
+	private String extractClassMapping(ClassOrInterfaceDeclaration clazz) {
 
-		return type.equals("String") || type.equals("Integer") || type.equals("int") || type.equals("Double")
-				|| type.equals("double") || type.equals("Boolean") || type.equals("boolean") || type.equals("Long")
-				|| type.equals("long");
-	}
-
-	private String mapType(String type) {
-
-		if (type.equals("String"))
-			return "string";
-		if (type.equals("Integer") || type.equals("int"))
-			return "integer";
-		if (type.equals("Double") || type.equals("double"))
-			return "number";
-		if (type.equals("Boolean") || type.equals("boolean"))
-			return "boolean";
-		if (type.equals("Long") || type.equals("long"))
-			return "integer";
-
-		return "string";
+		return clazz.getAnnotationByName("RequestMapping")
+				.flatMap(a -> a.toString().contains("\"") ? java.util.Optional.of(a.toString().split("\"")[1])
+						: java.util.Optional.empty())
+				.orElse("");
 	}
 
 	private String extractGeneric(String type) {
@@ -459,124 +555,181 @@ public class OpenApiGeneratorService {
 			return type.substring(start + 1, end);
 		}
 
-		return "Object";
+		return type;
 	}
 
-	private Object cleanExampleObject(Object obj) {
-	
-	    if (!(obj instanceof Map)) {
-	        return obj;
-	    }
-	
-	    Map<String, Object> cleaned = new LinkedHashMap<>();
-	
-	    ((Map<?, ?>) obj).forEach((k, v) -> {
-	
-	        String key = k.toString();
-	
-	        // ❌ eliminar basura heredada SIEMPRE
-	        if (key.equals("bodyEntrada") ||
-	            key.equals("bodySalida") ||
-	            key.equals("headerEntrada") ||
-	            key.equals("code")) {
-	            return;
-	        }
-	
-	        // ✅ limpiar recursivo
-	        cleaned.put(key, cleanExampleObject(v));
-	    });
-	
-	    return cleaned;
-	}
-
-	private Object buildExampleFromClass(ClassOrInterfaceDeclaration clazz) {
-	
-	    Map<String, Object> example = new LinkedHashMap<>();
-	
-	    boolean isResponseClass =
-	        clazz.getNameAsString().endsWith("Response");
-	
-	    clazz.getFields().forEach(field -> {
-	
-	        field.getVariables().forEach(var -> {
-	
-	            String name = var.getNameAsString();
-	            String type = field.getElementType().asString();
-	
-	            // ✅ FILTRO RESPONSE (MISMO QUE SCHEMA)
-	            if (isResponseClass) {
-	
-	                if (name.equals("bodyEntrada") ||
-	                    name.equals("bodySalida") ||
-	                    name.equals("headerEntrada") ||
-	                    name.equals("code")) {
-	                    return;
-	                }
-	
-	                boolean allowed =
-	                        name.equals("headerSalida") ||
-	                        name.equals("message") ||
-	                        name.matches("bodySalida[A-Z].*");
-	
-	                if (!allowed) {
-	                    return;
-	                }
-	            }
-	
-	            // ✅ STRING
-	            if (type.equals("String")) {
-	                example.put(name, "string");
-	            }
-	
-	            // ✅ NUMERICOS
-	            else if (type.equals("Integer") || type.equals("int")) {
-	                example.put(name, 0);
-	            }
-	            else if (type.equals("Long") || type.equals("long")) {
-	                example.put(name, 1);
-	            }
-	            else if (type.equals("Double") || type.equals("double")) {
-	                example.put(name, 0.0);
-	            }
-	
-	            // ✅ BOOLEAN
-	            else if (type.equals("Boolean") || type.equals("boolean")) {
-	                example.put(name, true);
-	            }
-	
-	            // ✅ LISTA
-	            else if (type.startsWith("List")) {
-	
-	                String generic = extractGeneric(type);
-	
-	                Object nested = exampleMap.get(generic);
-	
-	                example.put(name,
-	                    List.of(cleanExampleObject(nested))
-	                );
-	            }
-	
-	            // ✅ OBJETO
-	            else {
-	
-	                Object nested = exampleMap.get(type);
-	
-	                example.put(name,
-	                    cleanExampleObject(nested)
-	                );
-	            }
-	        });
-	    });
-	
-	    return example;
-	}
-
-	private String cleanType(String type) {
+	private String resolveFinalType(String type) {
 
 		if (type.contains(".")) {
-			return type.substring(type.lastIndexOf(".") + 1);
+			type = type.substring(type.lastIndexOf(".") + 1);
 		}
+
+		if (type.contains("<")) {
+
+			int start = type.indexOf("<");
+			int end = type.lastIndexOf(">");
+
+			return resolveFinalType(type.substring(start + 1, end));
+		}
+
 		return type;
+	}
+
+	private void preloadSchemas(List<File> files) {
+
+		files.forEach(f -> {
+			try {
+				CompilationUnit cu = StaticJavaParser.parse(f);
+
+				cu.findAll(ClassOrInterfaceDeclaration.class)
+						.forEach(c -> schemaMap.putIfAbsent(c.getNameAsString(), new LinkedHashMap<>()));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		});
+	}
+
+	private boolean isInBasePackage(ClassOrInterfaceDeclaration clazz, String basePackage) {
+
+		return clazz.findCompilationUnit().flatMap(c -> c.getPackageDeclaration())
+				.map(p -> p.getNameAsString().startsWith(basePackage)).orElse(false);
+	}
+
+	private Object buildExampleFromType(String type) {
+
+		// ✅ si ya existe en cache → usarlo
+		if (exampleMap.containsKey(type)) {
+			return exampleMap.get(type);
+		}
+
+		// ✅ BYTE / BINARIO (IMÁGENES)
+		if (type.equals("byte") || type.equals("byte[]")) {
+		    return "base64-string";
+		}
+
+		// ✅ buscar en schemas
+		Map<String, Object> schema = schemaMap.get(type);
+
+		// ✅ ENUM → tomar primer valor como ejemplo
+		if (schema != null && schema.containsKey("enum")) {
+
+			List<?> values = (List<?>) schema.get("enum");
+
+			if (!values.isEmpty()) {
+				return values.get(0);
+			}
+		}
+
+		if (schema == null) {
+			return Map.of("info", "type not found");
+		}
+
+		// ✅ construir dinámicamente (recursivo)
+		Map<String, Object> example = new LinkedHashMap<>();
+
+		Object propsObj = schema.get("properties");
+
+		if (!(propsObj instanceof Map)) {
+			return example;
+		}
+
+		Map<String, Object> props = (Map<String, Object>) propsObj;
+
+		props.forEach((key, val) -> {
+
+			if (!(val instanceof Map))
+				return;
+
+			Map<String, Object> prop = (Map<String, Object>) val;
+
+			// ✅ $ref
+			if (prop.containsKey("$ref")) {
+
+				String ref = prop.get("$ref").toString();
+				String refType = ref.substring(ref.lastIndexOf("/") + 1);
+
+				// ✅ SOLO OBJETO (NO LISTA)
+				example.put(key, buildExampleFromType(refType));
+			}
+
+			// ✅ array
+			else if ("array".equals(prop.get("type"))) {
+
+				Object items = prop.get("items");
+
+				if (items instanceof Map && ((Map<?, ?>) items).containsKey("$ref")) {
+
+					String ref = ((Map<?, ?>) items).get("$ref").toString();
+					String refType = ref.substring(ref.lastIndexOf("/") + 1);
+
+					example.put(key, List.of(buildExampleFromType(refType)));
+				}
+			}
+
+			// ✅ primitivo
+			else {
+				example.put(key, "string");
+			}
+		});
+
+		// ✅ fallback si no hubo propiedades
+		if (example.isEmpty()) {
+		
+		    // ✅ si no tiene propiedades → devolver objeto simple
+		    Map<String, Object> fallback = new LinkedHashMap<>();
+		    fallback.put("id", "string");
+		
+		    return fallback;
+		}
+
+		// ✅ cachear resultado
+		exampleMap.put(type, example);
+
+		return example;
+	}
+
+	private String mapType(String type) {
+		// ✅ strings
+		if (type.equals("String"))
+			return "string";
+		if (type.equals("UUID"))
+			return "string";
+
+		// ✅ enteros
+		if (type.equals("Integer") || type.equals("int"))
+			return "integer";
+		if (type.equals("Long") || type.equals("long"))
+			return "integer";
+
+		// ✅ decimales
+		if (type.equals("Double") || type.equals("double"))
+			return "number";
+		if (type.equals("BigDecimal"))
+			return "number";
+
+		// ✅ boolean
+		if (type.equals("Boolean") || type.equals("boolean"))
+			return "boolean";
+
+		// ✅ fechas
+		if (type.equals("LocalDate") || type.equals("LocalDateTime") || type.equals("Date")) {
+			return "string";
+		}
+
+		return "string";
+	}
+
+	// ✅ verifica si es tipo primitivo
+	private boolean isPrimitive(String type) {
+
+		return type.equals("String") ||
+
+				type.equals("Integer") || type.equals("int") || type.equals("Long") || type.equals("long")
+				|| type.equals("Double") || type.equals("double") || type.equals("Boolean") || type.equals("boolean") ||
+
+				// ✅ nuevos tipos
+				type.equals("BigDecimal") || type.equals("UUID") || type.equals("LocalDate")
+				|| type.equals("LocalDateTime") || type.equals("Date");
 	}
 
 }
