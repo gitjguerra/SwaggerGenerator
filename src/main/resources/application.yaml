@@ -1,11 +1,10 @@
 spring:
   application:
     name: swaggergenerator
-
 services:
   list:
-  	- name: security
-      controllersPath: C:/DevEnvironment/src/java/bm-workspace/bm-security/api-security/src/main/java
-      beansPath: C:/DevEnvironment/src/java/bm-workspace/bm-security/ws-security/src/main/java
+    - name: security
+      controllersPath: 'C:/DevEnvironment/src/java/bm-workspace/bm-security/api-security/src/main/java'
+      beansPath: 'C:/DevEnvironment/src/java/bm-workspace/bm-security/ws-security/src/main/java'
       basePackage: com.mercantilbanco.osba
       basePath: /security

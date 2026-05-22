@@ -10,6 +10,9 @@ import com.mercantil.swaggergenerator.config.ServiceConfig;
 import com.mercantil.swaggergenerator.model.OpenApiDoc;
 import com.mercantil.swaggergenerator.service.OpenApiGeneratorService;
 
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+
 @RestController
 @RequestMapping("/api/openapi")
 public class OpenApiController {
@@ -27,6 +30,12 @@ public class OpenApiController {
             .filter(s -> s.getName().equals(name))
             .findFirst()
             .map(service::generate)
-            .orElseThrow();
+			.orElseThrow(() ->
+			    new ResponseStatusException(
+			        HttpStatus.NOT_FOUND,
+			        "Servicio no encontrado: " + name
+			    )
+			);
+
     }
 }
