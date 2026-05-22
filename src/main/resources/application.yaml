@@ -1,10 +1,24 @@
 spring:
   application:
     name: swaggergenerator
+
+swagger:
+  output-dir: C:\DevEnvironment\src\java\monitor-workspace\monitor\src\main\resources\static\swagger
+
 services:
   list:
+    - name: simf
+      controllersPath: C:/DevEnvironment/src/java/bm-workspace/bm-simf/api-simf/src/main/java
+      beansPath: C:/DevEnvironment/src/java/bm-workspace/bm-simf/ws-simf/src/main/java
+      basePackage: com.mercantilbanco.osba
+      basePath: /simf
     - name: security
-      controllersPath: 'C:/DevEnvironment/src/java/bm-workspace/bm-security/api-security/src/main/java'
-      beansPath: 'C:/DevEnvironment/src/java/bm-workspace/bm-security/ws-security/src/main/java'
+      controllersPath: C:/DevEnvironment/src/java/bm-workspace/bm-security/api-security/src/main/java
+      beansPath: C:/DevEnvironment/src/java/bm-workspace/bm-security/ws-security/src/main/java
       basePackage: com.mercantilbanco.osba
       basePath: /security
+    - name: tarjeta
+      controllersPath: C:/DevEnvironment/src/java/bm-workspace/bm-tarjeta/api-tarjeta/src/main/java
+      beansPath: C:/DevEnvironment/src/java/bm-workspace/bm-tarjeta/ws-tarjeta/src/main/java
+      basePackage: com.mercantilbanco.osba
+      basePath: /tarjeta

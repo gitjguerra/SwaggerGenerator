@@ -9,6 +9,8 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -54,6 +56,9 @@ public class OpenApiGeneratorService {
 		// ✅ 2. controllers
 		List<File> controllerFiles = findJavaFiles(service.getControllersPath());
 		controllerFiles.forEach(f -> processControllerFile(f, doc));
+
+		// ✅ Set headers genericos
+		registerBaseSchemas();
 
 		doc.components.put("schemas", schemaMap);
 
@@ -101,6 +106,7 @@ public class OpenApiGeneratorService {
 		String httpMethod = "";
 		String path = "";
 
+		// ✅ detectar método HTTP
 		if (method.getAnnotationByName("PostMapping").isPresent()) {
 			httpMethod = "post";
 			path = extractMapping(method, "PostMapping");
@@ -111,6 +117,7 @@ public class OpenApiGeneratorService {
 			return;
 		}
 
+		// ✅ construir URL final
 		String fullPath = ("/" + basePath + "/" + path).replaceAll("//+", "/");
 
 		Map<String, Object> op = new LinkedHashMap<>();
@@ -118,7 +125,9 @@ public class OpenApiGeneratorService {
 		op.put("tags", List.of(tag));
 		op.put("summary", method.getNameAsString());
 
+		// =========================================================
 		// ✅ REQUEST BODY
+		// =========================================================
 		method.getParameters().forEach(p -> {
 
 			if (p.getAnnotationByName("RequestBody").isPresent()) {
@@ -139,22 +148,120 @@ public class OpenApiGeneratorService {
 			}
 		});
 
+		// =========================================================
 		// ✅ RESPONSE
-		String returnType = resolveFinalType(method.getType().asString());
+		// =========================================================
+
+		// ✅ 1. obtener tipo completo
+		String rawReturn;
+
+		// ✅ si es tipo parametrizado (ej: ResponseEntity<T>)
+		if (method.getType().isClassOrInterfaceType()) {
+
+			var type = method.getType().asClassOrInterfaceType();
+
+			// ✅ tiene genéricos
+			if (type.getTypeArguments().isPresent() && !type.getTypeArguments().get().isEmpty()) {
+
+				// ✅ tomar el primer argumento <T>
+				rawReturn = type.getTypeArguments().get().get(0).asString();
+
+			} else {
+
+				// ✅ sin genérico
+				rawReturn = type.getNameAsString();
+			}
+
+		} else {
+			rawReturn = method.getType().asString();
+		}
+
+		// ✅ limpiar espacios por seguridad
+		rawReturn = rawReturn.replace(" ", "");
+
+		// ✅ DEBUG OPCIONAL (puedes activarlo si quieres ver casos reales)
+		System.out.println("RETURN TYPE → " + rawReturn);
+
+		// =========================================================
+		// ✅ 2. DESENVOLVER WRAPPERS IMPORTANTES
+		// =========================================================
+
+		// ✅ ResponseEntity<T> (incluye casos con paquete completo)
+		if (rawReturn.contains("ResponseEntity<")) {
+			rawReturn = extractGeneric(rawReturn);
+		}
+
+		// ✅ Optional<T>
+		if (rawReturn.contains("Optional<")) {
+			rawReturn = extractGeneric(rawReturn);
+		}
+
+		// =========================================================
+		// ✅ 3. DETECTAR SI ES LISTA
+		// =========================================================
+		boolean isList = rawReturn.startsWith("List<");
+
+		// =========================================================
+		// ✅ 4. OBTENER TIPO FINAL LIMPIO
+		// =========================================================
+		String finalType = resolveFinalType(rawReturn);
 
 		Map<String, Object> jsonContent = new LinkedHashMap<>();
+		Map<String, Object> schema = new LinkedHashMap<>();
 
-		jsonContent.put("schema", Map.of("$ref", "#/components/schemas/" + returnType));
+		// =========================================================
+		// ✅ 5. MANEJO DE LISTAS
+		// =========================================================
+		if (isList) {
 
-		Object example = exampleMap.get(returnType);
+			String generic = extractGeneric(rawReturn);
+			String cleanGeneric = resolveFinalType(generic);
+
+			schema.put("type", "array");
+
+			// ✅ si es primitivo
+			if (isPrimitive(cleanGeneric)) {
+
+				schema.put("items", Map.of("type", mapType(cleanGeneric)));
+
+			} else {
+
+				schema.put("items", Map.of("$ref", "#/components/schemas/" + cleanGeneric));
+			}
+		}
+
+		// =========================================================
+		// ✅ 6. PRIMITIVOS
+		// =========================================================
+		else if (isPrimitive(finalType)) {
+
+			schema.put("type", mapType(finalType));
+
+		}
+
+		// =========================================================
+		// ✅ 7. OBJETOS COMPLEJOS
+		// =========================================================
+		else {
+
+			schema.put("$ref", "#/components/schemas/" + finalType);
+		}
+
+		// ✅ asignar schema
+		jsonContent.put("schema", schema);
+
+		// ✅ example
+		Object example = exampleMap.get(finalType);
 
 		if (example != null) {
 			jsonContent.put("example", example);
 		}
 
+		// ✅ response final
 		op.put("responses",
 				Map.of("200", Map.of("description", "OK", "content", Map.of("application/json", jsonContent))));
 
+		// ✅ registrar endpoint
 		doc.paths.put(fullPath, new LinkedHashMap<>(Map.of(httpMethod, op)));
 	}
 
@@ -198,225 +305,284 @@ public class OpenApiGeneratorService {
 	// ✅ =========================
 	private Map<String, Object> buildSchemaFromClass(ClassOrInterfaceDeclaration clazz) {
 
-	    // ✅ propiedades del objeto
-	    Map<String, Object> properties = new LinkedHashMap<>();
+		// ✅ propiedades del objeto
+		Map<String, Object> properties = new LinkedHashMap<>();
 
-	    // ✅ campos requeridos (@NotNull)
-	    List<String> required = new ArrayList<>();
+		// ✅ campos requeridos (@NotNull)
+		List<String> required = new ArrayList<>();
 
-	    String className = clazz.getNameAsString();
+		// ✅ ========================================
+		// ✅ ENUM → convertir a lista de valores
+		// ✅ ========================================
+		if (clazz.isEnumDeclaration()) {
 
-	    // ✅ ========================================
-	    // ✅ ENUM → convertir a lista de valores
-	    // ✅ ========================================
-	    if (clazz.isEnumDeclaration()) {
+			List<String> values = clazz.asEnumDeclaration().getEntries().stream().map(e -> e.getNameAsString())
+					.collect(Collectors.toList());
 
-	        List<String> values = clazz.asEnumDeclaration()
-	            .getEntries()
-	            .stream()
-	            .map(e -> e.getNameAsString())
-	            .collect(Collectors.toList());
+			return Map.of("type", "string", "enum", values);
+		}
 
-	        return Map.of(
-	            "type", "string",
-	            "enum", values
-	        );
-	    }
+		// ✅ ========================================
+		// ✅ PROCESAR CAMPOS
+		// ✅ ========================================
+		clazz.getFields().forEach(field -> {
 
-	    // ✅ ========================================
-	    // ✅ PROCESAR CAMPOS
-	    // ✅ ========================================
-	    clazz.getFields().forEach(field -> {
+			field.getVariables().forEach(var -> {
 
-	        field.getVariables().forEach(var -> {
+				String name = var.getNameAsString();
 
-	            String name = var.getNameAsString();
+				// ✅ JsonProperty → usar nombre real JSON
+				if (field.getAnnotationByName("JsonProperty").isPresent()) {
 
-	            // ✅ JsonProperty → usar nombre real JSON
-	            if (field.getAnnotationByName("JsonProperty").isPresent()) {
+					String annotation = field.getAnnotationByName("JsonProperty").get().toString();
 
-	                String annotation = field.getAnnotationByName("JsonProperty").get().toString();
+					if (annotation.contains("\"")) {
+						name = annotation.split("\"")[1];
+					}
+				}
 
-	                if (annotation.contains("\"")) {
-	                    name = annotation.split("\"")[1];
-	                }
-	            }
+				// ✅ tipo original (IMPORTANTE NO PERDER GENÉRICOS)
+				String rawType = field.getElementType().asString();
 
-	            // ✅ tipo Java → limpio (sin paquetes)
-	            String rawType = field.getElementType().asString();
+				// ✅ detectar Optional<T>
+				boolean isOptional = rawType.startsWith("Optional<");
 
-	            // ✅ NotNull → required
-	            if (field.getAnnotationByName("NotNull").isPresent()) {
-	                required.add(name);
-	            }
+				// ✅ limpiar tipo si es Optional
+				String cleanType = isOptional ? extractGeneric(rawType) : rawType;
 
-	            Map<String, Object> prop = new LinkedHashMap<>();
+				// ✅ tipo final limpio
+				String type = resolveFinalType(cleanType);
 
-	            // ✅ ========================================
-	            // ✅ LISTAS
-	            // ✅ ========================================
-	            if (rawType.startsWith("List<")) {
+				// ✅ NotNull → required
+				if (field.getAnnotationByName("NotNull").isPresent()) {
+					required.add(name);
+				}
 
-	                String generic = extractGeneric(rawType);
+				Map<String, Object> prop = new LinkedHashMap<>();
 
-	                prop.put("type", "array");
-	                prop.put("items", Map.of(
-	                    "$ref", "#/components/schemas/" + generic
-	                ));
-	            }
+				// ✅ ========================================
+				// ✅ MAP (dinámico)
+				// ✅ ========================================
+				if (rawType.startsWith("Map<")) {
 
-	            // ✅ ========================================
-	            // ✅ TIPOS PRIMITIVOS + FORMAT
-	            // ✅ ========================================
-	            else if (isPrimitive(rawType)) {
+					String generic = extractGeneric(rawType); // "String,String"
 
-	                prop.put("type", mapType(rawType));
+					String[] parts = generic.split(",");
 
-	                // ✅ formatos especiales OpenAPI
-	                if (rawType.equals("UUID")) {
-	                    prop.put("format", "uuid");
-	                }
+					String valueType = resolveFinalType(parts[1].trim());
 
-	                if (rawType.equals("LocalDate")) {
-	                    prop.put("format", "date");
-	                }
+					Map<String, Object> additional = new LinkedHashMap<>();
 
-	                if (rawType.equals("LocalDateTime") || rawType.equals("Date")) {
-	                    prop.put("format", "date-time");
-	                }
+					if (isPrimitive(valueType)) {
+						additional.put("type", mapType(valueType));
+					} else {
+						additional.put("$ref", "#/components/schemas/" + valueType);
+					}
 
-	                if (rawType.equals("BigDecimal")) {
-	                    prop.put("format", "double");
-	                }
-	            }
+					prop.put("type", "object");
+					prop.put("additionalProperties", additional);
 
-	            // ✅ ========================================
-	            // ✅ BYTE / BINARIO
-	            // ✅ ========================================
-	            else if (rawType.equals("byte") || rawType.equals("byte[]")) {
+				}
 
-	                prop.put("type", "string");
-	                prop.put("format", "byte");
-	            }
+				// ✅ ========================================
+				// ✅ LISTAS (usar rawType 🔥)
+				// ✅ ========================================
+				else if (rawType.startsWith("List<")) {
 
-	            // ✅ ========================================
-	            // ✅ OBJETO COMPLEJO ($ref)
-	            // ✅ ========================================
-	            else {
+					String generic = extractGeneric(rawType);
 
-	                prop.put("$ref", "#/components/schemas/" + rawType);
-	            }
+					prop.put("type", "array");
 
-	            // ✅ ========================================
-	            // ✅ ANOTACIÓN @Schema (description + example)
-	            // ✅ ========================================
-	            if (field.getAnnotationByName("Schema").isPresent()) {
+					String cleanGeneric = resolveFinalType(generic);
 
-	                String annotation = field.getAnnotationByName("Schema").get().toString();
+					if (isPrimitive(cleanGeneric)) {
 
-	                // ✅ description
-	                if (annotation.contains("description")) {
-	                    String desc = annotation.split("description\\s*=\\s*\"")[1].split("\"")[0];
-	                    prop.put("description", desc);
-	                }
+						prop.put("items", Map.of("type", mapType(cleanGeneric)));
 
-	                // ✅ example
-	                if (annotation.contains("example")) {
-	                    String ex = annotation.split("example\\s*=\\s*\"")[1].split("\"")[0];
-	                    prop.put("example", ex);
-	                }
-	            }
+					} else {
 
-	            // ✅ ========================================
-	            // ✅ VALIDACIONES
-	            // ✅ ========================================
+						prop.put("items", Map.of("$ref", "#/components/schemas/" + cleanGeneric));
+					}
 
-	            // ✅ @Size
-	            if (field.getAnnotationByName("Size").isPresent()) {
+				}
 
-	                String annotation = field.getAnnotationByName("Size").get().toString();
+				// ✅ ========================================
+				// ✅ PRIMITIVOS + FORMAT
+				// ✅ ========================================
+				else if (isPrimitive(type)) {
 
-	                if (annotation.contains("min")) {
-	                    String min = annotation.split("min\\s*=\\s*")[1].split("[,)]")[0];
-	                    prop.put("minLength", Integer.parseInt(min));
-	                }
+					prop.put("type", mapType(type));
 
-	                if (annotation.contains("max")) {
-	                    String max = annotation.split("max\\s*=\\s*")[1].split("[,)]")[0];
-	                    prop.put("maxLength", Integer.parseInt(max));
-	                }
-	            }
+					if (type.equals("UUID")) {
+						prop.put("format", "uuid");
+					}
 
-	            // ✅ @Min
-	            if (field.getAnnotationByName("Min").isPresent()) {
+					if (type.equals("LocalDate")) {
+						prop.put("format", "date");
+					}
 
-	                String annotation = field.getAnnotationByName("Min").get().toString();
+					if (type.equals("LocalDateTime") || type.equals("Date")) {
+						prop.put("format", "date-time");
+					}
 
-	                String min = annotation.split("\\(")[1].replace(")", "");
+					if (type.equals("BigDecimal")) {
+						prop.put("format", "double");
+					}
+				}
 
-	                prop.put("minimum", Integer.parseInt(min));
-	            }
+				// ✅ ========================================
+				// ✅ BYTE / BINARIO
+				// ✅ ========================================
+				else if (type.equals("byte") || type.equals("byte[]")) {
 
-	            // ✅ @Max
-	            if (field.getAnnotationByName("Max").isPresent()) {
+					prop.put("type", "string");
+					prop.put("format", "byte");
+				}
 
-	                String annotation = field.getAnnotationByName("Max").get().toString();
+				// ✅ ========================================
+				// ✅ OBJETOS COMPLEJOS ($ref)
+				// ✅ ========================================
+				else {
 
-	                String max = annotation.split("\\(")[1].replace(")", "");
+					prop.put("$ref", "#/components/schemas/" + type);
+				}
 
-	                prop.put("maximum", Integer.parseInt(max));
-	            }
+				// ✅ ========================================
+				// ✅ @Schema (description + example)
+				// ✅ ========================================
+				if (field.getAnnotationByName("Schema").isPresent()) {
 
-	            // ✅ Agregar propiedad
-	            properties.put(name, prop);
-	        });
-	    });
+					String annotation = field.getAnnotationByName("Schema").get().toString();
 
-	    Map<String, Object> schema = new LinkedHashMap<>();
+					if (annotation.contains("description")) {
+						String desc = annotation.split("description\\s*=\\s*\"")[1].split("\"")[0];
+						prop.put("description", desc);
+					}
 
-	    // ✅ ========================================
-	    // ✅ HERENCIA → allOf
-	    // ✅ ========================================
-	    if (!clazz.getExtendedTypes().isEmpty()) {
+					if (annotation.contains("example")) {
+						String ex = annotation.split("example\\s*=\\s*\"")[1].split("\"")[0];
+						prop.put("example", ex);
+					}
+				}
 
-	        List<Object> allOf = new ArrayList<>();
+				// ✅ ========================================
+				// ✅ VALIDACIONES
+				// ✅ ========================================
 
-	        clazz.getExtendedTypes().forEach(parent -> {
+				// ✅ @Size
+				if (field.getAnnotationByName("Size").isPresent()) {
 
-	            String parentName = parent.getNameAsString();
+					String annotation = field.getAnnotationByName("Size").get().toString();
 
-	            allOf.add(Map.of(
-	                "$ref", "#/components/schemas/" + parentName
-	            ));
-	        });
+					if (annotation.contains("min")) {
+						String min = annotation.split("min\\s*=\\s*")[1].split("[,)]")[0];
+						prop.put("minLength", Integer.parseInt(min));
+					}
 
-	        Map<String, Object> child = new LinkedHashMap<>();
-	        child.put("type", "object");
-	        child.put("properties", properties);
+					if (annotation.contains("max")) {
+						String max = annotation.split("max\\s*=\\s*")[1].split("[,)]")[0];
+						prop.put("maxLength", Integer.parseInt(max));
+					}
+				}
 
-	        if (!required.isEmpty()) {
-	            child.put("required", required);
-	        }
+				// ✅ @Min
+				if (field.getAnnotationByName("Min").isPresent()) {
 
-	        allOf.add(child);
+					String annotation = field.getAnnotationByName("Min").get().toString();
 
-	        schema.put("allOf", allOf);
-	    }
+					// ✅ extraer número correctamente
+					String min = annotation.replaceAll(".*value\\s*=\\s*", "").replaceAll(",.*", "")
+							.replaceAll("[^0-9]", "");
 
-	    // ✅ ========================================
-	    // ✅ OBJETO NORMAL
-	    // ✅ ========================================
-	    else {
+					if (!min.isEmpty()) {
+						prop.put("minimum", Long.parseLong(min));
+					}
+				}
 
-	        schema.put("type", "object");
-	        schema.put("properties", properties);
+				// ✅ @Max
+				if (field.getAnnotationByName("Max").isPresent()) {
 
-	        if (!required.isEmpty()) {
-	            schema.put("required", required);
-	        }
-	    }
+					String annotation = field.getAnnotationByName("Max").get().toString();
 
-	    return schema;
+					String max = annotation.replaceAll(".*value\\s*=\\s*", "").replaceAll(",.*", "")
+							.replaceAll("[^0-9]", "");
+
+					if (!max.isEmpty()) {
+						prop.put("maximum", Long.parseLong(max));
+					}
+				}
+
+				// ✅ @Pattern
+				if (field.getAnnotationByName("Pattern").isPresent()) {
+
+					String annotation = field.getAnnotationByName("Pattern").get().toString();
+
+					if (annotation.contains("regexp")) {
+						String pattern = annotation.split("regexp\\s*=\\s*\"")[1].split("\"")[0];
+						prop.put("pattern", pattern);
+					}
+				}
+
+				// ✅ ========================================
+				// ✅ OPTIONAL → nullable
+				// ✅ ========================================
+				if (isOptional) {
+					prop.put("nullable", true);
+				}
+
+				// ✅ agregar propiedad final
+				properties.put(name, prop);
+			});
+		});
+
+		Map<String, Object> schema = new LinkedHashMap<>();
+
+		// ✅ ========================================
+		// ✅ HERENCIA → allOf
+		// ✅ ========================================
+		if (!clazz.getExtendedTypes().isEmpty()) {
+
+			List<Object> allOf = new ArrayList<>();
+
+			clazz.getExtendedTypes().forEach(parent -> {
+
+				String parentName = parent.getNameAsString();
+
+				allOf.add(Map.of("$ref", "#/components/schemas/" + parentName));
+			});
+
+			Map<String, Object> child = new LinkedHashMap<>();
+			child.put("type", "object");
+			child.put("properties", properties);
+
+			if (!required.isEmpty()) {
+				child.put("required", required);
+			}
+
+			allOf.add(child);
+
+			schema.put("allOf", allOf);
+		}
+
+		// ✅ ========================================
+		// ✅ OBJETO NORMAL
+		// ✅ ========================================
+		else {
+
+			schema.put("type", "object");
+			schema.put("properties", properties);
+
+			if (!required.isEmpty()) {
+				schema.put("required", required);
+			}
+		}
+
+		if (properties.isEmpty() && clazz.getExtendedTypes().isEmpty()) {
+			schema.put("type", "object");
+			schema.put("additionalProperties", true);
+		}
+
+		return schema;
 	}
 
 	// ✅ =========================
@@ -443,7 +609,12 @@ public class OpenApiGeneratorService {
 				}
 
 				String rawType = field.getElementType().asString();
-				String type = resolveFinalType(rawType);
+
+				boolean isOptional = rawType.startsWith("Optional<");
+
+				String cleanType = isOptional ? extractGeneric(rawType) : rawType;
+
+				String type = resolveFinalType(cleanType);
 
 				// ✅ STRING
 				if (type.equals("String")) {
@@ -549,7 +720,7 @@ public class OpenApiGeneratorService {
 	private String extractGeneric(String type) {
 
 		int start = type.indexOf("<");
-		int end = type.indexOf(">");
+		int end = type.lastIndexOf(">");
 
 		if (start != -1 && end != -1) {
 			return type.substring(start + 1, end);
@@ -604,7 +775,7 @@ public class OpenApiGeneratorService {
 
 		// ✅ BYTE / BINARIO (IMÁGENES)
 		if (type.equals("byte") || type.equals("byte[]")) {
-		    return "base64-string";
+			return "base64-string";
 		}
 
 		// ✅ buscar en schemas
@@ -674,12 +845,12 @@ public class OpenApiGeneratorService {
 
 		// ✅ fallback si no hubo propiedades
 		if (example.isEmpty()) {
-		
-		    // ✅ si no tiene propiedades → devolver objeto simple
-		    Map<String, Object> fallback = new LinkedHashMap<>();
-		    fallback.put("id", "string");
-		
-		    return fallback;
+
+			// ✅ si no tiene propiedades → devolver objeto simple
+			Map<String, Object> fallback = new LinkedHashMap<>();
+			fallback.put("id", "string");
+
+			return fallback;
 		}
 
 		// ✅ cachear resultado
@@ -730,6 +901,107 @@ public class OpenApiGeneratorService {
 				// ✅ nuevos tipos
 				type.equals("BigDecimal") || type.equals("UUID") || type.equals("LocalDate")
 				|| type.equals("LocalDateTime") || type.equals("Date");
+	}
+
+	private void registerBaseSchemas() {
+
+		// =========================================================
+		// ✅ HEADER ENTRADA
+		// =========================================================
+		Map<String, Object> headerEntrada = new LinkedHashMap<>();
+
+		headerEntrada.put("type", "object");
+
+		Map<String, Object> propsEntrada = new LinkedHashMap<>();
+
+		propsEntrada.put("identificadorUnicoGlobal", Map.of("type", "string"));
+		propsEntrada.put("identificacionCanal", Map.of("type", "string"));
+		propsEntrada.put("identificacionSubCanal", Map.of("type", "string"));
+		propsEntrada.put("siglaAplicacion", Map.of("type", "string", "minLength", 1, "maxLength", 4));
+		propsEntrada.put("identificacionUsuario", Map.of("type", "string"));
+		propsEntrada.put("direccionIpConsumidor", Map.of("type", "string"));
+		propsEntrada.put("direccionIpCliente", Map.of("type", "string"));
+		propsEntrada.put("fechaEnvioMensaje", Map.of("type", "string"));
+		propsEntrada.put("horaEnvioMensaje", Map.of("type", "string"));
+		propsEntrada.put("atributoPagineo", Map.of("type", "string"));
+		propsEntrada.put("claveBusqueda", Map.of("type", "string"));
+		propsEntrada.put("cantidadRegistros", Map.of("type", "integer"));
+
+		headerEntrada.put("properties", propsEntrada);
+
+		headerEntrada.put("required",
+				List.of("identificadorUnicoGlobal", "identificacionCanal", "identificacionSubCanal", "siglaAplicacion",
+						"direccionIpConsumidor", "direccionIpCliente", "fechaEnvioMensaje", "horaEnvioMensaje"));
+
+		schemaMap.putIfAbsent("HeaderEntrada", headerEntrada);
+
+		// =========================================================
+		// ✅ HEADER SALIDA
+		// =========================================================
+		Map<String, Object> headerSalida = new LinkedHashMap<>();
+
+		headerSalida.put("type", "object");
+
+		Map<String, Object> propsSalida = new LinkedHashMap<>();
+
+		propsSalida.put("tipoMensaje", Map.of("type", "string", "example", "F"));
+		propsSalida.put("mensajeProgramadorSistema", Map.of("type", "string"));
+		propsSalida.put("codigoMensajeProgramador", Map.of("type", "string"));
+		propsSalida.put("mensajeUsuario",
+				Map.of("type", "string", "example", "EN ESTE MOMENTO NO PODEMOS PROCESAR SU OPERACION"));
+		propsSalida.put("codigoMensajeUsuario", Map.of("type", "string"));
+		propsSalida.put("fechaSalidaMensaje", Map.of("type", "string"));
+		propsSalida.put("horaSalidaMensaje", Map.of("type", "string"));
+
+		headerSalida.put("properties", propsSalida);
+
+		schemaMap.putIfAbsent("HeaderSalida", headerSalida);
+	}
+
+	// =========================================================
+	// ✅ Generar y guardar
+	// =========================================================
+	public String generateAndSave(ServiceItem service, String outputDir) {
+
+		try {
+			// ✅ generar swagger
+			OpenApiDoc doc = generate(service);
+
+			// ✅ crear carpeta si no existe
+			File dir = new File(outputDir);
+			if (!dir.exists()) {
+				dir.mkdirs();
+			}
+
+			// ✅ archivo destino
+			File file = new File(dir, service.getName() + ".json");
+
+			// ✅ escribir JSON formateado
+			ObjectMapper mapper = new ObjectMapper();
+			mapper.enable(SerializationFeature.INDENT_OUTPUT);
+
+			mapper.writeValue(file, doc);
+
+			return file.getAbsolutePath();
+
+		} catch (Exception e) {
+			throw new RuntimeException("Error generando archivo para: " + service.getName(), e);
+		}
+	}
+
+	// =========================================================
+	// ✅ Generar y guardar todos
+	// =========================================================
+	public List<String> generateAllAndSave(List<ServiceItem> services, String outputDir) {
+
+		List<String> rutas = new ArrayList<>();
+
+		services.forEach(s -> {
+			String path = generateAndSave(s, outputDir);
+			rutas.add(path);
+		});
+
+		return rutas;
 	}
 
 }
