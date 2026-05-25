@@ -21,6 +21,8 @@ import com.mercantil.swaggergenerator.model.ServiceItem;
 @Service
 public class OpenApiGeneratorService {
 
+	private static final List<String> IGNORED_TYPES = List.of("ConstructorRequired", "BeansZOS");
+
 	// ✅ mapa de schemas
 	private Map<String, Map<String, Object>> schemaMap = new LinkedHashMap<>();
 
@@ -34,32 +36,26 @@ public class OpenApiGeneratorService {
 
 		OpenApiDoc doc = new OpenApiDoc();
 
-		// ✅ limpiar estado
 		schemaMap = new LinkedHashMap<>();
 		exampleMap = new LinkedHashMap<>();
 
 		doc.security = List.of(Map.of("bearerAuth", List.of()));
-
 		doc.info.title = "API " + service.getName();
 
 		doc.servers.add(Map.of("url", (service.getHost() == null ? "" : service.getHost()) + service.getBasePath()));
 
-		// ✅ 1. cargar beans
+		// ✅ 1. REGISTRAR HARDCORE BASE
+		registerBaseSchemas();
+
+		// ✅ 2. PROCESAR BEANS (SIN preload)
 		List<File> beanFiles = findJavaFiles(service.getBeansPath());
-
-		// ✅ registro previo (evita dependencias rotas)
-		preloadSchemas(beanFiles);
-
-		// ✅ procesar beans
 		beanFiles.forEach(f -> processBeanFile(f, doc, service.getBasePackage()));
 
-		// ✅ 2. controllers
+		// ✅ 3. PROCESAR CONTROLLERS
 		List<File> controllerFiles = findJavaFiles(service.getControllersPath());
 		controllerFiles.forEach(f -> processControllerFile(f, doc));
 
-		// ✅ Set headers genericos
-		registerBaseSchemas();
-
+		// ✅ 4. FINAL
 		doc.components.put("schemas", schemaMap);
 
 		return doc;
@@ -106,7 +102,9 @@ public class OpenApiGeneratorService {
 		String httpMethod = "";
 		String path = "";
 
-		// ✅ detectar método HTTP
+		// =========================================================
+		// ✅ 1. DETECTAR MÉTODO HTTP
+		// =========================================================
 		if (method.getAnnotationByName("PostMapping").isPresent()) {
 			httpMethod = "post";
 			path = extractMapping(method, "PostMapping");
@@ -117,157 +115,181 @@ public class OpenApiGeneratorService {
 			return;
 		}
 
-		// ✅ construir URL final
 		String fullPath = ("/" + basePath + "/" + path).replaceAll("//+", "/");
 
 		Map<String, Object> op = new LinkedHashMap<>();
-
 		op.put("tags", List.of(tag));
 		op.put("summary", method.getNameAsString());
+		op.put("operationId", method.getNameAsString());
 
 		// =========================================================
-		// ✅ REQUEST BODY
+		// ✅ HELPERS 🔥
 		// =========================================================
-		method.getParameters().forEach(p -> {
+		java.util.function.Function<String, Map<String, Object>> safeRef = type -> {
+			if (type == null || IGNORED_TYPES.contains(type)) {
+				return Map.of("type", "object");
+			}
+			return Map.of("$ref", "#/components/schemas/" + type);
+		};
 
-			if (p.getAnnotationByName("RequestBody").isPresent()) {
+		// =========================================================
+		// ✅ 2. REQUEST
+		// =========================================================
+		Map<String, Object> requestSchema = new LinkedHashMap<>();
+		Map<String, Object> requestProps = new LinkedHashMap<>();
 
-				String type = resolveFinalType(p.getType().asString());
+		requestProps.put("headerEntrada", safeRef.apply("HeaderEntrada"));
 
-				Map<String, Object> json = new LinkedHashMap<>();
+		String requestBodyType = null;
+		String bodyName = null;
 
-				json.put("schema", Map.of("$ref", "#/components/schemas/" + type));
+		for (var p : method.getParameters()) {
 
-				Object example = exampleMap.get(type);
+			String rawType = p.getType().asString();
 
-				if (example != null) {
-					json.put("example", example);
+			if (rawType.contains("Optional<")) {
+				rawType = extractGeneric(rawType);
+			}
+
+			if (rawType.startsWith("Request")) {
+
+				String requestClass = resolveFinalType(rawType);
+
+				Map<String, Object> reqSchema = schemaMap.get(requestClass);
+
+				if (reqSchema != null && reqSchema.get("properties") instanceof Map) {
+
+					Map<String, Object> props = (Map<String, Object>) reqSchema.get("properties");
+
+					for (var entry : props.entrySet()) {
+
+						if (entry.getKey().startsWith("bodyEntrada")) {
+
+							Map<String, Object> refObj = (Map<String, Object>) entry.getValue();
+
+							if (refObj.containsKey("$ref")) {
+
+								String ref = refObj.get("$ref").toString();
+								requestBodyType = ref.substring(ref.lastIndexOf("/") + 1);
+
+								// ✅ BLOQUEO ABSOLUTO
+								if (IGNORED_TYPES.contains(requestBodyType)) {
+									requestBodyType = null;
+									break;
+								}
+
+								bodyName = capitalize(entry.getKey().replace("bodyEntrada", ""));
+
+								ensureSchemaExists(requestBodyType);
+								break;
+							}
+						}
+					}
 				}
-
-				op.put("requestBody", Map.of("content", Map.of("application/json", json)));
-			}
-		});
-
-		// =========================================================
-		// ✅ RESPONSE
-		// =========================================================
-
-		// ✅ 1. obtener tipo completo
-		String rawReturn;
-
-		// ✅ si es tipo parametrizado (ej: ResponseEntity<T>)
-		if (method.getType().isClassOrInterfaceType()) {
-
-			var type = method.getType().asClassOrInterfaceType();
-
-			// ✅ tiene genéricos
-			if (type.getTypeArguments().isPresent() && !type.getTypeArguments().get().isEmpty()) {
-
-				// ✅ tomar el primer argumento <T>
-				rawReturn = type.getTypeArguments().get().get(0).asString();
-
-			} else {
-
-				// ✅ sin genérico
-				rawReturn = type.getNameAsString();
-			}
-
-		} else {
-			rawReturn = method.getType().asString();
-		}
-
-		// ✅ limpiar espacios por seguridad
-		rawReturn = rawReturn.replace(" ", "");
-
-		// ✅ DEBUG OPCIONAL (puedes activarlo si quieres ver casos reales)
-		System.out.println("RETURN TYPE → " + rawReturn);
-
-		// =========================================================
-		// ✅ 2. DESENVOLVER WRAPPERS IMPORTANTES
-		// =========================================================
-
-		// ✅ ResponseEntity<T> (incluye casos con paquete completo)
-		if (rawReturn.contains("ResponseEntity<")) {
-			rawReturn = extractGeneric(rawReturn);
-		}
-
-		// ✅ Optional<T>
-		if (rawReturn.contains("Optional<")) {
-			rawReturn = extractGeneric(rawReturn);
-		}
-
-		// =========================================================
-		// ✅ 3. DETECTAR SI ES LISTA
-		// =========================================================
-		boolean isList = rawReturn.startsWith("List<");
-
-		// =========================================================
-		// ✅ 4. OBTENER TIPO FINAL LIMPIO
-		// =========================================================
-		String finalType = resolveFinalType(rawReturn);
-
-		Map<String, Object> jsonContent = new LinkedHashMap<>();
-		Map<String, Object> schema = new LinkedHashMap<>();
-
-		// =========================================================
-		// ✅ 5. MANEJO DE LISTAS
-		// =========================================================
-		if (isList) {
-
-			String generic = extractGeneric(rawReturn);
-			String cleanGeneric = resolveFinalType(generic);
-
-			schema.put("type", "array");
-
-			// ✅ si es primitivo
-			if (isPrimitive(cleanGeneric)) {
-
-				schema.put("items", Map.of("type", mapType(cleanGeneric)));
-
-			} else {
-
-				schema.put("items", Map.of("$ref", "#/components/schemas/" + cleanGeneric));
 			}
 		}
 
-		// =========================================================
-		// ✅ 6. PRIMITIVOS
-		// =========================================================
-		else if (isPrimitive(finalType)) {
-
-			schema.put("type", mapType(finalType));
-
+		if (requestBodyType != null) {
+			requestProps.put("bodyEntrada" + bodyName, safeRef.apply(requestBodyType));
 		}
 
-		// =========================================================
-		// ✅ 7. OBJETOS COMPLEJOS
-		// =========================================================
-		else {
+		requestSchema.put("type", "object");
+		requestSchema.put("properties", requestProps);
 
-			schema.put("$ref", "#/components/schemas/" + finalType);
+		Map<String, Object> requestJson = new LinkedHashMap<>();
+		requestJson.put("schema", requestSchema);
+
+		Map<String, Object> requestExample = new LinkedHashMap<>();
+		requestExample.put("headerEntrada", buildHeaderEntradaExample());
+
+		if (requestBodyType != null) {
+
+			Object bodyExample = exampleMap.get(requestBodyType);
+			if (!(bodyExample instanceof Map)) {
+				bodyExample = new LinkedHashMap<>();
+			}
+
+			requestExample.put("bodyEntrada" + bodyName, bodyExample);
 		}
 
-		// ✅ asignar schema
-		jsonContent.put("schema", schema);
+		requestJson.put("example", requestExample);
 
-		// ✅ example
-		Object example = exampleMap.get(finalType);
+		op.put("requestBody", Map.of("required", true, "content", Map.of("application/json", requestJson)));
 
-		if (example != null) {
-			jsonContent.put("example", example);
+		// =========================================================
+		// ✅ 3. RESPONSE
+		// =========================================================
+		String rawReturn = method.getType().asString();
+
+		String responseType = unwrapResponseType(rawReturn);
+
+		// 🔴 BLOQUEO DEFINITIVO
+		if (IGNORED_TYPES.contains(responseType) || responseType.equals("ClientResponse")) {
+			responseType = null;
 		}
 
-		// ✅ response final
-		op.put("responses",
-				Map.of("200", Map.of("description", "OK", "content", Map.of("application/json", jsonContent))));
+		ensureSchemaExists(responseType);
 
-		// ✅ registrar endpoint
-		doc.paths.put(fullPath, new LinkedHashMap<>(Map.of(httpMethod, op)));
+		String responseBodyName = capitalize(responseType.replace("Response", ""));
+
+		String expectedBodyClass = "BodySalida" + responseBodyName;
+
+		// ✅ BLOQUEO TAMBIÉN AQUÍ
+		if (IGNORED_TYPES.contains(expectedBodyClass)) {
+			expectedBodyClass = null;
+		}
+
+		boolean canHaveBody = expectedBodyClass != null && schemaMap.containsKey(expectedBodyClass);
+
+		Map<String, Object> responseSchema = new LinkedHashMap<>();
+		Map<String, Object> responseProps = new LinkedHashMap<>();
+
+		responseProps.put("headerSalida", safeRef.apply("HeaderSalida"));
+
+		if (canHaveBody) {
+			responseProps.put("bodySalida" + responseBodyName, safeRef.apply(expectedBodyClass));
+		}
+
+		responseSchema.put("type", "object");
+		responseSchema.put("properties", responseProps);
+
+		Map<String, Object> responseJson = new LinkedHashMap<>();
+		responseJson.put("schema", responseSchema);
+
+		Map<String, Object> responseExample = new LinkedHashMap<>();
+
+		// ✅ SIEMPRE headerSalida (FORZADO)
+		responseExample.put("headerSalida", buildHeaderSalidaExample());
+
+		// ✅ BODY (SI EXISTE)
+		if (canHaveBody) {
+
+			Object exampleBody = exampleMap.get(expectedBodyClass);
+
+			// ✅ si no hay ejemplo → poner objeto vacío (NO omitir)
+			if (!(exampleBody instanceof Map)) {
+				exampleBody = new LinkedHashMap<>();
+			}
+
+			responseExample.put("bodySalida" + responseBodyName, exampleBody);
+		}
+
+		responseJson.put("example", responseExample);
+
+		Map<String, Object> responses = new LinkedHashMap<>();
+
+		responses.put("200",
+				Map.of("description", "Operación exitosa", "content", Map.of("application/json", responseJson)));
+
+		op.put("responses", responses);
+
+		doc.paths.put(fullPath, Map.of(httpMethod, op));
 	}
 
 	// ✅ =========================
 	// ✅ PROCESAR BEANS
 	// ✅ =========================
+
 	private void processBeanFile(File file, OpenApiDoc doc, String basePackage) {
 
 		try {
@@ -281,16 +303,14 @@ public class OpenApiGeneratorService {
 
 				String className = clazz.getNameAsString();
 
-				// ✅ ignorar base
-				if (className.equals("ConstructorRequired") || className.equals("BeansZOS"))
+				// ✅ IGNORAR TOTALMENTE
+				if (IGNORED_TYPES.contains(className)) {
 					return;
+				}
 
-				// ✅ filtrar DTO
-				if (!className.startsWith("Request") && !className.startsWith("Response")
-						&& !className.startsWith("Body") && !className.startsWith("Header"))
-					return;
+				Map<String, Object> schema = buildSchemaFromClass(clazz);
 
-				schemaMap.put(className, buildSchemaFromClass(clazz));
+				schemaMap.putIfAbsent(className, schema);
 
 				exampleMap.put(className, buildExampleFromClass(clazz));
 			});
@@ -305,15 +325,19 @@ public class OpenApiGeneratorService {
 	// ✅ =========================
 	private Map<String, Object> buildSchemaFromClass(ClassOrInterfaceDeclaration clazz) {
 
-		// ✅ propiedades del objeto
 		Map<String, Object> properties = new LinkedHashMap<>();
-
-		// ✅ campos requeridos (@NotNull)
 		List<String> required = new ArrayList<>();
 
-		// ✅ ========================================
-		// ✅ ENUM → convertir a lista de valores
-		// ✅ ========================================
+		String className = clazz.getNameAsString();
+
+		// ✅ IGNORAR CLASES EXTERNAS TOTALMENTE
+		if (IGNORED_TYPES.contains(className)) {
+			return Map.of("type", "object", "additionalProperties", true);
+		}
+
+		// =========================================================
+		// ✅ ENUM
+		// =========================================================
 		if (clazz.isEnumDeclaration()) {
 
 			List<String> values = clazz.asEnumDeclaration().getEntries().stream().map(e -> e.getNameAsString())
@@ -322,263 +346,104 @@ public class OpenApiGeneratorService {
 			return Map.of("type", "string", "enum", values);
 		}
 
-		// ✅ ========================================
-		// ✅ PROCESAR CAMPOS
-		// ✅ ========================================
+		// =========================================================
+		// ✅ CAMPOS
+		// =========================================================
 		clazz.getFields().forEach(field -> {
 
 			field.getVariables().forEach(var -> {
 
 				String name = var.getNameAsString();
 
-				// ✅ JsonProperty → usar nombre real JSON
+				// ✅ JsonProperty
 				if (field.getAnnotationByName("JsonProperty").isPresent()) {
-
 					String annotation = field.getAnnotationByName("JsonProperty").get().toString();
-
 					if (annotation.contains("\"")) {
 						name = annotation.split("\"")[1];
 					}
 				}
 
-				// ✅ tipo original (IMPORTANTE NO PERDER GENÉRICOS)
 				String rawType = field.getElementType().asString();
-
-				// ✅ detectar Optional<T>
 				boolean isOptional = rawType.startsWith("Optional<");
 
-				// ✅ limpiar tipo si es Optional
 				String cleanType = isOptional ? extractGeneric(rawType) : rawType;
-
-				// ✅ tipo final limpio
 				String type = resolveFinalType(cleanType);
 
-				// ✅ NotNull → required
+				// ✅ IGNORAR tipo externo
+				if (!schemaMap.containsKey(type) && !isPrimitive(type)) {
+					properties.put(name, Map.of("type", "object"));
+					return;
+				}
+
 				if (field.getAnnotationByName("NotNull").isPresent()) {
 					required.add(name);
 				}
 
 				Map<String, Object> prop = new LinkedHashMap<>();
 
-				// ✅ ========================================
-				// ✅ MAP (dinámico)
-				// ✅ ========================================
-				if (rawType.startsWith("Map<")) {
+				// ✅ LIST
+				if (rawType.startsWith("List<")) {
 
-					String generic = extractGeneric(rawType); // "String,String"
-
-					String[] parts = generic.split(",");
-
-					String valueType = resolveFinalType(parts[1].trim());
-
-					Map<String, Object> additional = new LinkedHashMap<>();
-
-					if (isPrimitive(valueType)) {
-						additional.put("type", mapType(valueType));
-					} else {
-						additional.put("$ref", "#/components/schemas/" + valueType);
-					}
-
-					prop.put("type", "object");
-					prop.put("additionalProperties", additional);
-
-				}
-
-				// ✅ ========================================
-				// ✅ LISTAS (usar rawType 🔥)
-				// ✅ ========================================
-				else if (rawType.startsWith("List<")) {
-
-					String generic = extractGeneric(rawType);
+					String generic = resolveFinalType(extractGeneric(rawType));
 
 					prop.put("type", "array");
 
-					String cleanGeneric = resolveFinalType(generic);
-
-					if (isPrimitive(cleanGeneric)) {
-
-						prop.put("items", Map.of("type", mapType(cleanGeneric)));
-
+					if (!schemaMap.containsKey(generic) && !isPrimitive(generic)) {
+						prop.put("items", Map.of("type", "object"));
+					} else if (isPrimitive(generic)) {
+						prop.put("items", Map.of("type", mapType(generic)));
 					} else {
-
-						prop.put("items", Map.of("$ref", "#/components/schemas/" + cleanGeneric));
+						prop.put("items", Map.of("$ref", "#/components/schemas/" + generic));
 					}
-
 				}
 
-				// ✅ ========================================
-				// ✅ PRIMITIVOS + FORMAT
-				// ✅ ========================================
+				// ✅ PRIMITIVO
 				else if (isPrimitive(type)) {
 
 					prop.put("type", mapType(type));
 
-					if (type.equals("UUID")) {
+					if (type.equals("UUID"))
 						prop.put("format", "uuid");
-					}
-
-					if (type.equals("LocalDate")) {
+					if (type.equals("LocalDate"))
 						prop.put("format", "date");
-					}
-
-					if (type.equals("LocalDateTime") || type.equals("Date")) {
+					if (type.equals("LocalDateTime") || type.equals("Date"))
 						prop.put("format", "date-time");
-					}
-
-					if (type.equals("BigDecimal")) {
+					if (type.equals("BigDecimal"))
 						prop.put("format", "double");
-					}
 				}
 
-				// ✅ ========================================
-				// ✅ BYTE / BINARIO
-				// ✅ ========================================
-				else if (type.equals("byte") || type.equals("byte[]")) {
-
-					prop.put("type", "string");
-					prop.put("format", "byte");
-				}
-
-				// ✅ ========================================
-				// ✅ OBJETOS COMPLEJOS ($ref)
-				// ✅ ========================================
+				// ✅ OBJETO
 				else {
 
-					prop.put("$ref", "#/components/schemas/" + type);
-				}
-
-				// ✅ ========================================
-				// ✅ @Schema (description + example)
-				// ✅ ========================================
-				if (field.getAnnotationByName("Schema").isPresent()) {
-
-					String annotation = field.getAnnotationByName("Schema").get().toString();
-
-					if (annotation.contains("description")) {
-						String desc = annotation.split("description\\s*=\\s*\"")[1].split("\"")[0];
-						prop.put("description", desc);
-					}
-
-					if (annotation.contains("example")) {
-						String ex = annotation.split("example\\s*=\\s*\"")[1].split("\"")[0];
-						prop.put("example", ex);
+					if (schemaMap.containsKey(type)) {
+						prop.put("$ref", "#/components/schemas/" + type);
+					} else {
+						prop.put("type", "object");
 					}
 				}
 
-				// ✅ ========================================
-				// ✅ VALIDACIONES
-				// ✅ ========================================
-
-				// ✅ @Size
-				if (field.getAnnotationByName("Size").isPresent()) {
-
-					String annotation = field.getAnnotationByName("Size").get().toString();
-
-					if (annotation.contains("min")) {
-						String min = annotation.split("min\\s*=\\s*")[1].split("[,)]")[0];
-						prop.put("minLength", Integer.parseInt(min));
-					}
-
-					if (annotation.contains("max")) {
-						String max = annotation.split("max\\s*=\\s*")[1].split("[,)]")[0];
-						prop.put("maxLength", Integer.parseInt(max));
-					}
-				}
-
-				// ✅ @Min
-				if (field.getAnnotationByName("Min").isPresent()) {
-
-					String annotation = field.getAnnotationByName("Min").get().toString();
-
-					// ✅ extraer número correctamente
-					String min = annotation.replaceAll(".*value\\s*=\\s*", "").replaceAll(",.*", "")
-							.replaceAll("[^0-9]", "");
-
-					if (!min.isEmpty()) {
-						prop.put("minimum", Long.parseLong(min));
-					}
-				}
-
-				// ✅ @Max
-				if (field.getAnnotationByName("Max").isPresent()) {
-
-					String annotation = field.getAnnotationByName("Max").get().toString();
-
-					String max = annotation.replaceAll(".*value\\s*=\\s*", "").replaceAll(",.*", "")
-							.replaceAll("[^0-9]", "");
-
-					if (!max.isEmpty()) {
-						prop.put("maximum", Long.parseLong(max));
-					}
-				}
-
-				// ✅ @Pattern
-				if (field.getAnnotationByName("Pattern").isPresent()) {
-
-					String annotation = field.getAnnotationByName("Pattern").get().toString();
-
-					if (annotation.contains("regexp")) {
-						String pattern = annotation.split("regexp\\s*=\\s*\"")[1].split("\"")[0];
-						prop.put("pattern", pattern);
-					}
-				}
-
-				// ✅ ========================================
-				// ✅ OPTIONAL → nullable
-				// ✅ ========================================
 				if (isOptional) {
 					prop.put("nullable", true);
 				}
 
-				// ✅ agregar propiedad final
 				properties.put(name, prop);
 			});
 		});
 
 		Map<String, Object> schema = new LinkedHashMap<>();
 
-		// ✅ ========================================
-		// ✅ HERENCIA → allOf
-		// ✅ ========================================
-		if (!clazz.getExtendedTypes().isEmpty()) {
+		// ✅ SIN HERENCIA
+		schema.put("type", "object");
 
-			List<Object> allOf = new ArrayList<>();
-
-			clazz.getExtendedTypes().forEach(parent -> {
-
-				String parentName = parent.getNameAsString();
-
-				allOf.add(Map.of("$ref", "#/components/schemas/" + parentName));
-			});
-
-			Map<String, Object> child = new LinkedHashMap<>();
-			child.put("type", "object");
-			child.put("properties", properties);
-
-			if (!required.isEmpty()) {
-				child.put("required", required);
-			}
-
-			allOf.add(child);
-
-			schema.put("allOf", allOf);
-		}
-
-		// ✅ ========================================
-		// ✅ OBJETO NORMAL
-		// ✅ ========================================
-		else {
-
-			schema.put("type", "object");
+		if (!properties.isEmpty()) {
 			schema.put("properties", properties);
-
-			if (!required.isEmpty()) {
-				schema.put("required", required);
-			}
 		}
 
-		if (properties.isEmpty() && clazz.getExtendedTypes().isEmpty()) {
-			schema.put("type", "object");
+		if (!required.isEmpty()) {
+			schema.put("required", required);
+		}
+
+		if (properties.isEmpty()) {
 			schema.put("additionalProperties", true);
 		}
 
@@ -657,7 +522,7 @@ public class OpenApiGeneratorService {
 				// ✅ LISTA
 				else if (rawType.startsWith("List<")) {
 
-					String generic = extractGeneric(type);
+					String generic = extractGeneric(rawType);
 
 					Object nested = buildExampleFromType(generic);
 
@@ -717,16 +582,23 @@ public class OpenApiGeneratorService {
 				.orElse("");
 	}
 
-	private String extractGeneric(String type) {
+	private String extractGeneric(String input) {
 
-		int start = type.indexOf("<");
-		int end = type.lastIndexOf(">");
+		int start = input.indexOf("<");
+		int end = input.lastIndexOf(">");
 
-		if (start != -1 && end != -1) {
-			return type.substring(start + 1, end);
+		if (start == -1 || end == -1 || end <= start) {
+			return input;
 		}
 
-		return type;
+		String inner = input.substring(start + 1, end).trim();
+
+		// 🔥 SI TODAVÍA HAY < > → sigue bajando
+		if (inner.contains("<")) {
+			return extractGeneric(inner);
+		}
+
+		return inner;
 	}
 
 	private String resolveFinalType(String type) {
@@ -792,7 +664,7 @@ public class OpenApiGeneratorService {
 		}
 
 		if (schema == null) {
-			return Map.of("info", "type not found");
+			return new LinkedHashMap<>();
 		}
 
 		// ✅ construir dinámicamente (recursivo)
@@ -898,18 +770,18 @@ public class OpenApiGeneratorService {
 				type.equals("Integer") || type.equals("int") || type.equals("Long") || type.equals("long")
 				|| type.equals("Double") || type.equals("double") || type.equals("Boolean") || type.equals("boolean") ||
 
-				// ✅ nuevos tipos
-				type.equals("BigDecimal") || type.equals("UUID") || type.equals("LocalDate")
-				|| type.equals("LocalDateTime") || type.equals("Date");
+				// ✅ NUEVOS
+				type.equals("BigDecimal") || type.equals("BigInteger") || type.equals("UUID")
+				|| type.equals("LocalDate") || type.equals("LocalDateTime") || type.equals("Date");
+
 	}
 
 	private void registerBaseSchemas() {
 
 		// =========================================================
-		// ✅ HEADER ENTRADA
+		// ✅ HEADER ENTRADA (SCHEMA)
 		// =========================================================
 		Map<String, Object> headerEntrada = new LinkedHashMap<>();
-
 		headerEntrada.put("type", "object");
 
 		Map<String, Object> propsEntrada = new LinkedHashMap<>();
@@ -929,17 +801,12 @@ public class OpenApiGeneratorService {
 
 		headerEntrada.put("properties", propsEntrada);
 
-		headerEntrada.put("required",
-				List.of("identificadorUnicoGlobal", "identificacionCanal", "identificacionSubCanal", "siglaAplicacion",
-						"direccionIpConsumidor", "direccionIpCliente", "fechaEnvioMensaje", "horaEnvioMensaje"));
-
 		schemaMap.putIfAbsent("HeaderEntrada", headerEntrada);
 
 		// =========================================================
-		// ✅ HEADER SALIDA
+		// ✅ HEADER SALIDA (SCHEMA)
 		// =========================================================
 		Map<String, Object> headerSalida = new LinkedHashMap<>();
-
 		headerSalida.put("type", "object");
 
 		Map<String, Object> propsSalida = new LinkedHashMap<>();
@@ -947,8 +814,7 @@ public class OpenApiGeneratorService {
 		propsSalida.put("tipoMensaje", Map.of("type", "string", "example", "F"));
 		propsSalida.put("mensajeProgramadorSistema", Map.of("type", "string"));
 		propsSalida.put("codigoMensajeProgramador", Map.of("type", "string"));
-		propsSalida.put("mensajeUsuario",
-				Map.of("type", "string", "example", "EN ESTE MOMENTO NO PODEMOS PROCESAR SU OPERACION"));
+		propsSalida.put("mensajeUsuario", Map.of("type", "string"));
 		propsSalida.put("codigoMensajeUsuario", Map.of("type", "string"));
 		propsSalida.put("fechaSalidaMensaje", Map.of("type", "string"));
 		propsSalida.put("horaSalidaMensaje", Map.of("type", "string"));
@@ -956,6 +822,34 @@ public class OpenApiGeneratorService {
 		headerSalida.put("properties", propsSalida);
 
 		schemaMap.putIfAbsent("HeaderSalida", headerSalida);
+
+		// =========================================================
+		// ✅ EJEMPLOS HARDCODE ✅
+		// =========================================================
+
+		Map<String, Object> headerEntradaExample = new LinkedHashMap<>();
+		headerEntradaExample.put("identificadorUnicoGlobal", "string");
+		headerEntradaExample.put("identificacionCanal", "string");
+		headerEntradaExample.put("identificacionSubCanal", "string");
+		headerEntradaExample.put("siglaAplicacion", "ABC");
+		headerEntradaExample.put("identificacionUsuario", "string");
+		headerEntradaExample.put("direccionIpConsumidor", "127.0.0.1");
+		headerEntradaExample.put("direccionIpCliente", "127.0.0.1");
+		headerEntradaExample.put("fechaEnvioMensaje", "20260101");
+		headerEntradaExample.put("horaEnvioMensaje", "120000");
+		headerEntradaExample.put("atributoPagineo", "N");
+		headerEntradaExample.put("claveBusqueda", "string");
+		headerEntradaExample.put("cantidadRegistros", 0);
+
+		Map<String, Object> headerSalidaExample = new LinkedHashMap<>();
+		headerSalidaExample.put("tipoMensaje", "F");
+		headerSalidaExample.put("mensajeProgramadorSistema", "string");
+		headerSalidaExample.put("codigoMensajeProgramador", "string");
+		headerSalidaExample.put("mensajeUsuario", "string");
+		headerSalidaExample.put("codigoMensajeUsuario", "string");
+		headerSalidaExample.put("fechaSalidaMensaje", "20260101");
+		headerSalidaExample.put("horaSalidaMensaje", "120000");
+
 	}
 
 	// =========================================================
@@ -1004,4 +898,91 @@ public class OpenApiGeneratorService {
 		return rutas;
 	}
 
+	private void ensureSchemaExists(String typeName) {
+
+		if (typeName == null || typeName.isBlank())
+			return;
+
+		// 🔴 BLOQUEO CRÍTICO
+		if (IGNORED_TYPES.contains(typeName) || typeName.equals("ClientResponse")
+				|| typeName.equals("ConstructorRequired")) {
+			return;
+		}
+
+		if (isPrimitive(typeName))
+			return;
+
+		if (schemaMap.containsKey(typeName))
+			return;
+
+		Map<String, Object> schema = new LinkedHashMap<>();
+		schema.put("type", "object");
+		schema.put("additionalProperties", true);
+
+		schemaMap.put(typeName, schema);
+	}
+
+	private String capitalize(String str) {
+		if (str == null || str.isEmpty())
+			return str;
+		return str.substring(0, 1).toUpperCase() + str.substring(1);
+	}
+
+	private Map<String, Object> buildHeaderEntradaExample() {
+
+		Map<String, Object> header = new LinkedHashMap<>();
+
+		header.put("identificadorUnicoGlobal", "f215a700-4fdb-45ec-8540-7b030663afb3");
+		header.put("identificacionCanal", "0006");
+		header.put("identificacionSubCanal", "01");
+		header.put("siglaAplicacion", "OLB");
+		header.put("identificacionUsuario", "");
+		header.put("direccionIpConsumidor", "10.0.12.48");
+		header.put("direccionIpCliente", "10.0.12.48");
+		header.put("fechaEnvioMensaje", "20251226");
+		header.put("horaEnvioMensaje", "135046");
+		header.put("atributoPagineo", "");
+		header.put("claveBusqueda", "");
+		header.put("cantidadRegistros", 0);
+
+		return header;
+	}
+
+	private Map<String, Object> buildHeaderSalidaExample() {
+
+		Map<String, Object> header = new LinkedHashMap<>();
+
+		header.put("tipoMensaje", "I");
+		header.put("mensajeProgramadorSistema", "Procesado correctamente");
+		header.put("codigoMensajeProgramador", "0000");
+		header.put("mensajeUsuario", "Operación exitosa");
+		header.put("codigoMensajeUsuario", "0000");
+		header.put("fechaSalidaMensaje", "20251226");
+		header.put("horaSalidaMensaje", "135046");
+
+		return header;
+	}
+
+	private String unwrapResponseType(String type) {
+
+		if (type == null)
+			return null;
+
+		List<String> wrappers = List.of("ResponseEntity", "ClientResponse", "ConstructorRequired", "Optional");
+
+		String current = type;
+
+		while (current.contains("<") && current.contains(">")) {
+
+			String outer = current.substring(0, current.indexOf("<")).trim();
+
+			if (!wrappers.contains(outer)) {
+				break;
+			}
+
+			current = extractGeneric(current);
+		}
+
+		return resolveFinalType(current);
+	}
 }
