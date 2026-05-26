@@ -22,3 +22,8 @@ services:
       beansPath: C:/DevEnvironment/src/java/bm-workspace/bm-tarjeta/ws-tarjeta/src/main/java
       basePackage: com.mercantilbanco.osba
       basePath: /tarjeta
+    - name: inversiones
+      controllersPath: C:\DevEnvironment\src\java\bm-workspace\bm-inversiones\api-inversiones\src\main\java
+      beansPath: C:\DevEnvironment\src\java\bm-workspace\bm-inversiones\ws-inversiones\src\main\java
+      basePackage: com.mercantilbanco.osba
+      basePath: /inversiones
