@@ -1,10 +1,8 @@
 spring:
   application:
     name: swaggergenerator
-
 swagger:
   output-dir: C:\DevEnvironment\src\java\monitor-workspace\monitor\src\main\resources\static\swagger
-
 services:
   list:
     - name: simf
@@ -27,3 +25,8 @@ services:
       beansPath: C:\DevEnvironment\src\java\bm-workspace\bm-inversiones\ws-inversiones\src\main\java
       basePackage: com.mercantilbanco.osba
       basePath: /inversiones
+    - name: persona
+      controllersPath: C:\DevEnvironment\src\java\bm-workspace\bm-persona\api-persona\src\main\java
+      beansPath: C:\DevEnvironment\src\java\bm-workspace\bm-persona\ws-persona\src\main\java
+      basePackage: com.mercantilbanco.osba
+      basePath: /persona
