@@ -98,6 +98,7 @@ public class RequestBuilder {
 
 		// ✅ ejemplo
 		Map<String, Object> requestExample = new LinkedHashMap<>();
+
 		requestExample.put("headerEntrada", headerProvider.buildHeaderEntrada());
 
 		if (requestBodyType != null) {
@@ -111,7 +112,15 @@ public class RequestBuilder {
 			requestExample.put("bodyEntrada" + bodyName, bodyExample);
 		}
 
-		requestJson.put("examples", Map.of("default", Map.of("summary", "Ejemplo generado", "value", requestExample)));
+		Map<String, Object> exampleWrapper = new LinkedHashMap<>();
+
+		Map<String, Object> defaultExample = new LinkedHashMap<>();
+		defaultExample.put("summary", "Ejemplo generado");
+		defaultExample.put("value", requestExample);
+
+		exampleWrapper.put("default", defaultExample);
+
+		requestJson.put("examples", exampleWrapper);
 
 		return Map.of("required", true, "content", Map.of("application/json", requestJson));
 	}

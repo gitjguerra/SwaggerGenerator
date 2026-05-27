@@ -262,71 +262,79 @@ public class OpenApiGeneratorService {
 
 	private void registerBaseSchemas() {
 
-		// ✅ HEADER ENTRADA (SCHEMA)
-		Map<String, Object> headerEntrada = new LinkedHashMap<>();
-		headerEntrada.put("type", "object");
+	    // =========================================================
+	    // ✅ HEADER ENTRADA
+	    // =========================================================
+	    Map<String, Object> headerEntrada = new LinkedHashMap<>();
+	    headerEntrada.put("type", "object");
 
-		Map<String, Object> propsEntrada = new LinkedHashMap<>();
+	    Map<String, Object> propsEntrada = new LinkedHashMap<>();
 
-		propsEntrada.put("identificadorUnicoGlobal", Map.of("type", "string"));
-		propsEntrada.put("identificacionCanal", Map.of("type", "string"));
-		propsEntrada.put("identificacionSubCanal", Map.of("type", "string"));
-		propsEntrada.put("siglaAplicacion", Map.of("type", "string", "minLength", 1, "maxLength", 4));
-		propsEntrada.put("identificacionUsuario", Map.of("type", "string"));
-		propsEntrada.put("direccionIpConsumidor", Map.of("type", "string"));
-		propsEntrada.put("direccionIpCliente", Map.of("type", "string"));
-		propsEntrada.put("fechaEnvioMensaje", Map.of("type", "string"));
-		propsEntrada.put("horaEnvioMensaje", Map.of("type", "string"));
-		propsEntrada.put("atributoPagineo", Map.of("type", "string"));
-		propsEntrada.put("claveBusqueda", Map.of("type", "string"));
-		propsEntrada.put("cantidadRegistros", Map.of("type", "integer"));
+	    propsEntrada.put("identificadorUnicoGlobal", Map.of("type", "string"));
+	    propsEntrada.put("identificacionCanal", Map.of("type", "string"));
+	    propsEntrada.put("identificacionSubCanal", Map.of("type", "string"));
+	    propsEntrada.put("siglaAplicacion", Map.of("type", "string", "minLength", 1, "maxLength", 4));
+	    propsEntrada.put("identificacionUsuario", Map.of("type", "string"));
+	    propsEntrada.put("direccionIpConsumidor", Map.of("type", "string"));
+	    propsEntrada.put("direccionIpCliente", Map.of("type", "string"));
+	    propsEntrada.put("fechaEnvioMensaje", Map.of("type", "string"));
+	    propsEntrada.put("horaEnvioMensaje", Map.of("type", "string"));
+	    propsEntrada.put("atributoPagineo", Map.of("type", "string"));
+	    propsEntrada.put("claveBusqueda", Map.of("type", "string"));
+	    propsEntrada.put("cantidadRegistros", Map.of("type", "integer"));
 
-		headerEntrada.put("properties", propsEntrada);
+	    headerEntrada.put("properties", propsEntrada);
 
-		schemaMap.putIfAbsent("HeaderEntrada", headerEntrada);
+	    // ✅ Example (CLAVE para Swagger UI)
+	    Map<String, Object> headerEntradaExample = new LinkedHashMap<>();
+	    headerEntradaExample.put("identificadorUnicoGlobal", "string");
+	    headerEntradaExample.put("identificacionCanal", "0006");
+	    headerEntradaExample.put("identificacionSubCanal", "01");
+	    headerEntradaExample.put("siglaAplicacion", "ABC");
+	    headerEntradaExample.put("identificacionUsuario", "user");
+	    headerEntradaExample.put("direccionIpConsumidor", "127.0.0.1");
+	    headerEntradaExample.put("direccionIpCliente", "127.0.0.1");
+	    headerEntradaExample.put("fechaEnvioMensaje", "20260101");
+	    headerEntradaExample.put("horaEnvioMensaje", "120000");
+	    headerEntradaExample.put("atributoPagineo", "N");
+	    headerEntradaExample.put("claveBusqueda", "clave");
+	    headerEntradaExample.put("cantidadRegistros", 0);
 
-		// ✅ HEADER SALIDA (SCHEMA)
-		Map<String, Object> headerSalida = new LinkedHashMap<>();
-		headerSalida.put("type", "object");
+	    headerEntrada.put("example", headerEntradaExample);
 
-		Map<String, Object> propsSalida = new LinkedHashMap<>();
+	    schemaMap.putIfAbsent("HeaderEntrada", headerEntrada);
 
-		propsSalida.put("tipoMensaje", Map.of("type", "string", "example", "F"));
-		propsSalida.put("mensajeProgramadorSistema", Map.of("type", "string"));
-		propsSalida.put("codigoMensajeProgramador", Map.of("type", "string"));
-		propsSalida.put("mensajeUsuario", Map.of("type", "string"));
-		propsSalida.put("codigoMensajeUsuario", Map.of("type", "string"));
-		propsSalida.put("fechaSalidaMensaje", Map.of("type", "string"));
-		propsSalida.put("horaSalidaMensaje", Map.of("type", "string"));
+	    // =========================================================
+	    // ✅ HEADER SALIDA
+	    // =========================================================
+	    Map<String, Object> headerSalida = new LinkedHashMap<>();
+	    headerSalida.put("type", "object");
 
-		headerSalida.put("properties", propsSalida);
+	    Map<String, Object> propsSalida = new LinkedHashMap<>();
 
-		schemaMap.putIfAbsent("HeaderSalida", headerSalida);
+	    propsSalida.put("tipoMensaje", Map.of("type", "string", "example", "F"));
+	    propsSalida.put("mensajeProgramadorSistema", Map.of("type", "string"));
+	    propsSalida.put("codigoMensajeProgramador", Map.of("type", "string"));
+	    propsSalida.put("mensajeUsuario", Map.of("type", "string"));
+	    propsSalida.put("codigoMensajeUsuario", Map.of("type", "string"));
+	    propsSalida.put("fechaSalidaMensaje", Map.of("type", "string"));
+	    propsSalida.put("horaSalidaMensaje", Map.of("type", "string"));
 
-		// ✅ EJEMPLOS HARDCODE ✅
-		Map<String, Object> headerEntradaExample = new LinkedHashMap<>();
-		headerEntradaExample.put("identificadorUnicoGlobal", "string");
-		headerEntradaExample.put("identificacionCanal", "string");
-		headerEntradaExample.put("identificacionSubCanal", "string");
-		headerEntradaExample.put("siglaAplicacion", "ABC");
-		headerEntradaExample.put("identificacionUsuario", "string");
-		headerEntradaExample.put("direccionIpConsumidor", "127.0.0.1");
-		headerEntradaExample.put("direccionIpCliente", "127.0.0.1");
-		headerEntradaExample.put("fechaEnvioMensaje", "20260101");
-		headerEntradaExample.put("horaEnvioMensaje", "120000");
-		headerEntradaExample.put("atributoPagineo", "N");
-		headerEntradaExample.put("claveBusqueda", "string");
-		headerEntradaExample.put("cantidadRegistros", 0);
+	    headerSalida.put("properties", propsSalida);
 
-		Map<String, Object> headerSalidaExample = new LinkedHashMap<>();
-		headerSalidaExample.put("tipoMensaje", "F");
-		headerSalidaExample.put("mensajeProgramadorSistema", "string");
-		headerSalidaExample.put("codigoMensajeProgramador", "string");
-		headerSalidaExample.put("mensajeUsuario", "string");
-		headerSalidaExample.put("codigoMensajeUsuario", "string");
-		headerSalidaExample.put("fechaSalidaMensaje", "20260101");
-		headerSalidaExample.put("horaSalidaMensaje", "120000");
+	    // ✅ Example
+	    Map<String, Object> headerSalidaExample = new LinkedHashMap<>();
+	    headerSalidaExample.put("tipoMensaje", "F");
+	    headerSalidaExample.put("mensajeProgramadorSistema", "Procesado correctamente");
+	    headerSalidaExample.put("codigoMensajeProgramador", "0000");
+	    headerSalidaExample.put("mensajeUsuario", "Operación exitosa");
+	    headerSalidaExample.put("codigoMensajeUsuario", "0000");
+	    headerSalidaExample.put("fechaSalidaMensaje", "20260101");
+	    headerSalidaExample.put("horaSalidaMensaje", "120000");
 
+	    headerSalida.put("example", headerSalidaExample);
+
+	    schemaMap.putIfAbsent("HeaderSalida", headerSalida);
 	}
 
 	// =========================================================
