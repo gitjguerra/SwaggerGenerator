@@ -25,18 +25,23 @@ import com.mercantil.swaggergenerator.util.SchemaBuilder;
 @Service
 public class OpenApiGeneratorService {
 
+	// Get http method
 	@Autowired
 	private HttpMethodUtil httpMethodUtil;
 
+	// Build schemas
 	@Autowired
 	private SchemaBuilder schemaBuilder;
 
+	// Build examples
 	@Autowired
 	private ExampleGenerator exampleGenerator;
 
+	// build request
 	@Autowired
 	private RequestBuilder requestBuilder;
 
+	// build response
 	@Autowired
 	private ResponseBuilder responseBuilder;
 
@@ -253,9 +258,7 @@ public class OpenApiGeneratorService {
 
 	private void registerBaseSchemas() {
 
-		// =========================================================
 		// ✅ HEADER ENTRADA (SCHEMA)
-		// =========================================================
 		Map<String, Object> headerEntrada = new LinkedHashMap<>();
 		headerEntrada.put("type", "object");
 
@@ -278,9 +281,7 @@ public class OpenApiGeneratorService {
 
 		schemaMap.putIfAbsent("HeaderEntrada", headerEntrada);
 
-		// =========================================================
 		// ✅ HEADER SALIDA (SCHEMA)
-		// =========================================================
 		Map<String, Object> headerSalida = new LinkedHashMap<>();
 		headerSalida.put("type", "object");
 
@@ -298,9 +299,7 @@ public class OpenApiGeneratorService {
 
 		schemaMap.putIfAbsent("HeaderSalida", headerSalida);
 
-		// =========================================================
 		// ✅ EJEMPLOS HARDCODE ✅
-		// =========================================================
 		Map<String, Object> headerEntradaExample = new LinkedHashMap<>();
 		headerEntradaExample.put("identificadorUnicoGlobal", "string");
 		headerEntradaExample.put("identificacionCanal", "string");
@@ -434,18 +433,14 @@ public class OpenApiGeneratorService {
 
 					try {
 
-						// =====================================================
 						// ✅ CASO 1: STRING DIRECTO
 						// setServiceName("jwt-create")
-						// =====================================================
 						if (arg.isStringLiteralExpr()) {
 							return arg.asStringLiteralExpr().asString();
 						}
 
-						// =====================================================
 						// ✅ CASO 2: CONSTANTE
 						// SecurityConstanstService.JUMIO_AUTENTICAR.getValue()
-						// =====================================================
 						if (arg.isMethodCallExpr()) {
 
 							com.github.javaparser.ast.expr.MethodCallExpr methodCall = arg.asMethodCallExpr();
@@ -459,7 +454,7 @@ public class OpenApiGeneratorService {
 
 									com.github.javaparser.ast.expr.FieldAccessExpr fieldAccess = scope.get().asFieldAccessExpr();
 
-									String constant = fieldAccess.getNameAsString(); // JUMIO_AUTENTICAR
+									String constant = fieldAccess.getNameAsString();
 
 									return resolveEnumToValue(constant);
 								}
