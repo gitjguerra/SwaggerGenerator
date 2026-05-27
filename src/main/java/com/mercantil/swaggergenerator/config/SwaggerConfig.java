@@ -14,4 +14,13 @@ public class SwaggerConfig {
 
     private String outputDir;
 
+    // ✅ MÉTODO CLAVE (AGREGAR ESTO)
+    public String requireOutputDir() {
+
+        if (outputDir == null || outputDir.isBlank()) {
+            throw new IllegalStateException("swagger.output-dir no configurado");
+        }
+
+        return outputDir;
+    }
 }

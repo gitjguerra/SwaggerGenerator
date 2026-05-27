@@ -15,12 +15,13 @@ import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.mercantil.swaggergenerator.component.ExampleGenerator;
+import com.mercantil.swaggergenerator.component.RequestBuilder;
+import com.mercantil.swaggergenerator.component.ResponseBuilder;
+import com.mercantil.swaggergenerator.component.SchemaBuilder;
 import com.mercantil.swaggergenerator.model.OpenApiDoc;
 import com.mercantil.swaggergenerator.model.ServiceItem;
 import com.mercantil.swaggergenerator.util.HttpMethodUtil;
-import com.mercantil.swaggergenerator.util.RequestBuilder;
-import com.mercantil.swaggergenerator.util.ResponseBuilder;
-import com.mercantil.swaggergenerator.util.SchemaBuilder;
 
 @Service
 public class OpenApiGeneratorService {
@@ -54,6 +55,9 @@ public class OpenApiGeneratorService {
 
 	// ✅ cache de endpoints por nombre
 	private Map<String, String> backendServiceMap = new LinkedHashMap<>();
+
+	// Object mapper create
+	private final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	// ✅ =========================
 	// ✅ GENERADOR PRINCIPAL
@@ -330,30 +334,11 @@ public class OpenApiGeneratorService {
 	// =========================================================
 	public String generateAndSave(ServiceItem service, String outputDir) {
 
-		try {
-			// ✅ generar swagger
-			OpenApiDoc doc = generate(service);
+		OpenApiDoc doc = generate(service);
 
-			// ✅ crear carpeta si no existe
-			File dir = new File(outputDir);
-			if (!dir.exists()) {
-				dir.mkdirs();
-			}
+		saveDoc(doc, service.getName(), outputDir);
 
-			// ✅ archivo destino
-			File file = new File(dir, service.getName() + ".json");
-
-			// ✅ escribir JSON formateado
-			ObjectMapper mapper = new ObjectMapper();
-			mapper.enable(SerializationFeature.INDENT_OUTPUT);
-
-			mapper.writeValue(file, doc);
-
-			return file.getAbsolutePath();
-
-		} catch (Exception e) {
-			throw new RuntimeException("Error generando archivo para: " + service.getName(), e);
-		}
+		return new File(outputDir, service.getName() + ".json").getAbsolutePath();
 	}
 
 	// =========================================================
@@ -448,11 +433,13 @@ public class OpenApiGeneratorService {
 							// getValue()
 							if (methodCall.getNameAsString().equals("getValue")) {
 
-								java.util.Optional<com.github.javaparser.ast.expr.Expression> scope = methodCall.getScope();
+								java.util.Optional<com.github.javaparser.ast.expr.Expression> scope = methodCall
+										.getScope();
 
 								if (scope.isPresent() && scope.get().isFieldAccessExpr()) {
 
-									com.github.javaparser.ast.expr.FieldAccessExpr fieldAccess = scope.get().asFieldAccessExpr();
+									com.github.javaparser.ast.expr.FieldAccessExpr fieldAccess = scope.get()
+											.asFieldAccessExpr();
 
 									String constant = fieldAccess.getNameAsString();
 
@@ -515,6 +502,34 @@ public class OpenApiGeneratorService {
 			return null;
 
 		return backendServiceMap.get(serviceName);
+	}
+
+	public OpenApiDoc generateAndSaveReturningDoc(ServiceItem service, String outputDir) {
+
+		OpenApiDoc doc = generate(service);
+
+		saveDoc(doc, service.getName(), outputDir);
+
+		return doc;
+	}
+
+	private void saveDoc(OpenApiDoc doc, String serviceName, String outputDir) {
+
+		try {
+			File dir = new File(outputDir);
+			if (!dir.exists()) {
+				dir.mkdirs();
+			}
+
+			File file = new File(dir, serviceName + ".json");
+
+			mapper.writeValue(file, doc);
+
+			System.out.println("✅ Archivo generado: " + file.getAbsolutePath());
+
+		} catch (Exception e) {
+			throw new RuntimeException("Error guardando archivo para: " + serviceName, e);
+		}
 	}
 
 }

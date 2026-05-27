@@ -1,4 +1,4 @@
-package com.mercantil.swaggergenerator.util;
+package com.mercantil.swaggergenerator.component;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

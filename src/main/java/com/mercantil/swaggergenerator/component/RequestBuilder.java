@@ -1,4 +1,4 @@
-package com.mercantil.swaggergenerator.util;
+package com.mercantil.swaggergenerator.component;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
+import com.mercantil.swaggergenerator.util.ParserUtil;
 
 @Component
 public class RequestBuilder {

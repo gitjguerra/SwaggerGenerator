@@ -1,4 +1,4 @@
-package com.mercantil.swaggergenerator.service;
+package com.mercantil.swaggergenerator.component;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.mercantil.swaggergenerator.util.HeaderExampleProvider;
+import com.mercantil.swaggergenerator.service.OpenApiGeneratorService;
 import com.mercantil.swaggergenerator.util.ParserUtil;
 import com.mercantil.swaggergenerator.util.TypeUtil;
 

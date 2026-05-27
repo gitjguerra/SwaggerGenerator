@@ -15,94 +15,99 @@ import org.springframework.web.server.ResponseStatusException;
 import com.mercantil.swaggergenerator.config.ServiceConfig;
 import com.mercantil.swaggergenerator.config.SwaggerConfig;
 import com.mercantil.swaggergenerator.model.OpenApiDoc;
+import com.mercantil.swaggergenerator.model.ServiceItem;
 import com.mercantil.swaggergenerator.service.OpenApiGeneratorService;
 
 @RestController
 @RequestMapping("/api/openapi")
 public class OpenApiController {
 
-	@Autowired
-	private OpenApiGeneratorService service;
+    @Autowired
+    private OpenApiGeneratorService service;
 
-	@Autowired
-	private ServiceConfig config;
+    @Autowired
+    private ServiceConfig config;
 
-	@Autowired
-	private SwaggerConfig swaggerConfig;
+    @Autowired
+    private SwaggerConfig swaggerConfig;
 
-	@GetMapping("/{name}")
-	public OpenApiDoc get(@PathVariable String name) {
+    // =========================================================
+    // ✅ GENERAR UN SOLO SERVICIO (SIEMPRE GUARDA + DEVUELVE JSON)
+    // =========================================================
+    @GetMapping("/{name}")
+    public OpenApiDoc get(@PathVariable String name) {
 
-		// =========================================================
-		// ✅ CASO ALL
-		// =========================================================
-		if ("all".equalsIgnoreCase(name)) {
+        // ✅ obtiene ruta validada desde configuración
+        String outputDir = swaggerConfig.requireOutputDir();
 
-			OpenApiDoc merged = new OpenApiDoc();
+        // ✅ buscar servicio por nombre (case-insensitive)
+        ServiceItem serviceItem = config.getList().stream()
+                .filter(s -> s.getName().equalsIgnoreCase(name))
+                .findFirst()
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                "Servicio no encontrado: " + name)
+                );
 
-			// ✅ base config opcional
-			merged.info.title = "API ALL";
-			merged.security = List.of(Map.of("bearerAuth", List.of()));
+        // ✅ generar OpenAPI + guardar archivo + devolver JSON
+        return service.generateAndSaveReturningDoc(serviceItem, outputDir);
+    }
 
-			config.getList().forEach(s -> {
+    // =========================================================
+    // ✅ GENERAR TODOS LOS SERVICIOS (SIEMPRE GUARDA + MERGE)
+    // =========================================================
+    @GetMapping("/all")
+    public OpenApiDoc generateAll() {
 
-				OpenApiDoc doc = service.generate(s);
+        // ✅ obtiene ruta validada desde configuración
+        String outputDir = swaggerConfig.requireOutputDir();
 
-				// ✅ 1. MERGE PATHS
-				merged.paths.putAll(doc.paths);
+        // ✅ documento final combinado
+        OpenApiDoc merged = new OpenApiDoc();
 
-				// ✅ 2. MERGE SCHEMAS
-				Map<String, Object> mergedSchemas = (Map<String, Object>) merged.components.computeIfAbsent("schemas",
-						k -> new LinkedHashMap<>());
+        // ✅ configuración base
+        merged.info.title = "API ALL";
+        merged.security = List.of(Map.of("bearerAuth", List.of()));
 
-				Map<String, Object> schemas = (Map<String, Object>) doc.components.get("schemas");
+        // ✅ inicializar schemas UNA SOLA VEZ (optimización)
+        Map<String, Object> mergedSchemas =
+                (Map<String, Object>) merged.components.computeIfAbsent("schemas",
+                        k -> new LinkedHashMap<>());
 
-				if (schemas != null) {
-					mergedSchemas.putAll(schemas);
-				}
+        // ✅ recorrer todos los servicios configurados
+        config.getList().forEach(s -> {
 
-				// ✅ 3. MERGE TAGS (SIN DUPLICAR)
-				doc.tags.forEach(tag -> {
-					boolean exists = merged.tags.stream().anyMatch(t -> t.get("name").equals(tag.get("name")));
+            // ✅ generar + guardar cada servicio
+            OpenApiDoc doc = service.generateAndSaveReturningDoc(s, outputDir);
 
-					if (!exists) {
-						merged.tags.add(tag);
-					}
-				});
+            // ✅ merge de paths
+            merged.paths.putAll(doc.paths);
 
-				// ✅ 4. SERVERS (opcional: agregar todos)
-				if (doc.servers != null) {
-					merged.servers.addAll(doc.servers);
-				}
-			});
+            // ✅ merge de schemas
+            Map<String, Object> schemas =
+                    (Map<String, Object>) doc.components.get("schemas");
 
-			return merged;
-		}
+            if (schemas != null) {
+                mergedSchemas.putAll(schemas);
+            }
 
-		// =========================================================
-		// ✅ CASO NORMAL
-		// =========================================================
-		return config.getList().stream().filter(s -> s.getName().equalsIgnoreCase(name)).findFirst()
-				.map(service::generate).orElseThrow(
-						() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Servicio no encontrado: " + name));
-	}
+            // ✅ merge de tags (evitar duplicados)
+            doc.tags.forEach(tag -> {
+                boolean exists = merged.tags.stream()
+                        .anyMatch(t -> t.get("name").equals(tag.get("name")));
 
-	@GetMapping("/all")
-	public String generateAll() {
+                if (!exists) {
+                    merged.tags.add(tag);
+                }
+            });
 
-		// ✅ tomar ruta desde application.yaml
-		String outputDir = swaggerConfig.getOutputDir();
+            // ✅ merge de servers (opcional)
+            if (doc.servers != null) {
+                merged.servers.addAll(doc.servers);
+            }
+        });
 
-		// ✅ validación (muy recomendable)
-		if (outputDir == null || outputDir.isBlank()) {
-			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-					"La propiedad swagger.output-dir no está configurada");
-		}
-
-		// ✅ generar archivos
-		List<String> files = service.generateAllAndSave(config.getList(), outputDir);
-
-		return "✅ Archivos generados con éxito:\n" + String.join("\n", files);
-	}
-
+        // ✅ devolver documento combinado
+        return merged;
+    }
 }
