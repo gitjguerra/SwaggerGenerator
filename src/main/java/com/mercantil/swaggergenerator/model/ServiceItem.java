@@ -14,5 +14,6 @@ public class ServiceItem {
 
 	private String controllersPath;
 	private String beansPath;
+	private String configPath;
 
 }

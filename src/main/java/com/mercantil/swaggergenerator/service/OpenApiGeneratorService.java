@@ -40,33 +40,41 @@ public class OpenApiGeneratorService {
 	// ✅ mapa de ejemplos
 	private Map<String, Object> exampleMap = new LinkedHashMap<>();
 
+	// ✅ cache de endpoints por nombre
+	private Map<String, String> backendServiceMap = new LinkedHashMap<>();
+
 	// ✅ =========================
 	// ✅ GENERADOR PRINCIPAL
 	// ✅ =========================
+
 	public OpenApiDoc generate(ServiceItem service) {
 
 		OpenApiDoc doc = new OpenApiDoc();
 
 		schemaMap = new LinkedHashMap<>();
 		exampleMap = new LinkedHashMap<>();
+		backendServiceMap = new LinkedHashMap<>();
 
 		doc.security = List.of(Map.of("bearerAuth", List.of()));
 		doc.info.title = "API " + service.getName();
 
 		doc.servers.add(Map.of("url", (service.getHost() == null ? "" : service.getHost()) + service.getBasePath()));
 
-		// ✅ 1. REGISTRAR HARDCORE BASE
+		// ✅ 🔥 PRIMERO cargar backend
+		String configPath = resolveConfigPath(service);
+		loadBackendServices(configPath);
+
+		// ✅ 1. BASE
 		registerBaseSchemas();
 
-		// ✅ 2. PROCESAR BEANS (SIN preload)
+		// ✅ 2. BEANS
 		List<File> beanFiles = findJavaFiles(service.getBeansPath());
 		beanFiles.forEach(f -> processBeanFile(f, doc, service.getBasePackage()));
 
-		// ✅ 3. PROCESAR CONTROLLERS
+		// ✅ 3. CONTROLLERS
 		List<File> controllerFiles = findJavaFiles(service.getControllersPath());
 		controllerFiles.forEach(f -> processControllerFile(f, doc));
 
-		// ✅ 4. FINAL
 		doc.components.put("schemas", schemaMap);
 
 		return doc;
@@ -132,6 +140,35 @@ public class OpenApiGeneratorService {
 		op.put("tags", List.of(tag));
 		op.put("summary", method.getNameAsString());
 		op.put("operationId", method.getNameAsString());
+
+		// =========================================================
+		// ✅ ACCESS URL ON RESTSERVICE.XML
+		// =========================================================
+		String serviceName = extractServiceName(method);
+		serviceName = serviceName != null ? serviceName.toLowerCase().trim() : null;
+
+		String backendUrl = findBackendUrl(serviceName);
+
+		StringBuilder desc = new StringBuilder();
+
+		if (backendUrl != null) {
+
+		    String coreProgram = extractCoreProgram(backendUrl);
+
+		    desc.append("✅ Backend: ").append(backendUrl);
+
+		    if (coreProgram != null) {
+		        desc.append("\n\n🔗 Core: ").append(coreProgram);
+		    }
+
+		} else {
+
+		    desc.append("❌ Backend no encontrado");
+		}
+
+		desc.append("\n\n🔗 Service: ").append(serviceName);
+
+		op.put("description", desc.toString());
 
 		// =========================================================
 		// ✅ HELPERS 🔥
@@ -211,7 +248,9 @@ public class OpenApiGeneratorService {
 		requestJson.put("schema", requestSchema);
 
 		Map<String, Object> requestExample = new LinkedHashMap<>();
-		requestExample.put("headerEntrada", buildHeaderEntradaExample());
+		requestExample.put("headerEntrada",
+
+				buildHeaderEntradaExample());
 
 		if (requestBodyType != null) {
 
@@ -343,147 +382,145 @@ public class OpenApiGeneratorService {
 	// ✅ =========================
 	private Map<String, Object> buildSchemaFromClass(ClassOrInterfaceDeclaration clazz) {
 
-	    Map<String, Object> properties = new LinkedHashMap<>();
-	    List<String> required = new ArrayList<>();
+		Map<String, Object> properties = new LinkedHashMap<>();
+		List<String> required = new ArrayList<>();
 
-	    String className = clazz.getNameAsString();
+		String className = clazz.getNameAsString();
 
-	    // ✅ IGNORAR CLASES EXTERNAS
-	    if (IGNORED_TYPES.contains(className)) {
-	        return Map.of("type", "object", "additionalProperties", true);
-	    }
+		// ✅ IGNORAR CLASES EXTERNAS
+		if (IGNORED_TYPES.contains(className)) {
+			return Map.of("type", "object", "additionalProperties", true);
+		}
 
-	    // =========================================================
-	    // ✅ ENUM
-	    // =========================================================
-	    if (clazz.isEnumDeclaration()) {
+		// =========================================================
+		// ✅ ENUM
+		// =========================================================
+		if (clazz.isEnumDeclaration()) {
 
-	        List<String> values = clazz.asEnumDeclaration().getEntries()
-	                .stream()
-	                .map(e -> e.getNameAsString())
-	                .collect(Collectors.toList());
+			List<String> values = clazz.asEnumDeclaration().getEntries().stream().map(e -> e.getNameAsString())
+					.collect(Collectors.toList());
 
-	        return Map.of("type", "string", "enum", values);
-	    }
+			return Map.of("type", "string", "enum", values);
+		}
 
-	    // =========================================================
-	    // ✅ CAMPOS
-	    // =========================================================
-	    clazz.getFields().forEach(field -> {
+		// =========================================================
+		// ✅ CAMPOS
+		// =========================================================
+		clazz.getFields().forEach(field -> {
 
-	        field.getVariables().forEach(var -> {
+			field.getVariables().forEach(var -> {
 
-	            String name = var.getNameAsString();
+				String name = var.getNameAsString();
 
-	            // ✅ JsonProperty override
-	            if (field.getAnnotationByName("JsonProperty").isPresent()) {
-	                String annotation = field.getAnnotationByName("JsonProperty").get().toString();
-	                if (annotation.contains("\"")) {
-	                    name = annotation.split("\"")[1];
-	                }
-	            }
+				// ✅ JsonProperty override
+				if (field.getAnnotationByName("JsonProperty").isPresent()) {
+					String annotation = field.getAnnotationByName("JsonProperty").get().toString();
+					if (annotation.contains("\"")) {
+						name = annotation.split("\"")[1];
+					}
+				}
 
-	            String rawType = field.getElementType().asString();
-	            boolean isOptional = rawType.startsWith("Optional<");
+				String rawType = field.getElementType().asString();
+				boolean isOptional = rawType.startsWith("Optional<");
 
-	            String cleanType = isOptional ? extractGeneric(rawType) : rawType;
-	            String type = resolveFinalType(cleanType);
+				String cleanType = isOptional ? extractGeneric(rawType) : rawType;
+				String type = resolveFinalType(cleanType);
 
-	            // ✅ IGNORAR tipo externo
-	            if (!schemaMap.containsKey(type) && !isPrimitive(type)) {
-	                properties.put(name, Map.of("type", "object"));
-	                return;
-	            }
+				// ✅ IGNORAR tipo externo
+				if (!schemaMap.containsKey(type) && !isPrimitive(type)) {
+					properties.put(name, Map.of("type", "object"));
+					return;
+				}
 
-	            if (field.getAnnotationByName("NotNull").isPresent()) {
-	                required.add(name);
-	            }
+				if (field.getAnnotationByName("NotNull").isPresent()) {
+					required.add(name);
+				}
 
-	            Map<String, Object> prop = new LinkedHashMap<>();
+				Map<String, Object> prop = new LinkedHashMap<>();
 
-	            // =========================================================
-	            // ✅ LISTA
-	            // =========================================================
-	            if (rawType.startsWith("List<")) {
+				// =========================================================
+				// ✅ LISTA
+				// =========================================================
+				if (rawType.startsWith("List<")) {
 
-	                String generic = resolveFinalType(extractGeneric(rawType));
+					String generic = resolveFinalType(extractGeneric(rawType));
 
-	                prop.put("type", "array");
+					prop.put("type", "array");
 
-	                if (!schemaMap.containsKey(generic) && !isPrimitive(generic)) {
-	                    prop.put("items", Map.of("type", "object"));
-	                } else if (isPrimitive(generic)) {
-	                    prop.put("items", Map.of("type", mapType(generic)));
-	                } else {
-	                    prop.put("items", Map.of("$ref", "#/components/schemas/" + generic));
-	                }
-	            }
+					if (!schemaMap.containsKey(generic) && !isPrimitive(generic)) {
+						prop.put("items", Map.of("type", "object"));
+					} else if (isPrimitive(generic)) {
+						prop.put("items", Map.of("type", mapType(generic)));
+					} else {
+						prop.put("items", Map.of("$ref", "#/components/schemas/" + generic));
+					}
+				}
 
-	            // =========================================================
-	            // ✅ PRIMITIVO
-	            // =========================================================
-	            else if (isPrimitive(type)) {
+				// =========================================================
+				// ✅ PRIMITIVO
+				// =========================================================
+				else if (isPrimitive(type)) {
 
-	                prop.put("type", mapType(type));
+					prop.put("type", mapType(type));
 
-	                if (type.equals("UUID"))
-	                    prop.put("format", "uuid");
-	                if (type.equals("LocalDate"))
-	                    prop.put("format", "date");
-	                if (type.equals("LocalDateTime") || type.equals("Date"))
-	                    prop.put("format", "date-time");
-	                if (type.equals("BigDecimal"))
-	                    prop.put("format", "double");
-	            }
+					if (type.equals("UUID"))
+						prop.put("format", "uuid");
+					if (type.equals("LocalDate"))
+						prop.put("format", "date");
+					if (type.equals("LocalDateTime") || type.equals("Date"))
+						prop.put("format", "date-time");
+					if (type.equals("BigDecimal"))
+						prop.put("format", "double");
+				}
 
-	            // =========================================================
-	            // ✅ OBJETO
-	            // =========================================================
-	            else {
+				// =========================================================
+				// ✅ OBJETO
+				// =========================================================
+				else {
 
-	                if (schemaMap.containsKey(type)) {
-	                    prop.put("$ref", "#/components/schemas/" + type);
-	                } else {
-	                    prop.put("type", "object");
-	                }
-	            }
+					if (schemaMap.containsKey(type)) {
+						prop.put("$ref", "#/components/schemas/" + type);
+					} else {
+						prop.put("type", "object");
+					}
+				}
 
-	            // =========================================================
-	            // ✅ NULLABLE
-	            // =========================================================
-	            if (isOptional) {
-	                prop.put("nullable", true);
-	            }
+				// =========================================================
+				// ✅ NULLABLE
+				// =========================================================
+				if (isOptional) {
+					prop.put("nullable", true);
+				}
 
-	            // =========================================================
-	            // ✅ EJEMPLO (ÚNICO LUGAR CORRECTO)
-	            // =========================================================
-	            Object exampleValue = generateSmartExample(name);
-	            if (exampleValue != null) {
-	                prop.put("example", exampleValue);
-	            }
+				// =========================================================
+				// ✅ EJEMPLO (ÚNICO LUGAR CORRECTO)
+				// =========================================================
+				Object exampleValue = generateSmartExample(name);
+				if (exampleValue != null) {
+					prop.put("example", exampleValue);
+				}
 
-	            properties.put(name, prop);
-	        });
-	    });
+				properties.put(name, prop);
+			});
+		});
 
-	    Map<String, Object> schema = new LinkedHashMap<>();
+		Map<String, Object> schema = new LinkedHashMap<>();
 
-	    schema.put("type", "object");
+		schema.put("type", "object");
 
-	    if (!properties.isEmpty()) {
-	        schema.put("properties", properties);
-	    }
+		if (!properties.isEmpty()) {
+			schema.put("properties", properties);
+		}
 
-	    if (!required.isEmpty()) {
-	        schema.put("required", required);
-	    }
+		if (!required.isEmpty()) {
+			schema.put("required", required);
+		}
 
-	    if (properties.isEmpty()) {
-	        schema.put("additionalProperties", true);
-	    }
+		if (properties.isEmpty()) {
+			schema.put("additionalProperties", true);
+		}
 
-	    return schema;
+		return schema;
 	}
 
 	// ✅ =========================
@@ -491,89 +528,90 @@ public class OpenApiGeneratorService {
 	// ✅ =========================
 	private Object buildExampleFromClass(ClassOrInterfaceDeclaration clazz) {
 
-	    Map<String, Object> example = new LinkedHashMap<>();
+		Map<String, Object> example = new LinkedHashMap<>();
 
-	    // ✅ resetear contexto por objeto
-	    dataContext = new LinkedHashMap<>();
+		// ✅ resetear contexto por objeto
+		dataContext = new LinkedHashMap<>();
 
-	    // ✅ recorrer campos
-	    clazz.getFields().forEach(field -> {
+		// ✅ recorrer campos
+		clazz.getFields().forEach(field -> {
 
-	        field.getVariables().forEach(var -> {
+			field.getVariables().forEach(var -> {
 
-	            String name = var.getNameAsString();
+				String name = var.getNameAsString();
 
-	            // =========================================================
-	            // ✅ JsonProperty override
-	            // =========================================================
-	            if (field.getAnnotationByName("JsonProperty").isPresent()) {
+				// =========================================================
+				// ✅ JsonProperty override
+				// =========================================================
+				if (field.getAnnotationByName("JsonProperty").isPresent()) {
 
-	                String annotation = field.getAnnotationByName("JsonProperty").get().toString();
+					String annotation = field.getAnnotationByName("JsonProperty").get().toString();
 
-	                if (annotation.contains("\"")) {
-	                    name = annotation.split("\"")[1];
-	                }
-	            }
+					if (annotation.contains("\"")) {
+						name = annotation.split("\"")[1];
+					}
+				}
 
-	            // =========================================================
-	            // ✅ tipo del campo
-	            // =========================================================
-	            String rawType = field.getElementType().asString();
+				// =========================================================
+				// ✅ tipo del campo
+				// =========================================================
+				String rawType = field.getElementType().asString();
 
-	            boolean isOptional = rawType.startsWith("Optional<");
+				boolean isOptional = rawType.startsWith("Optional<");
 
-	            String cleanType = isOptional ? extractGeneric(rawType) : rawType;
+				String cleanType = isOptional ? extractGeneric(rawType) : rawType;
 
-	            String type = resolveFinalType(cleanType);
+				String type = resolveFinalType(cleanType);
 
-	            // =========================================================
-	            // ✅ 1. LISTAS (🔥 PRIORIDAD MÁXIMA)
-	            // =========================================================
-	            if (rawType.startsWith("List<")) {
+				// =========================================================
+				// ✅ 1. LISTAS (🔥 PRIORIDAD MÁXIMA)
+				// =========================================================
+				if (rawType.startsWith("List<")) {
 
-	                String generic = extractGeneric(rawType);
-	                Object nested = buildExampleFromType(generic);
+					String generic = extractGeneric(rawType);
+					Object nested = buildExampleFromType(generic);
 
-	                example.put(name, List.of(nested));
-	                return;
-	            }
+					example.put(name, List.of(nested));
+					return;
+				}
 
-	            // =========================================================
-	            // ✅ 2. OBJETOS
-	            // =========================================================
-	            if (!isPrimitive(type)) {
+				// =========================================================
+				// ✅ 2. OBJETOS
+				// =========================================================
+				if (!isPrimitive(type)) {
 
-	                Object nested = buildExampleFromType(type);
-	                example.put(name, nested);
-	                return;
-	            }
+					Object nested = buildExampleFromType(type);
+					example.put(name, nested);
+					return;
+				}
 
-	            // =========================================================
-	            // ✅ 3. SEMÁNTICA (DESPUÉS)
-	            // =========================================================
-	            Object value = generateSmartExample(name);
+				// =========================================================
+				// ✅ 3. SEMÁNTICA (DESPUÉS)
+				// =========================================================
+				Object value = generateSmartExample(name);
 
-	            if (value != null) {
+				if (value != null) {
 
-	                // ✅ adaptar tipo
-	                if (isNumericType(type) && value instanceof String) {
-	                    try {
-	                        value = Integer.parseInt(value.toString().replaceAll("\\D", ""));
-	                    } catch (Exception ignored) {}
-	                }
+					// ✅ adaptar tipo
+					if (isNumericType(type) && value instanceof String) {
+						try {
+							value = Integer.parseInt(value.toString().replaceAll("\\D", ""));
+						} catch (Exception ignored) {
+						}
+					}
 
-	                example.put(name, value);
-	                return;
-	            }
+					example.put(name, value);
+					return;
+				}
 
-	            // =========================================================
-	            // ✅ 4. FALLBACK
-	            // =========================================================
-	            example.put(name, resolveValueByType(type));
-	        });
-	    });
+				// =========================================================
+				// ✅ 4. FALLBACK
+				// =========================================================
+				example.put(name, resolveValueByType(type));
+			});
+		});
 
-	    return example;
+		return example;
 	}
 
 	private boolean isNumericType(String type) {
@@ -659,20 +697,6 @@ public class OpenApiGeneratorService {
 		}
 
 		return type;
-	}
-
-	private void preloadSchemas(List<File> files) {
-
-		files.forEach(f -> {
-			try {
-				CompilationUnit cu = StaticJavaParser.parse(f);
-
-				cu.findAll(ClassOrInterfaceDeclaration.class)
-						.forEach(c -> schemaMap.putIfAbsent(c.getNameAsString(), new LinkedHashMap<>()));
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		});
 	}
 
 	private boolean isInBasePackage(ClassOrInterfaceDeclaration clazz, String basePackage) {
@@ -1287,6 +1311,156 @@ public class OpenApiGeneratorService {
 		}
 
 		return expanded;
+	}
+
+	private void loadBackendServices(String configPath) {
+
+		try {
+
+			// ✅ posibles nombres de archivo
+			List<String> candidates = List.of("restservices.xml", "service.xml", "services.xml");
+
+			File fileFound = null;
+
+			for (String name : candidates) {
+
+				File f = new File(configPath + "/" + name);
+
+				if (f.exists()) {
+					fileFound = f;
+					break;
+				}
+			}
+
+			if (fileFound == null) {
+				System.out.println("⚠️ No se encontró ningún XML en: " + configPath);
+				return;
+			}
+
+			var db = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+			var builder = db.newDocumentBuilder();
+			var doc = builder.parse(fileFound);
+
+			var nodes = doc.getElementsByTagName("service");
+
+			for (int i = 0; i < nodes.getLength(); i++) {
+
+				org.w3c.dom.Element el = (org.w3c.dom.Element) nodes.item(i);
+
+				String name = el.getAttribute("name");
+				String endpoint = el.getAttribute("endpoint");
+
+				backendServiceMap.put(name.toLowerCase(), endpoint);
+			}
+
+			System.out.println("✅ XML cargado: " + fileFound.getName() + " | Servicios: " + backendServiceMap.size());
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	private String extractServiceName(MethodDeclaration method) {
+
+		return method.findAll(com.github.javaparser.ast.expr.MethodCallExpr.class).stream()
+
+				.filter(call -> call.getNameAsString().equals("setServiceName"))
+
+				.map(call -> {
+
+					if (call.getArguments().isEmpty())
+						return null;
+
+					var arg = call.getArgument(0);
+
+					try {
+
+						// =====================================================
+						// ✅ CASO 1: STRING DIRECTO
+						// setServiceName("jwt-create")
+						// =====================================================
+						if (arg.isStringLiteralExpr()) {
+							return arg.asStringLiteralExpr().asString();
+						}
+
+						// =====================================================
+						// ✅ CASO 2: CONSTANTE
+						// SecurityConstanstService.JUMIO_AUTENTICAR.getValue()
+						// =====================================================
+						if (arg.isMethodCallExpr()) {
+
+							var methodCall = arg.asMethodCallExpr();
+
+							// getValue()
+							if (methodCall.getNameAsString().equals("getValue")) {
+
+								var scope = methodCall.getScope();
+
+								if (scope.isPresent() && scope.get().isFieldAccessExpr()) {
+
+									var fieldAccess = scope.get().asFieldAccessExpr();
+
+									String constant = fieldAccess.getNameAsString(); // JUMIO_AUTENTICAR
+
+									return resolveEnumToValue(constant);
+								}
+							}
+						}
+
+					} catch (Exception ignored) {
+					}
+
+					return null;
+				})
+
+				.filter(v -> v != null && !v.isBlank()).findFirst().orElse(null);
+	}
+
+	private String resolveEnumToValue(String enumName) {
+
+		if (enumName == null)
+			return null;
+
+		return enumName.toLowerCase().replace("_", "-");
+	}
+
+	private String resolveConfigPath(ServiceItem service) {
+
+		// ✅ base fija del banco
+		String base = "C:/BM_HOME/appl";
+
+		// ✅ nombre del servicio (simf, tarjeta, etc.)
+		String name = service.getName();
+
+		// ✅ regla real de carpeta
+		return base + "/api-" + name + "/config";
+	}
+
+	private String extractCoreProgram(String url) {
+
+		if (url == null || url.isBlank())
+			return null;
+
+		try {
+			String lastSegment = url.substring(url.lastIndexOf("/") + 1);
+
+			// registrarBancoCompraDivisa-bocs013z
+			if (lastSegment.contains("-")) {
+				return lastSegment.substring(lastSegment.lastIndexOf("-") + 1).toUpperCase();
+			}
+
+		} catch (Exception ignored) {
+		}
+
+		return null;
+	}
+
+	private String findBackendUrl(String serviceName) {
+
+		if (serviceName == null)
+			return null;
+
+		return backendServiceMap.get(serviceName);
 	}
 
 }
