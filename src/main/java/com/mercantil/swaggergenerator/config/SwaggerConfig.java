@@ -14,7 +14,7 @@ public class SwaggerConfig {
 
     private String outputDir;
 
-    // ✅ MÉTODO VALIDA EXISTE swagger.output-dir
+    // ✅ MÉTODO CLAVE (AGREGAR ESTO)
     public String requireOutputDir() {
 
         if (outputDir == null || outputDir.isBlank()) {

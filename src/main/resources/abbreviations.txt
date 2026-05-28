@@ -281,7 +281,6 @@ SEG=seguro
 SERV=servicio
 SIST=sistema
 SUC=sucursal
-tarj=tarjeta
 TELF=telefono
 TEL=telefono
 TIPO=tipo
