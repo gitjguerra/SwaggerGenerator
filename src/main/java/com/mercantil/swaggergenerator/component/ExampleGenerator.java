@@ -1,218 +1,239 @@
 package com.mercantil.swaggergenerator.component;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.mercantil.swaggergenerator.service.OpenApiGeneratorService;
-import com.mercantil.swaggergenerator.util.ParserUtil;
-import com.mercantil.swaggergenerator.util.TypeUtil;
+import com.mercantil.swaggergenerator.util.AbbreviationUtil;
 
 @Component
 public class ExampleGenerator {
 
-	@Autowired
-	private TypeUtil typeUtil;
-
-	@Autowired
-	private ParserUtil parserUtil;
-
-	@Autowired
-	private HeaderExampleProvider headerProvider;
-
-	// ✅ CONTEXTO DE VALORES CONSISTENTES
+	// ✅ CONTEXTO
 	private Map<String, Object> dataContext = new LinkedHashMap<>();
 
-	// ✅ mapa de ejemplos
-	private Map<String, Object> exampleMap = new LinkedHashMap<>();
-
-	// ✅ mapa de schemas
 	private Map<String, Map<String, Object>> schemaMap = new LinkedHashMap<>();
 
 	public void setSchemaMap(Map<String, Map<String, Object>> schemaMap) {
 		this.schemaMap = schemaMap;
-		this.exampleMap = new LinkedHashMap<>(); // ✅ reset global
-	}
-
-	// ✅ ABBREVIATIONS (parseado del PDF)
-	private static final Map<String, String> ABBREV_MAP = new LinkedHashMap<>();
-	static {
-		loadAbbreviations();
 	}
 
 	public Object generateSmartExample(String name) {
 
-		String normalized = normalizeName(name);
-		String lower = normalized.toLowerCase();
+	    String normalized = AbbreviationUtil.normalizeName(name);
+	    List<String> tokens = AbbreviationUtil.tokenize(normalized);
 
-		// ✅ tokenizar SIEMPRE desde el nombre original
-		List<String> tokens = tokenize(name);
+	    // =========================================================
+	    // ✅ 0. REGLAS DIRECTAS (🔥 PRIORIDAD MÁXIMA)
+	    // =========================================================
+	    switch (name) {
 
-		// =========================================================
-		// ✅ 1. CONTEXTO (REUTILIZACIÓN)
-		// =========================================================
-		for (Map.Entry<String, Object> entry : dataContext.entrySet()) {
+	        case "nroCuenta":
+	            return "123456789012";
+	        case "nroExt":
+	            return "5342";	
+	            
+	        case "motivoServicio":
+	            return "EJEMPLO";	            
+	            
+	        case "fchIni":
+	        case "fchInicio":
+	        case "fchRolIni":
+	            return "01012026";
 
-			String key = entry.getKey();
+	        case "fchFin":
+	        case "fchRolFin":
+	            return "31122026";
 
-			if (lower.equals(key) || lower.endsWith(key)) {
-				return entry.getValue();
-			}
-		}
+	        case "tipoId":
+	        case "tipoIdV":
+	        case "tipoIdentificacion":
+	            return "V";
 
-		// =========================================================
-		// ✅ 2. REGLAS FUERTES (NORMALIZED - 🔥 PRIORIDAD ALTA)
-		// =========================================================
+	        case "codPais":
+	        case "codPaisV":
+	        case "codigoPais":
+	            return "VE";
 
-		if (normalized.contains("codigoproducto"))
-			return "02";
-		if (normalized.contains("codigopais"))
-			return "VE";
-		if (normalized.contains("codigoempresa"))
-			return "0108";
-		if (normalized.contains("codigorazon"))
-			return "01";
+	        case "rol":
+	            return "CLIENTE";
+	            
+	        case "nroTelf":
+	            return "02126624076";	            
+	            
+	    }
 
-		// =========================================================
-		// ✅ 3. SEMÁNTICA
-		// =========================================================
+	    // =========================================================
+	    // ✅ 1. CONTEXTO
+	    // =========================================================
+	    for (Map.Entry<String, Object> entry : dataContext.entrySet()) {
+	        if (tokens.contains(entry.getKey())) {
+	            return entry.getValue();
+	        }
+	    }
 
-		// ✅ TIPO IDENTIFICACION
-		if ((tokens.contains("tipo") && tokens.contains("identificacion")) || lower.contains("tipoidentificacion")) {
-			String v = "V";
-			dataContext.put("tipoidentificacion", v);
-			return v;
-		}
+	    // =========================================================
+	    // ✅ 2. REGLAS FUERTES
+	    // =========================================================
+	    if (tokens.contains("codigo") && tokens.contains("producto"))
+	        return "02";
 
-		// ✅ IDENTIFICACIÓN / CÉDULA
-		if ((tokens.contains("cedula") || tokens.contains("rif") || tokens.contains("identificacion")
-				|| lower.contains("cedula") || lower.contains("rif")) && !tokens.contains("tipo")) {
-			Integer v = 12345678;
-			dataContext.put("cedula", v);
-			return v;
-		}
+	    if (tokens.contains("codigo") && tokens.contains("pais"))
+	        return "VE";
 
-		// ✅ PERSONA
-		if (tokens.contains("persona") || lower.contains("numeropersona")) {
-			Integer v = 12345678;
-			dataContext.put("persona", v);
-			return v;
-		}
+	    if (tokens.contains("codigo") && tokens.contains("empresa"))
+	        return "0108";
 
-		// ✅ SUBCANAL
-		if (tokens.contains("subcanal") || lower.contains("subcanal")) {
-			return "09";
-		}
+	    if (tokens.contains("razon"))
+	        return "01";
 
-		// ✅ MONEDA
-		if (tokens.contains("moneda") || lower.contains("moneda")) {
-			return "VES";
-		}
+	    // =========================================================
+	    // ✅ 3. SEMÁNTICA
+	    // =========================================================
 
-		// ✅ TARJETA
-		if (tokens.contains("tarjeta") || lower.contains("tarjeta")) {
+	    // ✅ tipo identificación
+	    if (tokens.contains("tipo") && tokens.contains("identificacion")) {
+	        String v = "V";
+	        dataContext.put("identificacion", v);
+	        return v;
+	    }
 
-			String v = "1234567890123456";
+	    // ✅ FECHAS
+	    if (tokens.contains("fecha")) {
 
-			if (name.toLowerCase().endsWith("s")) {
-				return List.of(v);
-			}
+	        if (tokens.contains("ini"))
+	            return "01012026";
 
-			return v;
-		}
+	        if (tokens.contains("fin"))
+	            return "31122026";
 
-		// =========================================================
-		// ✅ CÓDIGOS (TOKEN + ABREVIATURAS)
-		// =========================================================
+	        return "01012026";
+	    }
 
-		if ((tokens.contains("codigo") && tokens.contains("empresa")) || lower.contains("codemp")) {
-			return "0108";
-		}
+	    // ✅ identificación
+	    if (tokens.contains("cedula") || tokens.contains("rif") || tokens.contains("identificacion")) {
+	        Integer v = 12345678;
+	        dataContext.put("identificacion", v);
+	        return v;
+	    }
 
-		if ((tokens.contains("codigo") && tokens.contains("producto")) || lower.contains("codprod")) {
-			return "02";
-		}
+	    // ✅ persona
+	    if (tokens.contains("persona")) {
+	        Integer v = 12345678;
+	        dataContext.put("persona", v);
+	        return v;
+	    }
 
-		if ((tokens.contains("codigo") && tokens.contains("pais")) || lower.contains("codpais")) {
-			return "VE";
-		}
+	    // ✅ cuenta
+	    if (tokens.contains("cuenta")) {
+	        return "123456789012";
+	    }
 
-		if (tokens.contains("razon") || lower.contains("razon")) {
-			return "01";
-		}
+	    // ✅ subcanal
+	    if (tokens.contains("subcanal"))
+	        return "09";
 
-		// ✅ CÓDIGO GENÉRICO
-		if (tokens.contains("codigo") || lower.startsWith("codigo")) {
-			return "0001";
-		}
+	    // ✅ moneda
+	    if (tokens.contains("moneda"))
+	        return "VES";
 
-		// =========================================================
-		// ✅ FINANCIERO
-		// =========================================================
+	    // ✅ tarjeta
+	    if (tokens.contains("tarjeta")) {
+	        return tokens.contains("lista")
+	                ? List.of("1234567890123456")
+	                : "1234567890123456";
+	    }
 
-		if (tokens.contains("monto") || tokens.contains("mto") || lower.contains("mto")) {
-			return 1500.50;
-		}
+	    // ✅ numero
+	    if (tokens.contains("numero"))
+	        return 12345678;
 
-		if (tokens.contains("tasa") || lower.contains("tasa")) {
-			return 36.75;
-		}
+	    // ✅ códigos
+	    if (tokens.contains("codigo"))
+	        return "0001";
 
-		return null;
+	    // =========================================================
+	    // ✅ FINANCIERO
+	    // =========================================================
+	    if (tokens.contains("monto"))
+	        return 1500.50;
+
+	    if (tokens.contains("tasa"))
+	        return 36.75;
+
+	    // =========================================================
+	    // ✅ TEXTO
+	    // =========================================================
+	    if (tokens.contains("nombre"))
+	        return "JUAN";
+
+	    if (tokens.contains("apellido"))
+	        return "PEREZ";
+
+	    if (tokens.contains("email"))
+	        return "test@email.com";
+
+	    if (tokens.contains("telefono"))
+	        return "04141234567";
+
+	    if (tokens.contains("direccion"))
+	        return "AV PRINCIPAL CARACAS";
+
+	    // =========================================================
+	    // ✅ FLAGS
+	    // =========================================================
+	    if (tokens.contains("status") || tokens.contains("estatus"))
+	        return "ACTIVO";
+
+	    if (tokens.contains("indicador"))
+	        return "S";
+
+	    if (tokens.contains("rol"))
+	        return "CLIENTE";
+
+	    // =========================================================
+	    // ✅ GENERALES
+	    // =========================================================
+	    if (tokens.contains("tipo"))
+	        return "01";
+
+	    // =========================================================
+	    // ✅ FALLBACK FINAL
+	    // =========================================================
+	    if (tokens.contains("cuenta"))
+	        return "123456789012";
+
+	    if (tokens.contains("numero") || tokens.contains("id"))
+	        return 12345678;
+
+	    return "VALOR";
 	}
 
 	public Object buildExampleFromType(String type) {
 
-		if ("HeaderEntrada".equals(type)) {
-			return headerProvider.buildHeaderEntrada();
-		}
-
-		if ("HeaderSalida".equals(type)) {
-			return headerProvider.buildHeaderSalida();
-		}
-
-		// ✅ si ya existe en cache → usarlo
-		if (exampleMap.containsKey(type)) {
-			return exampleMap.get(type);
-		}
-
-		// ✅ BYTE / BINARIO (IMÁGENES)
 		if (type.equals("byte") || type.equals("byte[]")) {
 			return "base64-string";
 		}
 
-		// ✅ buscar en schemas
 		Map<String, Object> schema = schemaMap.get(type);
 
-		// ✅ ENUM → tomar primer valor como ejemplo
 		if (schema != null && schema.containsKey("enum")) {
-
 			List<?> values = (List<?>) schema.get("enum");
-
-			if (!values.isEmpty()) {
+			if (!values.isEmpty())
 				return values.get(0);
-			}
 		}
 
-		if (schema == null) {
+		if (schema == null)
 			return new LinkedHashMap<>();
-		}
 
-		// ✅ construir dinámicamente (recursivo)
 		Map<String, Object> example = new LinkedHashMap<>();
 
 		Object propsObj = schema.get("properties");
 
-		if (!(propsObj instanceof Map)) {
+		if (!(propsObj instanceof Map))
 			return example;
-		}
 
 		Map<String, Object> props = (Map<String, Object>) propsObj;
 
@@ -223,273 +244,108 @@ public class ExampleGenerator {
 
 			Map<String, Object> prop = (Map<String, Object>) val;
 
-			// ✅ $ref
 			if (prop.containsKey("$ref")) {
 
 				String ref = prop.get("$ref").toString();
 				String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
-				// ✅ SOLO OBJETO (NO LISTA)
 				example.put(key, buildExampleFromType(refType));
 			}
 
-			// ✅ array
-
 			else if ("array".equals(prop.get("type"))) {
 
-				Object items = prop.get("items");
+				Map<?, ?> items = (Map<?, ?>) prop.get("items");
 
-				if (items instanceof Map) {
+				if (items != null && items.containsKey("$ref")) {
 
-					Map<?, ?> itemMap = (Map<?, ?>) items;
+					String ref = items.get("$ref").toString();
+					String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
-					if (itemMap.containsKey("$ref")) {
+					example.put(key, List.of(buildExampleFromType(refType)));
 
-						String ref = itemMap.get("$ref").toString();
-						String refType = ref.substring(ref.lastIndexOf("/") + 1);
+				} else {
 
-						example.put(key, List.of(buildExampleFromType(refType)));
-
+					if (prop.containsKey("example")) {
+						example.put(key, prop.get("example"));
 					} else {
-
-						example.put(key, List.of("string")); // fallback
+						example.put(key, List.of(generateSmartExample(key)));
 					}
+
 				}
 			}
 
-			// ✅ primitivo
 			else {
 
-				Object value = generateSmartExample(key);
-
-				// ✅ SI HAY SEMÁNTICA
-				if (value != null) {
-					example.put(key, value);
-				} else {
-					example.put(key, "string"); // fallback simple
+				// ✅ 1. si el schema ya tiene example → usarlo
+				if (prop.containsKey("example")) {
+					example.put(key, prop.get("example"));
+					return;
 				}
 
+				// ✅ 2. fallback a generación
+				Object value = generateSmartExample(key);
+
+				if (value == null) {
+					value = fallbackByType(prop);
+				}
+
+				example.put(key, value);
 			}
+
 		});
 
-		// ✅ fallback si no hubo propiedades
 		if (example.isEmpty()) {
-
-			// ✅ si no tiene propiedades → devolver objeto simple
 			Map<String, Object> fallback = new LinkedHashMap<>();
-			fallback.put("id", "string");
-
+			fallback.put("id", 12345678); // ✅ FIX
 			return fallback;
 		}
 
-		// ✅ cachear resultado
-		exampleMap.put(type, example);
-
 		return example;
 	}
 
-	// ✅ =========================
-	// ✅ EXAMPLE
-	// ✅ =========================
-	public Object buildExampleFromClass(ClassOrInterfaceDeclaration clazz) {
+	public String inferType(String name) {
 
-		exampleMap = new LinkedHashMap<>();
-		Map<String, Object> example = new LinkedHashMap<>();
+		String normalized = AbbreviationUtil.normalizeName(name);
+		List<String> tokens = AbbreviationUtil.tokenize(normalized);
 
-		// ✅ resetear contexto por objeto
-		dataContext = new LinkedHashMap<>();
+		if (tokens.contains("fecha"))
+			return "string";
+		if (tokens.contains("cuenta") || tokens.contains("tarjeta"))
+			return "string";
+		if (tokens.contains("telefono"))
+			return "string";
+		if (tokens.contains("codigo"))
+			return "string";
+		if (tokens.contains("monto"))
+			return "number";
+		if (tokens.contains("identificacion"))
+			return "integer";
 
-		// ✅ recorrer campos
-		clazz.getFields().forEach(field -> {
-
-			field.getVariables().forEach(var -> {
-
-				String name = parserUtil.resolveJsonName(field, var.getNameAsString());
-
-				// =========================================================
-				// ✅ tipo del campo
-				// =========================================================
-				String rawType = field.getElementType().asString();
-
-				boolean isOptional = rawType.startsWith("Optional<");
-
-				String cleanType = isOptional ? parserUtil.extractGeneric(rawType) : rawType;
-
-				String type = parserUtil.resolveFinalType(cleanType);
-
-				// =========================================================
-				// ✅ 1. LISTAS
-				// =========================================================
-				if (cleanType.contains("List<") || rawType.contains("List<")) {
-
-					String generic = parserUtil.extractGeneric(cleanType);
-					Object nested = buildExampleFromType(generic);
-
-					example.put(name, List.of(nested));
-					return;
-				}
-
-				// =========================================================
-				// ✅ 2. OBJETOS
-				// =========================================================
-				if (!typeUtil.isPrimitive(type)) {
-
-					Object nested = buildExampleFromType(type);
-					example.put(name, nested);
-					return;
-				}
-
-				// =========================================================
-				// ✅ 3. SEMÁNTICA
-				// =========================================================
-				Object value = generateSmartExample(name);
-
-				if (value != null) {
-
-					// ✅ adaptar tipo
-					if (typeUtil.isNumericType(type) && value instanceof String) {
-						try {
-							String numeric = value.toString().replaceAll("\\D", "");
-							if (!numeric.isEmpty()) {
-								value = Integer.parseInt(numeric);
-							}
-						} catch (Exception ignored) {
-						}
-					}
-
-					example.put(name, value);
-					return;
-				}
-
-				// =========================================================
-				// ✅ 4. FALLBACK
-				// =========================================================
-				example.put(name, resolveValueByType(type));
-			});
-		});
-
-		return example;
+		return null; // ✅ FIX
 	}
 
-	private Object resolveValueByType(String type) {
+	private Object fallbackByType(Map<String, Object> prop) {
 
-		if (type.equals("Boolean") || type.equals("boolean"))
+		Object typeObj = prop.get("type");
+
+		if (typeObj == null)
+			return "VALOR";
+
+		switch (typeObj.toString()) {
+		case "string":
+			return "VALOR";
+		case "integer":
+			return 123;
+		case "number":
+			return 10.5;
+		case "boolean":
 			return true;
-
-		if (type.equals("Integer") || type.equals("int"))
-			return 1;
-
-		if (type.equals("Long") || type.equals("long"))
-			return 1L;
-
-		if (type.equals("Double") || type.equals("double"))
-			return 100.5;
-
-		return "string";
-	}
-
-	private String normalizeName(String name) {
-
-		if (name == null)
-			return "";
-
-		String lower = name.toLowerCase();
-
-		List<Map.Entry<String, String>> entries = new ArrayList<>(ABBREV_MAP.entrySet());
-
-		// ✅ ordenar por tamaño (evita choques tipo id vs identificacion)
-		entries.sort((a, b) -> b.getKey().length() - a.getKey().length());
-
-		for (Map.Entry<String, String> entry : entries) {
-
-			String abbr = entry.getKey();
-			String full = entry.getValue();
-
-			// ✅ REEMPLAZO GLOBAL (FIX IMPORTANTE)
-			lower = lower.replace(abbr, full);
-		}
-
-		return lower;
-	}
-
-	private List<String> tokenize(String name) {
-
-		if (name == null)
-			return List.of();
-
-		// ✅ 1. NORMALIZAR (usa ABBREV_MAP)
-		String normalized = normalizeName(name);
-
-		// ✅ 2. separar camelCase
-		String withSpaces = normalized.replaceAll("([a-z])([A-Z])", "$1 $2");
-
-		// ✅ 3. split base
-		List<String> baseTokens = Arrays.stream(withSpaces.toLowerCase().split("[^a-z0-9]+")).filter(p -> !p.isBlank())
-				.collect(Collectors.toList());
-
-		// ✅ 4. EXPANSIÓN SEMÁNTICA (🔥 CLAVE)
-		List<String> expanded = new ArrayList<>(baseTokens);
-
-		for (String token : baseTokens) {
-
-			// ✅ expansión por abreviaturas
-			if (token.contains("cod"))
-				expanded.add("codigo");
-			if (token.contains("prod"))
-				expanded.add("producto");
-			if (token.contains("emp"))
-				expanded.add("empresa");
-			if (token.contains("pais"))
-				expanded.add("pais");
-			if (token.contains("mon"))
-				expanded.add("moneda");
-			if (token.contains("ident"))
-				expanded.add("identificacion");
-			if (token.contains("pers"))
-				expanded.add("persona");
-			if (token.contains("raz"))
-				expanded.add("razon");
-
-			// ✅ expansión directa
-			if (token.contains("codigo"))
-				expanded.add("codigo");
-			if (token.contains("producto"))
-				expanded.add("producto");
-			if (token.contains("empresa"))
-				expanded.add("empresa");
-			if (token.contains("moneda"))
-				expanded.add("moneda");
-			if (token.contains("identificacion"))
-				expanded.add("identificacion");
-		}
-
-		return expanded;
-	}
-
-	private static void loadAbbreviations() {
-
-		try (java.io.InputStream is = OpenApiGeneratorService.class.getClassLoader()
-				.getResourceAsStream("abbreviations.txt")) {
-
-			if (is == null) {
-				throw new RuntimeException("❌ No se encontró abbreviations.txt en resources");
-			}
-
-			new java.io.BufferedReader(new java.io.InputStreamReader(is)).lines().map(String::trim)
-					.filter(line -> !line.isEmpty() && !line.startsWith("#")).forEach(line -> {
-
-						String[] parts = line.split("=");
-
-						if (parts.length == 2) {
-							ABBREV_MAP.put(parts[0].toLowerCase(), parts[1].toLowerCase());
-						}
-					});
-
-			System.out.println("✅ Abreviaturas cargadas: " + ABBREV_MAP.size());
-
-		} catch (Exception e) {
-			throw new RuntimeException("Error cargando abbreviations.txt", e);
+		default:
+			return "VALOR";
 		}
 	}
 
+	public void reset() {
+		dataContext.clear();
+	}
 }

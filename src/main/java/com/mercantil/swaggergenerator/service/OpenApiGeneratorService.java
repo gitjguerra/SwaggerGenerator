@@ -30,13 +30,12 @@ public class OpenApiGeneratorService {
 	@Autowired
 	private HttpMethodUtil httpMethodUtil;
 
+	@Autowired
+	private ExampleGenerator exampleGenerator;
+
 	// Build schemas
 	@Autowired
 	private SchemaBuilder schemaBuilder;
-
-	// Build examples
-	@Autowired
-	private ExampleGenerator exampleGenerator;
 
 	// build request
 	@Autowired
@@ -48,7 +47,6 @@ public class OpenApiGeneratorService {
 
 	// ✅ EXAMPLES MAPS
 	private Map<String, Map<String, Object>> schemaMap = new LinkedHashMap<>();
-	private Map<String, Object> exampleMap = new LinkedHashMap<>();
 
 	// ✅ IGNORANDO CLASES DE API-COMMONS
 	private static final List<String> IGNORED_TYPES = List.of("ConstructorRequired", "BeansZOS");
@@ -68,8 +66,10 @@ public class OpenApiGeneratorService {
 
 		schemaMap = new LinkedHashMap<>();
 		schemaBuilder.setSchemaMap(schemaMap);
-		exampleMap = new LinkedHashMap<>();
+
+		exampleGenerator.reset();
 		exampleGenerator.setSchemaMap(schemaMap);
+
 		backendServiceMap = new LinkedHashMap<>();
 
 		doc.security = List.of(Map.of("bearerAuth", List.of()));
@@ -77,7 +77,7 @@ public class OpenApiGeneratorService {
 
 		doc.servers.add(Map.of("url", (service.getHost() == null ? "" : service.getHost()) + service.getBasePath()));
 
-		// ✅ PRIMERO CARGAR SERVICIOS DEL BACKEND
+		// ✅ PRIMERO CARGAR ARCHIVOS .XML
 		String configPath = resolveConfigPath(service);
 		loadBackendServices(configPath);
 
@@ -133,7 +133,6 @@ public class OpenApiGeneratorService {
 	// ✅ =========================
 	// ✅ PROCESAR MÉTODOS
 	// ✅ =========================
-
 	private void processMethod(MethodDeclaration method, OpenApiDoc doc, String tag, String basePath) {
 
 		Map<String, String> httpMapping = httpMethodUtil.detect(method);
@@ -160,10 +159,8 @@ public class OpenApiGeneratorService {
 
 		if (backendUrl != null) {
 			String coreProgram = extractCoreProgram(backendUrl);
-			desc.append("✅ Backend: ").append(backendUrl);
-
 			if (coreProgram != null) {
-				desc.append("\n\n🔗 Core: ").append(coreProgram);
+				desc.append("\n\n🔗 Programa: ").append(coreProgram);
 			}
 		} else {
 			desc.append("❌ Backend no encontrado");
@@ -174,10 +171,10 @@ public class OpenApiGeneratorService {
 		op.put("description", desc.toString());
 
 		// ✅ REQUEST
-		op.put("requestBody", requestBuilder.build(method, schemaMap, exampleMap, IGNORED_TYPES));
+		op.put("requestBody", requestBuilder.build(method, schemaMap, IGNORED_TYPES));
 
 		// ✅ RESPONSE
-		op.put("responses", responseBuilder.build(method, schemaMap, exampleMap, IGNORED_TYPES));
+		op.put("responses", responseBuilder.build(method, schemaMap, IGNORED_TYPES));
 
 		Map<String, Object> pathItem = (Map<String, Object>) doc.paths.getOrDefault(fullPath, new LinkedHashMap<>());
 
@@ -191,7 +188,6 @@ public class OpenApiGeneratorService {
 	private void processBeanFile(File file, OpenApiDoc doc, String basePackage) {
 
 		try {
-
 			CompilationUnit cu = StaticJavaParser.parse(file);
 
 			cu.findAll(ClassOrInterfaceDeclaration.class).forEach(clazz -> {
@@ -201,7 +197,6 @@ public class OpenApiGeneratorService {
 
 				String className = clazz.getNameAsString();
 
-				// ✅ IGNORAR TOTALMENTE
 				if (IGNORED_TYPES.contains(className)) {
 					return;
 				}
@@ -210,7 +205,6 @@ public class OpenApiGeneratorService {
 
 				schemaMap.putIfAbsent(className, schema);
 
-				exampleMap.put(className, exampleGenerator.buildExampleFromType(className));
 			});
 
 		} catch (Exception e) {
@@ -262,79 +256,79 @@ public class OpenApiGeneratorService {
 
 	private void registerBaseSchemas() {
 
-	    // =========================================================
-	    // ✅ HEADER ENTRADA
-	    // =========================================================
-	    Map<String, Object> headerEntrada = new LinkedHashMap<>();
-	    headerEntrada.put("type", "object");
+		// =========================================================
+		// ✅ HEADER ENTRADA
+		// =========================================================
+		Map<String, Object> headerEntrada = new LinkedHashMap<>();
+		headerEntrada.put("type", "object");
 
-	    Map<String, Object> propsEntrada = new LinkedHashMap<>();
+		Map<String, Object> propsEntrada = new LinkedHashMap<>();
 
-	    propsEntrada.put("identificadorUnicoGlobal", Map.of("type", "string"));
-	    propsEntrada.put("identificacionCanal", Map.of("type", "string"));
-	    propsEntrada.put("identificacionSubCanal", Map.of("type", "string"));
-	    propsEntrada.put("siglaAplicacion", Map.of("type", "string", "minLength", 1, "maxLength", 4));
-	    propsEntrada.put("identificacionUsuario", Map.of("type", "string"));
-	    propsEntrada.put("direccionIpConsumidor", Map.of("type", "string"));
-	    propsEntrada.put("direccionIpCliente", Map.of("type", "string"));
-	    propsEntrada.put("fechaEnvioMensaje", Map.of("type", "string"));
-	    propsEntrada.put("horaEnvioMensaje", Map.of("type", "string"));
-	    propsEntrada.put("atributoPagineo", Map.of("type", "string"));
-	    propsEntrada.put("claveBusqueda", Map.of("type", "string"));
-	    propsEntrada.put("cantidadRegistros", Map.of("type", "integer"));
+		propsEntrada.put("identificadorUnicoGlobal", Map.of("type", "string"));
+		propsEntrada.put("identificacionCanal", Map.of("type", "string"));
+		propsEntrada.put("identificacionSubCanal", Map.of("type", "string"));
+		propsEntrada.put("siglaAplicacion", Map.of("type", "string", "minLength", 1, "maxLength", 4));
+		propsEntrada.put("identificacionUsuario", Map.of("type", "string"));
+		propsEntrada.put("direccionIpConsumidor", Map.of("type", "string"));
+		propsEntrada.put("direccionIpCliente", Map.of("type", "string"));
+		propsEntrada.put("fechaEnvioMensaje", Map.of("type", "string"));
+		propsEntrada.put("horaEnvioMensaje", Map.of("type", "string"));
+		propsEntrada.put("atributoPagineo", Map.of("type", "string"));
+		propsEntrada.put("claveBusqueda", Map.of("type", "string"));
+		propsEntrada.put("cantidadRegistros", Map.of("type", "integer"));
 
-	    headerEntrada.put("properties", propsEntrada);
+		headerEntrada.put("properties", propsEntrada);
 
-	    // ✅ Example (CLAVE para Swagger UI)
-	    Map<String, Object> headerEntradaExample = new LinkedHashMap<>();
-	    headerEntradaExample.put("identificadorUnicoGlobal", "string");
-	    headerEntradaExample.put("identificacionCanal", "0006");
-	    headerEntradaExample.put("identificacionSubCanal", "01");
-	    headerEntradaExample.put("siglaAplicacion", "ABC");
-	    headerEntradaExample.put("identificacionUsuario", "user");
-	    headerEntradaExample.put("direccionIpConsumidor", "127.0.0.1");
-	    headerEntradaExample.put("direccionIpCliente", "127.0.0.1");
-	    headerEntradaExample.put("fechaEnvioMensaje", "20260101");
-	    headerEntradaExample.put("horaEnvioMensaje", "120000");
-	    headerEntradaExample.put("atributoPagineo", "N");
-	    headerEntradaExample.put("claveBusqueda", "clave");
-	    headerEntradaExample.put("cantidadRegistros", 0);
+		// ✅ Example (CLAVE para Swagger UI)
+		Map<String, Object> headerEntradaExample = new LinkedHashMap<>();
+		headerEntradaExample.put("identificadorUnicoGlobal", "string");
+		headerEntradaExample.put("identificacionCanal", "0006");
+		headerEntradaExample.put("identificacionSubCanal", "01");
+		headerEntradaExample.put("siglaAplicacion", "ABC");
+		headerEntradaExample.put("identificacionUsuario", "user");
+		headerEntradaExample.put("direccionIpConsumidor", "127.0.0.1");
+		headerEntradaExample.put("direccionIpCliente", "127.0.0.1");
+		headerEntradaExample.put("fechaEnvioMensaje", "20260101");
+		headerEntradaExample.put("horaEnvioMensaje", "120000");
+		headerEntradaExample.put("atributoPagineo", "N");
+		headerEntradaExample.put("claveBusqueda", "clave");
+		headerEntradaExample.put("cantidadRegistros", 0);
 
-	    headerEntrada.put("example", headerEntradaExample);
+		headerEntrada.put("example", headerEntradaExample);
 
-	    schemaMap.putIfAbsent("HeaderEntrada", headerEntrada);
+		schemaMap.putIfAbsent("HeaderEntrada", headerEntrada);
 
-	    // =========================================================
-	    // ✅ HEADER SALIDA
-	    // =========================================================
-	    Map<String, Object> headerSalida = new LinkedHashMap<>();
-	    headerSalida.put("type", "object");
+		// =========================================================
+		// ✅ HEADER SALIDA
+		// =========================================================
+		Map<String, Object> headerSalida = new LinkedHashMap<>();
+		headerSalida.put("type", "object");
 
-	    Map<String, Object> propsSalida = new LinkedHashMap<>();
+		Map<String, Object> propsSalida = new LinkedHashMap<>();
 
-	    propsSalida.put("tipoMensaje", Map.of("type", "string", "example", "F"));
-	    propsSalida.put("mensajeProgramadorSistema", Map.of("type", "string"));
-	    propsSalida.put("codigoMensajeProgramador", Map.of("type", "string"));
-	    propsSalida.put("mensajeUsuario", Map.of("type", "string"));
-	    propsSalida.put("codigoMensajeUsuario", Map.of("type", "string"));
-	    propsSalida.put("fechaSalidaMensaje", Map.of("type", "string"));
-	    propsSalida.put("horaSalidaMensaje", Map.of("type", "string"));
+		propsSalida.put("tipoMensaje", Map.of("type", "string", "example", "F"));
+		propsSalida.put("mensajeProgramadorSistema", Map.of("type", "string"));
+		propsSalida.put("codigoMensajeProgramador", Map.of("type", "string"));
+		propsSalida.put("mensajeUsuario", Map.of("type", "string"));
+		propsSalida.put("codigoMensajeUsuario", Map.of("type", "string"));
+		propsSalida.put("fechaSalidaMensaje", Map.of("type", "string"));
+		propsSalida.put("horaSalidaMensaje", Map.of("type", "string"));
 
-	    headerSalida.put("properties", propsSalida);
+		headerSalida.put("properties", propsSalida);
 
-	    // ✅ Example
-	    Map<String, Object> headerSalidaExample = new LinkedHashMap<>();
-	    headerSalidaExample.put("tipoMensaje", "F");
-	    headerSalidaExample.put("mensajeProgramadorSistema", "Procesado correctamente");
-	    headerSalidaExample.put("codigoMensajeProgramador", "0000");
-	    headerSalidaExample.put("mensajeUsuario", "Operación exitosa");
-	    headerSalidaExample.put("codigoMensajeUsuario", "0000");
-	    headerSalidaExample.put("fechaSalidaMensaje", "20260101");
-	    headerSalidaExample.put("horaSalidaMensaje", "120000");
+		// ✅ Example
+		Map<String, Object> headerSalidaExample = new LinkedHashMap<>();
+		headerSalidaExample.put("tipoMensaje", "F");
+		headerSalidaExample.put("mensajeProgramadorSistema", "Procesado correctamente");
+		headerSalidaExample.put("codigoMensajeProgramador", "0000");
+		headerSalidaExample.put("mensajeUsuario", "Operación exitosa");
+		headerSalidaExample.put("codigoMensajeUsuario", "0000");
+		headerSalidaExample.put("fechaSalidaMensaje", "20260101");
+		headerSalidaExample.put("horaSalidaMensaje", "120000");
 
-	    headerSalida.put("example", headerSalidaExample);
+		headerSalida.put("example", headerSalidaExample);
 
-	    schemaMap.putIfAbsent("HeaderSalida", headerSalida);
+		schemaMap.putIfAbsent("HeaderSalida", headerSalida);
 	}
 
 	// =========================================================
@@ -368,7 +362,7 @@ public class OpenApiGeneratorService {
 
 		try {
 
-			// ✅ posibles nombres de archivo
+			// ✅ nombres de archivo de configuración del servicio
 			List<String> candidates = List.of("restservices.xml", "service.xml", "services.xml");
 
 			File fileFound = null;
@@ -475,14 +469,18 @@ public class OpenApiGeneratorService {
 
 	private String resolveConfigPath(ServiceItem service) {
 
-		// ✅ base fija del banco
-		String base = "C:/BM_HOME/appl";
+		// ✅ Obtener la variable de entorno BM_HOME
+		String base = System.getenv("BM_HOME");
 
-		// ✅ nombre del servicio (simf, tarjeta, etc.)
+		if (base == null || base.isEmpty()) {
+			throw new RuntimeException("La variable de entorno BM_HOME no está configurada");
+		}
+
+		// ✅ nombre del servicio
 		String name = service.getName();
 
-		// ✅ regla real de carpeta
-		return base + "/api-" + name + "/config";
+		// ✅ construir ruta multiplataforma
+		return java.nio.file.Paths.get(base, "appl", "api-" + name, "config").toString();
 	}
 
 	private String extractCoreProgram(String url) {

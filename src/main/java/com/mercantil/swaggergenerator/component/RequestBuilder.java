@@ -15,13 +15,13 @@ import com.mercantil.swaggergenerator.util.ParserUtil;
 public class RequestBuilder {
 
 	@Autowired
-	private ParserUtil parserUtil;
+	private ExampleGenerator exampleGenerator;
 
 	@Autowired
-	private HeaderExampleProvider headerProvider;
+	private ParserUtil parserUtil;
 
 	public Map<String, Object> build(MethodDeclaration method, Map<String, Map<String, Object>> schemaMap,
-			Map<String, Object> exampleMap, List<String> ignoredTypes) {
+			List<String> ignoredTypes) {
 
 		Map<String, Object> requestSchema = new LinkedHashMap<>();
 		Map<String, Object> requestProps = new LinkedHashMap<>();
@@ -49,7 +49,7 @@ public class RequestBuilder {
 				rawType = parserUtil.extractGeneric(rawType);
 			}
 
-			// ✅ detectar request wrapper
+			// ✅ detectar Request wrapper
 			if (rawType.startsWith("Request")) {
 
 				Map<String, Object> reqSchema = schemaMap.get(rawType);
@@ -75,7 +75,6 @@ public class RequestBuilder {
 								}
 
 								bodyName = entry.getKey().replace("bodyEntrada", "");
-
 								break;
 							}
 						}
@@ -92,37 +91,45 @@ public class RequestBuilder {
 		requestSchema.put("type", "object");
 		requestSchema.put("properties", requestProps);
 
-		// ✅ JSON final
+		// GENERA EXAMPLE
+		Object requestExample = buildRequestExample(requestProps);
+
+		// ✅ JSON final SIN examples
 		Map<String, Object> requestJson = new LinkedHashMap<>();
 		requestJson.put("schema", requestSchema);
-
-		// ✅ ejemplo
-		Map<String, Object> requestExample = new LinkedHashMap<>();
-
-		requestExample.put("headerEntrada", headerProvider.buildHeaderEntrada());
-
-		if (requestBodyType != null) {
-
-			Object bodyExample = exampleMap.get(requestBodyType);
-
-			if (!(bodyExample instanceof Map)) {
-				bodyExample = new LinkedHashMap<>();
-			}
-
-			requestExample.put("bodyEntrada" + bodyName, bodyExample);
-		}
-
-		Map<String, Object> exampleWrapper = new LinkedHashMap<>();
-
-		Map<String, Object> defaultExample = new LinkedHashMap<>();
-		defaultExample.put("summary", "Ejemplo generado");
-		defaultExample.put("value", requestExample);
-
-		exampleWrapper.put("default", defaultExample);
-
-		requestJson.put("examples", exampleWrapper);
+		requestJson.put("example", requestExample);
 
 		return Map.of("required", true, "content", Map.of("application/json", requestJson));
+	}
+
+	private Object buildRequestExample(Map<String, Object> requestProps) {
+
+		Map<String, Object> example = new LinkedHashMap<>();
+
+		for (Map.Entry<String, Object> entry : requestProps.entrySet()) {
+
+			String key = entry.getKey();
+			Object value = entry.getValue();
+
+			if (!(value instanceof Map))
+				continue;
+
+			Map<?, ?> prop = (Map<?, ?>) value;
+
+			// ✅ $ref → construir objeto completo
+			if (prop.containsKey("$ref")) {
+
+				String ref = prop.get("$ref").toString();
+				String type = ref.substring(ref.lastIndexOf("/") + 1);
+
+				example.put(key, exampleGenerator.buildExampleFromType(type));
+			} else {
+				// ✅ fallback simple
+				example.put(key, exampleGenerator.generateSmartExample(key));
+			}
+		}
+
+		return example;
 	}
 
 }

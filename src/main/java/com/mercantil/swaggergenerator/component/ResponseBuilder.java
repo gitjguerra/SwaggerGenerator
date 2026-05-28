@@ -13,147 +13,117 @@ import com.mercantil.swaggergenerator.util.ParserUtil;
 @Component
 public class ResponseBuilder {
 
-    @Autowired
-    private ParserUtil parserUtil;
+	@Autowired
+	private ParserUtil parserUtil;
 
-    public Map<String, Object> build(
-            MethodDeclaration method,
-            Map<String, Map<String, Object>> schemaMap,
-            Map<String, Object> exampleMap,
-            List<String> ignoredTypes
-    ) {
+	@Autowired
+	private ExampleGenerator exampleGenerator; // 🔥 NUEVO
 
-        java.util.function.Function<String, Map<String, Object>> safeRef = type -> {
-            if (type == null || ignoredTypes.contains(type)) {
-                return Map.of("type", "object");
-            }
-            return Map.of("$ref", "#/components/schemas/" + type);
-        };
+	public Map<String, Object> build(MethodDeclaration method, Map<String, Map<String, Object>> schemaMap,
+			List<String> ignoredTypes) {
 
-        String rawReturn = method.getType().asString();
+		java.util.function.Function<String, Map<String, Object>> safeRef = type -> {
+			if (type == null || ignoredTypes.contains(type)) {
+				return Map.of("type", "object");
+			}
+			return Map.of("$ref", "#/components/schemas/" + type);
+		};
 
-        String responseType = unwrapResponseType(rawReturn);
+		String rawReturn = method.getType().asString();
+		String responseType = unwrapResponseType(rawReturn);
 
-        if (responseType == null
-                || ignoredTypes.contains(responseType)
-                || "ClientResponse".equals(responseType)) {
-            responseType = null;
-        }
+		if (responseType == null || ignoredTypes.contains(responseType) || "ClientResponse".equals(responseType)) {
+			responseType = null;
+		}
 
-        ensureSchemaExists(responseType, schemaMap);
+		ensureSchemaExists(responseType, schemaMap);
 
-        String responseBodyName =
-                responseType != null
-                        ? capitalize(responseType.replace("Response", ""))
-                        : "";
+		String responseBodyName = responseType != null ? capitalize(responseType.replace("Response", "")) : "";
 
-        String expectedBodyClass = "BodySalida" + responseBodyName;
+		String expectedBodyClass = "BodySalida" + responseBodyName;
 
-        if (ignoredTypes.contains(expectedBodyClass)) {
-            expectedBodyClass = null;
-        }
+		if (ignoredTypes.contains(expectedBodyClass)) {
+			expectedBodyClass = null;
+		}
 
-        boolean canHaveBody =
-                expectedBodyClass != null && schemaMap.containsKey(expectedBodyClass);
+		boolean canHaveBody = expectedBodyClass != null && schemaMap.containsKey(expectedBodyClass);
 
-        Map<String, Object> responseSchema = new LinkedHashMap<>();
-        Map<String, Object> responseProps = new LinkedHashMap<>();
+		Map<String, Object> responseSchema = new LinkedHashMap<>();
+		Map<String, Object> responseProps = new LinkedHashMap<>();
 
-        responseProps.put("headerSalida", safeRef.apply("HeaderSalida"));
+		responseProps.put("headerSalida", safeRef.apply("HeaderSalida"));
 
-        if (canHaveBody) {
-            responseProps.put("bodySalida" + responseBodyName,
-                    safeRef.apply(expectedBodyClass));
-        }
+		if (canHaveBody) {
+			responseProps.put("bodySalida" + responseBodyName, safeRef.apply(expectedBodyClass));
+		}
 
-        responseSchema.put("type", "object");
-        responseSchema.put("properties", responseProps);
+		responseSchema.put("type", "object");
+		responseSchema.put("properties", responseProps);
 
-        Map<String, Object> responseJson = new LinkedHashMap<>();
-        responseJson.put("schema", responseSchema);
+		// =========================================================
+		// ✅ 🔥 GENERAR EXAMPLE COMPLETO (CLAVE)
+		// =========================================================
+		Map<String, Object> responseExample = new LinkedHashMap<>();
 
-        Map<String, Object> responseExample = new LinkedHashMap<>();
-        responseExample.put("headerSalida", buildHeaderSalidaExample());
+		responseExample.put("headerSalida", exampleGenerator.buildExampleFromType("HeaderSalida"));
 
-        if (canHaveBody) {
+		if (canHaveBody) {
+			responseExample.put("bodySalida" + responseBodyName,
+					exampleGenerator.buildExampleFromType(expectedBodyClass));
+		}
 
-            Object exampleBody = exampleMap.get(expectedBodyClass);
+		// =========================================================
+		// ✅ JSON FINAL CON EXAMPLE
+		// =========================================================
+		Map<String, Object> responseJson = new LinkedHashMap<>();
+		responseJson.put("schema", responseSchema);
+		responseJson.put("example", responseExample); // 🔥 CLAVE
 
-            if (!(exampleBody instanceof Map)) {
-                exampleBody = new LinkedHashMap<>();
-            }
+		Map<String, Object> responses = new LinkedHashMap<>();
 
-            responseExample.put("bodySalida" + responseBodyName, exampleBody);
-        }
+		responses.put("200",
+				Map.of("description", "Operación exitosa", "content", Map.of("application/json", responseJson)));
 
-        responseJson.put("examples", Map.of(
-                "default",
-                Map.of(
-                        "summary", "Ejemplo generado",
-                        "value", responseExample
-                )
-        ));
+		return responses;
+	}
 
-        Map<String, Object> responses = new LinkedHashMap<>();
+	private void ensureSchemaExists(String typeName, Map<String, Map<String, Object>> schemaMap) {
 
-        responses.put("200", Map.of(
-                "description", "Operación exitosa",
-                "content", Map.of("application/json", responseJson)
-        ));
+		if (typeName == null || typeName.isBlank())
+			return;
 
-        return responses;
-    }
+		if (schemaMap.containsKey(typeName))
+			return;
 
-    private void ensureSchemaExists(String typeName,
-                                    Map<String, Map<String, Object>> schemaMap) {
+		Map<String, Object> schema = new LinkedHashMap<>();
+		schema.put("type", "object");
+		schema.put("additionalProperties", true);
 
-        if (typeName == null || typeName.isBlank()) return;
+		schemaMap.put(typeName, schema);
+	}
 
-        if (schemaMap.containsKey(typeName)) return;
+	private String capitalize(String str) {
+		if (str == null || str.isEmpty())
+			return str;
+		return str.substring(0, 1).toUpperCase() + str.substring(1);
+	}
 
-        Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("type", "object");
-        schema.put("additionalProperties", true);
+	private String unwrapResponseType(String type) {
 
-        schemaMap.put(typeName, schema);
-    }
+		List<String> wrappers = List.of("ResponseEntity", "ClientResponse", "Optional");
 
-    private String capitalize(String str) {
-        if (str == null || str.isEmpty()) return str;
-        return str.substring(0, 1).toUpperCase() + str.substring(1);
-    }
+		String current = type;
 
-    // ✅ INTERNO pero usando reglas correctas
-    private String unwrapResponseType(String type) {
+		while (current.contains("<") && current.contains(">")) {
 
-        List<String> wrappers = List.of("ResponseEntity", "ClientResponse", "Optional");
+			String outer = current.substring(0, current.indexOf("<")).trim();
 
-        String current = type;
+			if (!wrappers.contains(outer))
+				break;
 
-        while (current.contains("<") && current.contains(">")) {
+			current = parserUtil.extractGeneric(current);
+		}
 
-            String outer = current.substring(0, current.indexOf("<")).trim();
-
-            if (!wrappers.contains(outer)) break;
-
-            current = parserUtil.extractGeneric(current);
-        }
-
-        return parserUtil.resolveFinalType(current);
-    }
-
-    private Map<String, Object> buildHeaderSalidaExample() {
-
-        Map<String, Object> header = new LinkedHashMap<>();
-
-        header.put("tipoMensaje", "I");
-        header.put("mensajeProgramadorSistema", "Procesado correctamente");
-        header.put("codigoMensajeProgramador", "0000");
-        header.put("mensajeUsuario", "Operación exitosa");
-        header.put("codigoMensajeUsuario", "0000");
-        header.put("fechaSalidaMensaje", "20251226");
-        header.put("horaSalidaMensaje", "135046");
-
-        return header;
-    }
+		return parserUtil.resolveFinalType(current);
+	}
 }

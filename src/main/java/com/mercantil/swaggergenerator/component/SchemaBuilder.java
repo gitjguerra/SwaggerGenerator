@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,10 @@ public class SchemaBuilder {
 	@Autowired
 	private ParserUtil parserUtil;
 
+	@Autowired
+	private ExampleGenerator exampleGenerator;
+
+	@SuppressWarnings("unused")
 	private Map<String, Map<String, Object>> schemaMap;
 
 	public void setSchemaMap(Map<String, Map<String, Object>> schemaMap) {
@@ -56,36 +61,110 @@ public class SchemaBuilder {
 
 				Map<String, Object> prop = new LinkedHashMap<>();
 
-				// ✅ LIST
+				// =========================================================
+				// ✅ GENERAR EJEMPLO UNA SOLA VEZ (🔥 CLAVE)
+				// =========================================================
+				Object exampleValue = exampleGenerator.generateSmartExample(name);
+
+				// =========================================================
+				// ✅ LISTAS
+				// =========================================================
 				if (cleanType.startsWith("List<") || rawType.contains("List<")) {
-					handleList(prop, rawType);
-				}
 
-				// ✅ PRIMITIVE
-				else if (typeUtil.isPrimitive(type)) {
-					prop.put("type", typeUtil.mapType(type));
-					applyFormat(prop, type);
-				}
+					String generic = parserUtil.resolveFinalType(parserUtil.extractGeneric(cleanType));
 
-				// ✅ OBJECT
-				else {
-					if (!schemaMap.containsKey(type)) {
-						Map<String, Object> fallback = new LinkedHashMap<>();
-						fallback.put("type", "object");
-						fallback.put("additionalProperties", true);
-						schemaMap.put(type, fallback);
+					prop.put("type", "array");
+
+					Map<String, Object> items = new LinkedHashMap<>();
+
+					if (typeUtil.isPrimitive(generic)) {
+
+						items.put("type", typeUtil.mapType(generic));
+
+						if (exampleValue != null) {
+							items.put("example", exampleValue);
+							prop.put("example", List.of(exampleValue)); // ✅ ejemplo de array
+						}
+
+					} else {
+
+						items.put("$ref", "#/components/schemas/" + generic);
+
+						if (exampleValue != null) {
+							prop.put("example", List.of(exampleValue)); // ✅ array de objetos
+						}
 					}
 
-					prop.put("$ref", "#/components/schemas/" + type);
+					prop.put("items", items);
 				}
 
+				// =========================================================
+				// ✅ PRIMITIVOS
+				// =========================================================
+				else if (typeUtil.isPrimitive(type)) {
+
+					String inferredType = exampleGenerator.inferType(name);
+
+					Set<String> allowedTypes = Set.of("string", "integer", "number", "boolean");
+
+					// ✅ tipo base
+					if (inferredType != null && allowedTypes.contains(inferredType)) {
+						prop.put("type", inferredType);
+					} else {
+						prop.put("type", typeUtil.mapType(type));
+					}
+
+					// ✅ Ajustar tipo según ejemplo (UNA SOLA VEZ)
+					if (exampleValue instanceof String) {
+						prop.put("type", "string");
+					} else if (exampleValue instanceof Integer || exampleValue instanceof Long) {
+						prop.put("type", "integer");
+					} else if (exampleValue instanceof Double || exampleValue instanceof Float) {
+						prop.put("type", "number");
+					}
+
+					// ✅ aplicar format después
+					applyFormat(prop, type);
+
+					// ✅ example
+					if (exampleValue != null) {
+						prop.put("example", exampleValue);
+					}
+				}
+
+				// =========================================================
+				// ✅ OBJETOS
+				// =========================================================
+				else {
+
+					prop.put("$ref", "#/components/schemas/" + type);
+
+					if (exampleValue != null) {
+						prop.put("example", exampleValue);
+					}
+				}
+
+				// =========================================================
+				// ✅ OPTIONAL
+				// =========================================================
 				if (isOptional) {
 					prop.put("nullable", true);
 				}
 
+				// =========================================================
+				// ✅ REQUIRED
+				// =========================================================
 				if (field.getAnnotationByName("NotNull").isPresent()) {
 					required.add(name);
 				}
+
+				// =========================================================
+				// ✅ DEBUG LIMPIO
+				// =========================================================
+				System.out.println("\n==== DEBUG SchemaBuilder ====");
+				System.out.println("FIELD: " + name);
+				System.out.println("TYPE BASE: " + type);
+				System.out.println("EXAMPLE: " + exampleValue);
 
 				properties.put(name, prop);
 			});
@@ -103,27 +182,6 @@ public class SchemaBuilder {
 		}
 
 		return schema;
-	}
-
-	private void handleList(Map<String, Object> prop, String rawType) {
-
-		String generic = parserUtil.resolveFinalType(parserUtil.extractGeneric(rawType));
-
-		prop.put("type", "array");
-
-		if (typeUtil.isPrimitive(generic)) {
-			prop.put("items", Map.of("type", typeUtil.mapType(generic)));
-		} else {
-
-			if (!schemaMap.containsKey(generic)) {
-				Map<String, Object> fallback = new LinkedHashMap<>();
-				fallback.put("type", "object");
-				fallback.put("additionalProperties", true);
-				schemaMap.put(generic, fallback);
-			}
-
-			prop.put("items", Map.of("$ref", "#/components/schemas/" + generic));
-		}
 	}
 
 	private void applyFormat(Map<String, Object> prop, String type) {
