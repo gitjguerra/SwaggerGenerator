@@ -59,6 +59,9 @@ public class OpenApiGeneratorService {
 	// Object mapper create
 	private final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
+	// Buscar CONSTANTS
+	private String currentBeansPath;
+	
 	// ✅ =========================
 	// ✅ GENERADOR PRINCIPAL
 	// ✅ =========================
@@ -71,6 +74,9 @@ public class OpenApiGeneratorService {
 		exampleMap = new LinkedHashMap<>();
 		exampleGenerator.setSchemaMap(schemaMap);
 		backendServiceMap = new LinkedHashMap<>();
+
+		// ✅ ASIGNAR RUTA ACTUAL
+	    this.currentBeansPath = service.getBeansPath();
 
 		doc.security = List.of(Map.of("bearerAuth", List.of()));
 		doc.info.title = "API " + service.getName();
@@ -160,10 +166,10 @@ public class OpenApiGeneratorService {
 
 		if (backendUrl != null) {
 			String coreProgram = extractCoreProgram(backendUrl);
-			desc.append("✅ Backend: ").append(backendUrl);
+			//desc.append("✅ Backend: ").append(backendUrl);
 
 			if (coreProgram != null) {
-				desc.append("\n\n🔗 Core: ").append(coreProgram);
+				desc.append("\n\n🔗 Programa: ").append(coreProgram);
 			}
 		} else {
 			desc.append("❌ Backend no encontrado");
@@ -262,79 +268,79 @@ public class OpenApiGeneratorService {
 
 	private void registerBaseSchemas() {
 
-	    // =========================================================
-	    // ✅ HEADER ENTRADA
-	    // =========================================================
-	    Map<String, Object> headerEntrada = new LinkedHashMap<>();
-	    headerEntrada.put("type", "object");
+		// =========================================================
+		// ✅ HEADER ENTRADA
+		// =========================================================
+		Map<String, Object> headerEntrada = new LinkedHashMap<>();
+		headerEntrada.put("type", "object");
 
-	    Map<String, Object> propsEntrada = new LinkedHashMap<>();
+		Map<String, Object> propsEntrada = new LinkedHashMap<>();
 
-	    propsEntrada.put("identificadorUnicoGlobal", Map.of("type", "string"));
-	    propsEntrada.put("identificacionCanal", Map.of("type", "string"));
-	    propsEntrada.put("identificacionSubCanal", Map.of("type", "string"));
-	    propsEntrada.put("siglaAplicacion", Map.of("type", "string", "minLength", 1, "maxLength", 4));
-	    propsEntrada.put("identificacionUsuario", Map.of("type", "string"));
-	    propsEntrada.put("direccionIpConsumidor", Map.of("type", "string"));
-	    propsEntrada.put("direccionIpCliente", Map.of("type", "string"));
-	    propsEntrada.put("fechaEnvioMensaje", Map.of("type", "string"));
-	    propsEntrada.put("horaEnvioMensaje", Map.of("type", "string"));
-	    propsEntrada.put("atributoPagineo", Map.of("type", "string"));
-	    propsEntrada.put("claveBusqueda", Map.of("type", "string"));
-	    propsEntrada.put("cantidadRegistros", Map.of("type", "integer"));
+		propsEntrada.put("identificadorUnicoGlobal", Map.of("type", "string"));
+		propsEntrada.put("identificacionCanal", Map.of("type", "string"));
+		propsEntrada.put("identificacionSubCanal", Map.of("type", "string"));
+		propsEntrada.put("siglaAplicacion", Map.of("type", "string", "minLength", 1, "maxLength", 4));
+		propsEntrada.put("identificacionUsuario", Map.of("type", "string"));
+		propsEntrada.put("direccionIpConsumidor", Map.of("type", "string"));
+		propsEntrada.put("direccionIpCliente", Map.of("type", "string"));
+		propsEntrada.put("fechaEnvioMensaje", Map.of("type", "string"));
+		propsEntrada.put("horaEnvioMensaje", Map.of("type", "string"));
+		propsEntrada.put("atributoPagineo", Map.of("type", "string"));
+		propsEntrada.put("claveBusqueda", Map.of("type", "string"));
+		propsEntrada.put("cantidadRegistros", Map.of("type", "integer"));
 
-	    headerEntrada.put("properties", propsEntrada);
+		headerEntrada.put("properties", propsEntrada);
 
-	    // ✅ Example (CLAVE para Swagger UI)
-	    Map<String, Object> headerEntradaExample = new LinkedHashMap<>();
-	    headerEntradaExample.put("identificadorUnicoGlobal", "string");
-	    headerEntradaExample.put("identificacionCanal", "0006");
-	    headerEntradaExample.put("identificacionSubCanal", "01");
-	    headerEntradaExample.put("siglaAplicacion", "ABC");
-	    headerEntradaExample.put("identificacionUsuario", "user");
-	    headerEntradaExample.put("direccionIpConsumidor", "127.0.0.1");
-	    headerEntradaExample.put("direccionIpCliente", "127.0.0.1");
-	    headerEntradaExample.put("fechaEnvioMensaje", "20260101");
-	    headerEntradaExample.put("horaEnvioMensaje", "120000");
-	    headerEntradaExample.put("atributoPagineo", "N");
-	    headerEntradaExample.put("claveBusqueda", "clave");
-	    headerEntradaExample.put("cantidadRegistros", 0);
+		// ✅ Example (CLAVE para Swagger UI)
+		Map<String, Object> headerEntradaExample = new LinkedHashMap<>();
+		headerEntradaExample.put("identificadorUnicoGlobal", "string");
+		headerEntradaExample.put("identificacionCanal", "0006");
+		headerEntradaExample.put("identificacionSubCanal", "01");
+		headerEntradaExample.put("siglaAplicacion", "ABC");
+		headerEntradaExample.put("identificacionUsuario", "user");
+		headerEntradaExample.put("direccionIpConsumidor", "127.0.0.1");
+		headerEntradaExample.put("direccionIpCliente", "127.0.0.1");
+		headerEntradaExample.put("fechaEnvioMensaje", "20260101");
+		headerEntradaExample.put("horaEnvioMensaje", "120000");
+		headerEntradaExample.put("atributoPagineo", "N");
+		headerEntradaExample.put("claveBusqueda", "clave");
+		headerEntradaExample.put("cantidadRegistros", 0);
 
-	    headerEntrada.put("example", headerEntradaExample);
+		headerEntrada.put("example", headerEntradaExample);
 
-	    schemaMap.putIfAbsent("HeaderEntrada", headerEntrada);
+		schemaMap.putIfAbsent("HeaderEntrada", headerEntrada);
 
-	    // =========================================================
-	    // ✅ HEADER SALIDA
-	    // =========================================================
-	    Map<String, Object> headerSalida = new LinkedHashMap<>();
-	    headerSalida.put("type", "object");
+		// =========================================================
+		// ✅ HEADER SALIDA
+		// =========================================================
+		Map<String, Object> headerSalida = new LinkedHashMap<>();
+		headerSalida.put("type", "object");
 
-	    Map<String, Object> propsSalida = new LinkedHashMap<>();
+		Map<String, Object> propsSalida = new LinkedHashMap<>();
 
-	    propsSalida.put("tipoMensaje", Map.of("type", "string", "example", "F"));
-	    propsSalida.put("mensajeProgramadorSistema", Map.of("type", "string"));
-	    propsSalida.put("codigoMensajeProgramador", Map.of("type", "string"));
-	    propsSalida.put("mensajeUsuario", Map.of("type", "string"));
-	    propsSalida.put("codigoMensajeUsuario", Map.of("type", "string"));
-	    propsSalida.put("fechaSalidaMensaje", Map.of("type", "string"));
-	    propsSalida.put("horaSalidaMensaje", Map.of("type", "string"));
+		propsSalida.put("tipoMensaje", Map.of("type", "string", "example", "F"));
+		propsSalida.put("mensajeProgramadorSistema", Map.of("type", "string"));
+		propsSalida.put("codigoMensajeProgramador", Map.of("type", "string"));
+		propsSalida.put("mensajeUsuario", Map.of("type", "string"));
+		propsSalida.put("codigoMensajeUsuario", Map.of("type", "string"));
+		propsSalida.put("fechaSalidaMensaje", Map.of("type", "string"));
+		propsSalida.put("horaSalidaMensaje", Map.of("type", "string"));
 
-	    headerSalida.put("properties", propsSalida);
+		headerSalida.put("properties", propsSalida);
 
-	    // ✅ Example
-	    Map<String, Object> headerSalidaExample = new LinkedHashMap<>();
-	    headerSalidaExample.put("tipoMensaje", "F");
-	    headerSalidaExample.put("mensajeProgramadorSistema", "Procesado correctamente");
-	    headerSalidaExample.put("codigoMensajeProgramador", "0000");
-	    headerSalidaExample.put("mensajeUsuario", "Operación exitosa");
-	    headerSalidaExample.put("codigoMensajeUsuario", "0000");
-	    headerSalidaExample.put("fechaSalidaMensaje", "20260101");
-	    headerSalidaExample.put("horaSalidaMensaje", "120000");
+		// ✅ Example
+		Map<String, Object> headerSalidaExample = new LinkedHashMap<>();
+		headerSalidaExample.put("tipoMensaje", "F");
+		headerSalidaExample.put("mensajeProgramadorSistema", "Procesado correctamente");
+		headerSalidaExample.put("codigoMensajeProgramador", "0000");
+		headerSalidaExample.put("mensajeUsuario", "Operación exitosa");
+		headerSalidaExample.put("codigoMensajeUsuario", "0000");
+		headerSalidaExample.put("fechaSalidaMensaje", "20260101");
+		headerSalidaExample.put("horaSalidaMensaje", "120000");
 
-	    headerSalida.put("example", headerSalidaExample);
+		headerSalida.put("example", headerSalidaExample);
 
-	    schemaMap.putIfAbsent("HeaderSalida", headerSalida);
+		schemaMap.putIfAbsent("HeaderSalida", headerSalida);
 	}
 
 	// =========================================================
@@ -470,7 +476,51 @@ public class OpenApiGeneratorService {
 		if (enumName == null)
 			return null;
 
-		return enumName.toLowerCase().replace("_", "-");
+		try {
+
+			// ✅ rutas típicas donde están los enums
+			List<String> possiblePaths = List.of("constants", "commons");
+
+			// ✅ buscar dentro de beansPath (más rápido y acotado)
+			List<File> baseFiles = findJavaFiles(currentBeansPath);
+
+			for (File file : baseFiles) {
+
+				String path = file.getAbsolutePath().toLowerCase();
+
+				// ✅ filtrar solo carpetas relevantes
+				if (possiblePaths.stream().noneMatch(path::contains)) {
+					continue;
+				}
+
+				CompilationUnit cu = StaticJavaParser.parse(file);
+
+				for (var enumDecl : cu.findAll(com.github.javaparser.ast.body.EnumDeclaration.class)) {
+
+					for (var entry : enumDecl.getEntries()) {
+
+						if (!entry.getNameAsString().equals(enumName)) {
+							continue;
+						}
+
+						// ✅ obtener valor del enum
+						if (!entry.getArguments().isEmpty()) {
+
+							var arg = entry.getArgument(0);
+
+							if (arg.isStringLiteralExpr()) {
+								return arg.asStringLiteralExpr().asString();
+							}
+						}
+					}
+				}
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return enumName.toLowerCase().replace("_", "-"); // fallback
 	}
 
 	private String resolveConfigPath(ServiceItem service) {
