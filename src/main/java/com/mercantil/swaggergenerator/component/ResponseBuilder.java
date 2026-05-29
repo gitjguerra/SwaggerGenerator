@@ -14,15 +14,18 @@ import com.mercantil.swaggergenerator.util.ParserUtil;
 public class ResponseBuilder {
 
     @Autowired
+    private HeaderExampleProvider headerProvider; // ✅ CENTRALIZADO
+
+    @Autowired
     private ParserUtil parserUtil;
 
     public Map<String, Object> build(
             MethodDeclaration method,
             Map<String, Map<String, Object>> schemaMap,
             Map<String, Object> exampleMap,
-            List<String> ignoredTypes
-    ) {
+            List<String> ignoredTypes) {
 
+        // ✅ REF SAFE
         java.util.function.Function<String, Map<String, Object>> safeRef = type -> {
             if (type == null || ignoredTypes.contains(type)) {
                 return Map.of("type", "object");
@@ -30,8 +33,8 @@ public class ResponseBuilder {
             return Map.of("$ref", "#/components/schemas/" + type);
         };
 
+        // ✅ DETECTAR TIPO DE RESPUESTA
         String rawReturn = method.getType().asString();
-
         String responseType = unwrapResponseType(rawReturn);
 
         if (responseType == null
@@ -40,6 +43,7 @@ public class ResponseBuilder {
             responseType = null;
         }
 
+        // ✅ ASEGURAR SCHEMA
         ensureSchemaExists(responseType, schemaMap);
 
         String responseBodyName =
@@ -56,9 +60,13 @@ public class ResponseBuilder {
         boolean canHaveBody =
                 expectedBodyClass != null && schemaMap.containsKey(expectedBodyClass);
 
+        // =========================================================
+        // ✅ SCHEMA RESPONSE
+        // =========================================================
         Map<String, Object> responseSchema = new LinkedHashMap<>();
         Map<String, Object> responseProps = new LinkedHashMap<>();
 
+        // ✅ HEADER CENTRALIZADO
         responseProps.put("headerSalida", safeRef.apply("HeaderSalida"));
 
         if (canHaveBody) {
@@ -69,12 +77,21 @@ public class ResponseBuilder {
         responseSchema.put("type", "object");
         responseSchema.put("properties", responseProps);
 
+        // =========================================================
+        // ✅ JSON RESPONSE
+        // =========================================================
         Map<String, Object> responseJson = new LinkedHashMap<>();
         responseJson.put("schema", responseSchema);
 
+        // =========================================================
+        // ✅ EXAMPLE RESPONSE
+        // =========================================================
         Map<String, Object> responseExample = new LinkedHashMap<>();
-        responseExample.put("headerSalida", buildHeaderSalidaExample());
 
+        // 🔥 FIX CLAVE: usar provider (NO hardcode)
+        responseExample.put("headerSalida", headerProvider.buildHeaderSalida());
+
+        // ✅ BODY DINÁMICO
         if (canHaveBody) {
 
             Object exampleBody = exampleMap.get(expectedBodyClass);
@@ -94,6 +111,9 @@ public class ResponseBuilder {
                 )
         ));
 
+        // =========================================================
+        // ✅ RESPUESTA FINAL
+        // =========================================================
         Map<String, Object> responses = new LinkedHashMap<>();
 
         responses.put("200", Map.of(
@@ -103,6 +123,10 @@ public class ResponseBuilder {
 
         return responses;
     }
+
+    // =========================================================
+    // ✅ UTILIDADES
+    // =========================================================
 
     private void ensureSchemaExists(String typeName,
                                     Map<String, Map<String, Object>> schemaMap) {
@@ -123,7 +147,7 @@ public class ResponseBuilder {
         return str.substring(0, 1).toUpperCase() + str.substring(1);
     }
 
-    // ✅ INTERNO pero usando reglas correctas
+    // ✅ UNWRAP GENERICS (ResponseEntity, Optional, etc.)
     private String unwrapResponseType(String type) {
 
         List<String> wrappers = List.of("ResponseEntity", "ClientResponse", "Optional");
@@ -140,20 +164,5 @@ public class ResponseBuilder {
         }
 
         return parserUtil.resolveFinalType(current);
-    }
-
-    private Map<String, Object> buildHeaderSalidaExample() {
-
-        Map<String, Object> header = new LinkedHashMap<>();
-
-        header.put("tipoMensaje", "I");
-        header.put("mensajeProgramadorSistema", "Procesado correctamente");
-        header.put("codigoMensajeProgramador", "0000");
-        header.put("mensajeUsuario", "Operación exitosa");
-        header.put("codigoMensajeUsuario", "0000");
-        header.put("fechaSalidaMensaje", "20251226");
-        header.put("horaSalidaMensaje", "135046");
-
-        return header;
     }
 }
