@@ -160,16 +160,19 @@ public class ExampleGenerator {
 		}
 
 		// ✅ TARJETA
-		if (tokens.contains("tarjeta") || lower.contains("tarjeta") || tokens.contains("numtarj")
-				|| lower.contains("numtarj") || tokens.contains("nrotarj") || lower.contains("nrotarj")) {
+		if (tokens.contains("tarjeta")
+		        || tokens.contains("tarj")
+		        || (tokens.contains("nro") && tokens.contains("tarj"))
+		        || (tokens.contains("num") && tokens.contains("tarj"))
+		        || lower.contains("tarj")) {
 
-			String v = "5888910003058274";
+		    String v = "5888910003058274";
 
-			if (name.toLowerCase().endsWith("s")) {
-				return List.of(v);
-			}
+		    if (name.toLowerCase().endsWith("s")) {
+		        return List.of(v);
+		    }
 
-			return v;
+		    return v;
 		}
 
 		// =========================================================
