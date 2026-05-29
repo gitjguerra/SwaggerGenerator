@@ -2,12 +2,12 @@ spring:
   application:
     name: swaggergenerator
 swagger:
-  output-dir: C:\DevEnvironment\src\java\monitor-workspace\monitor\src\main\resources\static\swagger
+  output-dir: C:\DevEnvironment\src\java\monitor-workspace\swagger
 services:
   list:
     - name: simf
-      controllersPath: C:/DevEnvironment/src/java/bm-workspace/bm-simf/api-simf/src/main/java
-      beansPath: C:/DevEnvironment/src/java/bm-workspace/bm-simf/ws-simf/src/main/java
+      controllersPath: 'C:/DevEnvironment/src/java/bm-workspace/bm-simf/api-simf/src/main/java'
+      beansPath: 'C:/DevEnvironment/src/java/bm-workspace/bm-simf/ws-simf/src/main/java'
       basePackage: com.mercantilbanco.osba
       basePath: /simf
     - name: security
@@ -35,3 +35,8 @@ services:
       beansPath: C:\DevEnvironment\src\java\bm-workspace\bm-notificaciones\ws-notificaciones\src\main\java
       basePackage: com.mercantilbanco.osba
       basePath: /notificaciones
+    - name: mia
+      controllersPath: 'C:\DevEnvironment\src\java\bm-workspace\bm-mia\api-mia\src\main\java'
+      beansPath: 'C:\DevEnvironment\src\java\bm-workspace\bm-mia\ws-mia\src\main\java'
+      basePackage: com.mercantilbanco.osba
+      basePath: /mia

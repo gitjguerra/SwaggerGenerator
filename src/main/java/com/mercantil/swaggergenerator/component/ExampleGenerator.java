@@ -160,9 +160,10 @@ public class ExampleGenerator {
 		}
 
 		// ✅ TARJETA
-		if (tokens.contains("tarjeta") || lower.contains("tarjeta")) {
+		if (tokens.contains("tarjeta") || lower.contains("tarjeta") || tokens.contains("numtarj")
+				|| lower.contains("numtarj") || tokens.contains("nrotarj") || lower.contains("nrotarj")) {
 
-			String v = "1234567890123456";
+			String v = "5888910003058274";
 
 			if (name.toLowerCase().endsWith("s")) {
 				return List.of(v);
@@ -170,6 +171,7 @@ public class ExampleGenerator {
 
 			return v;
 		}
+
 		// =========================================================
 		// ✅ PERFIL / KYC
 		// =========================================================
