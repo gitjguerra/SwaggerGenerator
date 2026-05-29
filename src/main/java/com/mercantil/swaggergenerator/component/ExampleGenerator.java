@@ -49,10 +49,14 @@ public class ExampleGenerator {
 
 	public Object generateSmartExample(String name) {
 
+		// ✅ ORIGINAL (🔥 CLAVE)
+		String rawLower = name.toLowerCase();
+
+		// ✅ NORMALIZADO (para semántica expandida)
 		String normalized = normalizeName(name);
 		String lower = normalized.toLowerCase();
 
-		// ✅ tokenizar SIEMPRE desde el nombre original
+		// ✅ tokenización
 		List<String> tokens = tokenize(name);
 
 		// =========================================================
@@ -68,21 +72,58 @@ public class ExampleGenerator {
 		}
 
 		// =========================================================
-		// ✅ 2. REGLAS FUERTES (NORMALIZED - 🔥 PRIORIDAD ALTA)
+		// ✅ 2. REGLAS FUERTES (NORMALIZED)
 		// =========================================================
-
-		if (normalized.contains("codigoproducto"))
+		if (lower.contains("codigoproducto"))
 			return "02";
-		if (normalized.contains("codigopais"))
+
+		if (lower.contains("codigopais"))
 			return "VE";
-		if (normalized.contains("codigoempresa"))
+
+		if (lower.contains("codigoempresa"))
 			return "0108";
-		if (normalized.contains("codigorazon"))
+
+		if (lower.contains("codigorazon"))
 			return "01";
 
 		// =========================================================
-		// ✅ 3. SEMÁNTICA
+		// ✅ 3. SEMÁNTICA (🔥 PRIORIDAD ALTA)
 		// =========================================================
+
+		// ✅ FECHAS (usar raw + semantic)
+		if (rawLower.contains("fch") || lower.contains("fecha")) {
+			return "20251226";
+		}
+
+		// ✅ NÚMERO DE CUENTA
+		if (rawLower.contains("nrocuenta") || lower.contains("numerocuenta") || lower.contains("numcuenta")
+				|| (tokens.contains("cuenta") && tokens.contains("nro"))) {
+
+			return 1242034900;
+		}
+
+		// ✅ EMAIL
+		if (rawLower.contains("email") || lower.contains("correo")) {
+			return "jperez@email.com";
+		}
+
+		// ✅ NOMBRES PERSONA
+		if (rawLower.contains("primernom") || lower.contains("primernombre")) {
+			return "Juan";
+		}
+
+		if (rawLower.contains("segundonom") || lower.contains("segundonombre")) {
+			return "Carlos";
+		}
+
+		// ✅ APELLIDOS
+		if (rawLower.contains("primerapell") || lower.contains("primerapellido")) {
+			return "Pérez";
+		}
+
+		if (rawLower.contains("segundoapell") || lower.contains("segundoapellido")) {
+			return "López";
+		}
 
 		// ✅ TIPO IDENTIFICACION
 		if ((tokens.contains("tipo") && tokens.contains("identificacion")) || lower.contains("tipoidentificacion")) {
@@ -94,6 +135,7 @@ public class ExampleGenerator {
 		// ✅ IDENTIFICACIÓN / CÉDULA
 		if ((tokens.contains("cedula") || tokens.contains("rif") || tokens.contains("identificacion")
 				|| lower.contains("cedula") || lower.contains("rif")) && !tokens.contains("tipo")) {
+
 			Integer v = 12345678;
 			dataContext.put("cedula", v);
 			return v;
@@ -101,6 +143,7 @@ public class ExampleGenerator {
 
 		// ✅ PERSONA
 		if (tokens.contains("persona") || lower.contains("numeropersona")) {
+
 			Integer v = 12345678;
 			dataContext.put("persona", v);
 			return v;
@@ -127,9 +170,156 @@ public class ExampleGenerator {
 
 			return v;
 		}
+		// =========================================================
+		// ✅ PERFIL / KYC
+		// =========================================================
+
+		// ✅ SEXO
+		if (rawLower.contains("sexo")) {
+			return "masculino";
+		}
+
+		// ✅ ESTADO CIVIL
+		if (rawLower.contains("estadocivil")) {
+			return "casado";
+		}
+
+		// ✅ CARGA FAMILIAR
+		if (lower.contains("cargafamiliar")) {
+			return "5";
+		}
+
+		// ✅ PAÍS RESIDENCIA
+		if (lower.contains("paisresidencia")) {
+			return "VE";
+		}
+
+		// ✅ AÑOS / ANTIGÜEDAD / TIEMPO
+		if (lower.contains("anio") || lower.contains("anios") || lower.contains("años")) {
+			return "10";
+		}
+
+		// ✅ NIVEL EDUCATIVO
+		if (lower.contains("niveleducativo")) {
+			return "universitario";
+		}
+
+		// ✅ FECHAS LABORALES
+		if (lower.contains("fechaingresolaboral")) {
+			return "20251226";
+		}
+
+		// ✅ PORCENTAJE
+		if (lower.contains("porcentaje")) {
+			return "10";
+		}
+
+		// ✅ SUELDO / INGRESOS
+		if (lower.contains("sueldo") || lower.contains("ingresos")) {
+			return "700000";
+		}
+
+		// ✅ EMPRESA / NOMBRE COMERCIAL
+		if (lower.contains("nombrecomercial")) {
+			return "MiEmpresa C.A.";
+		}
+
+		// ✅ MONTO VENTAS / OTROS INGRESOS
+		if (lower.contains("montoventas") || lower.contains("montootros")) {
+			return "1500000";
+		}
+
+		// ✅ EMPRESAS LABORALES
+		if (lower.contains("empresas")) {
+			return "01";
+		}
+
+		// ✅ CANTIDAD EMPLEADOS
+		if (lower.contains("cantidadempleados") || lower.contains("rangos")) {
+			return 77;
+		}
+
+		// ✅ CARGOS / ACTIVIDAD
+		if (lower.contains("cargo")) {
+			return "Analista";
+		}
+
+		if (lower.contains("actividad")) {
+			return "Servicios";
+		}
+
+		// ✅ CATEGORÍA / PROFESIÓN
+		if (lower.contains("categoria") || lower.contains("profesion")) {
+			return "0001";
+		}
+
+		// ✅ FUNCIONARIO / DIVISION / UNIDAD
+		if (lower.contains("codigofuncionario") || lower.contains("division") || lower.contains("unidadorganizativa")) {
+			return "0001";
+		}
+
+		// ✅ ACTIVO / CONDICIÓN
+		if (lower.contains("codigoactivo") || lower.contains("codigocondicionactivo")) {
+			return "01";
+		}
+
+		// ✅ ACREEDOR
+		if (lower.contains("acreedor")) {
+			return "Banco Mercantil";
+		}
+
+		// ✅ TELÉFONO ACREEDOR
+		if (lower.contains("telefonoacreedor")) {
+			return "04141234567";
+		}
+
+		// ✅ MEDIO COMUNICACIÓN
+		if (lower.contains("mediocomunicacion")) {
+			return "EMAIL";
+		}
+
+		// ✅ REGISTRO MERCANTIL (datos legales)
+		if (lower.contains("folio")) {
+			return "17";
+		}
+
+		if (lower.contains("tomo")) {
+			return "17";
+		}
+
+		if (lower.contains("protocolo") || lower.contains("numerotribunal")) {
+			return "01";
+		}
+
+		if (lower.contains("circunscripcion")) {
+			return "Caracas";
+		}
+
+		// ✅ CAPITAL
+		if (lower.contains("capitalsuscrito")) {
+			return "200000";
+		}
+
+		if (lower.contains("capitalpagado")) {
+			return "100000";
+		}
+
+		// ✅ TIPO EMPRESA
+		if (lower.contains("tipoempresa")) {
+			return "CA";
+		}
 
 		// =========================================================
-		// ✅ CÓDIGOS (TOKEN + ABREVIATURAS)
+		// ✅ PRODUCTO
+		// =========================================================
+		if (rawLower.contains("nroproducto") || rawLower.equals("prod") || rawLower.contains("tpprod")
+				|| rawLower.contains("typprod") || lower.contains("producto")) {
+
+			return "02";
+		}
+
+		// =========================================================
+		// ✅ CÓDIGOS
 		// =========================================================
 
 		if ((tokens.contains("codigo") && tokens.contains("empresa")) || lower.contains("codemp")) {
@@ -148,7 +338,6 @@ public class ExampleGenerator {
 			return "01";
 		}
 
-		// ✅ CÓDIGO GENÉRICO
 		if (tokens.contains("codigo") || lower.startsWith("codigo")) {
 			return "0001";
 		}
@@ -258,18 +447,27 @@ public class ExampleGenerator {
 			}
 
 			// ✅ primitivo
+
 			else {
 
 				Object value = generateSmartExample(key);
 
-				// ✅ SI HAY SEMÁNTICA
+				String lowerKey = key.toLowerCase();
+
+				// ✅ FORZAR FECHAS (🔥 FIX FINAL)
+				if (lowerKey.contains("fch") || lowerKey.contains("fecha")) {
+					example.put(key, "20251226");
+					return;
+				}
+
+				// ✅ SI HAY SEMÁNTICA NORMAL
 				if (value != null) {
 					example.put(key, value);
 				} else {
-					example.put(key, "string"); // fallback simple
+					example.put(key, "string");
 				}
-
 			}
+
 		});
 
 		// ✅ fallback si no hubo propiedades
@@ -340,14 +538,21 @@ public class ExampleGenerator {
 				}
 
 				// =========================================================
-				// ✅ 3. SEMÁNTICA
+				// ✅ 3. buildExampleFromClass SEMÁNTICA
 				// =========================================================
 				Object value = generateSmartExample(name);
 
 				if (value != null) {
 
 					// ✅ adaptar tipo
-					if (typeUtil.isNumericType(type) && value instanceof String) {
+
+					String fieldLower = name.toLowerCase();
+
+					// 🔥 detectar campos de fecha
+					boolean isDateField = fieldLower.contains("fch") || fieldLower.contains("fecha");
+
+					// ✅ SOLO convertir si NO es fecha
+					if (!isDateField && typeUtil.isNumericType(type) && value instanceof String) {
 						try {
 							String numeric = value.toString().replaceAll("\\D", "");
 							if (!numeric.isEmpty()) {
