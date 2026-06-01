@@ -30,13 +30,13 @@ services:
       beansPath: C:\DevEnvironment\src\java\bm-workspace\bm-persona\ws-persona\src\main\java
       basePackage: com.mercantilbanco.osba
       basePath: /persona
-    - name: notificaciones
-      controllersPath: C:\DevEnvironment\src\java\bm-workspace\bm-notificaciones\api-notificaciones\src\main\java
-      beansPath: C:\DevEnvironment\src\java\bm-workspace\bm-notificaciones\ws-notificaciones\src\main\java
+    - name: notifications
+      controllersPath: C:\DevEnvironment\src\java\bm-workspace\bm-notifications\api-notifications\src\main\java
+      beansPath: C:\DevEnvironment\src\java\bm-workspace\bm-notifications\ws-notifications\src\main\java
       basePackage: com.mercantilbanco.osba
-      basePath: /notificaciones
+      basePath: /notifications
     - name: mia
-      controllersPath: 'C:\DevEnvironment\src\java\bm-workspace\bm-mia\api-mia\src\main\java'
-      beansPath: 'C:\DevEnvironment\src\java\bm-workspace\bm-mia\ws-mia\src\main\java'
+      controllersPath: C:\DevEnvironment\src\java\bm-workspace\bm-mia\api-mia\src\main\java
+      beansPath: C:\DevEnvironment\src\java\bm-workspace\bm-mia\ws-mia\src\main\java
       basePackage: com.mercantilbanco.osba
       basePath: /mia

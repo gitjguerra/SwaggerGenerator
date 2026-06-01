@@ -61,7 +61,7 @@ public class OpenApiGeneratorService {
 
 	// Buscar CONSTANTS
 	private String currentBeansPath;
-	
+
 	// ✅ =========================
 	// ✅ GENERADOR PRINCIPAL
 	// ✅ =========================
@@ -76,7 +76,7 @@ public class OpenApiGeneratorService {
 		backendServiceMap = new LinkedHashMap<>();
 
 		// ✅ ASIGNAR RUTA ACTUAL
-	    this.currentBeansPath = service.getBeansPath();
+		this.currentBeansPath = service.getBeansPath();
 
 		doc.security = List.of(Map.of("bearerAuth", List.of()));
 		doc.info.title = "API " + service.getName();
@@ -97,7 +97,6 @@ public class OpenApiGeneratorService {
 		// ✅ 3. CONTROLLERS
 		List<File> controllerFiles = findJavaFiles(service.getControllersPath());
 		controllerFiles.forEach(f -> processControllerFile(f, doc));
-
 		doc.components.put("schemas", schemaMap);
 
 		return doc;
@@ -108,13 +107,19 @@ public class OpenApiGeneratorService {
 	// ✅ =========================
 	private void processControllerFile(File file, OpenApiDoc doc) {
 
+		if (!file.getAbsolutePath().toLowerCase().contains("controllers")) {
+			return;
+		}
+
 		try {
 
 			CompilationUnit cu = StaticJavaParser.parse(file);
 
 			cu.findAll(ClassOrInterfaceDeclaration.class).forEach(clazz -> {
 
-				if (!clazz.getAnnotationByName("RestController").isPresent())
+				boolean hasEndpoint = clazz.getMethods().stream().anyMatch(m -> httpMethodUtil.detect(m) != null);
+
+				if (!hasEndpoint)
 					return;
 
 				String controllerName = clazz.getNameAsString();
@@ -143,11 +148,24 @@ public class OpenApiGeneratorService {
 	private void processMethod(MethodDeclaration method, OpenApiDoc doc, String tag, String basePath) {
 
 		Map<String, String> httpMapping = httpMethodUtil.detect(method);
-		if (httpMapping == null)
-			return;
 
-		String httpMethod = httpMapping.get("method");
-		String path = httpMapping.get("path");
+		String httpMethod;
+		String path;
+
+		// ✅ SI NO DETECTA ANNOTATION → FALLBACK OBLIGATORIO
+		if (httpMapping == null) {
+
+			String methodName = method.getNameAsString();
+
+			String fallbackPath = methodName.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase();
+
+			httpMethod = "post"; // tu arquitectura usa POST en todo
+			path = "/" + fallbackPath;
+
+		} else {
+			httpMethod = httpMapping.get("method");
+			path = httpMapping.get("path");
+		}
 
 		String fullPath = ("/" + (basePath == null ? "" : basePath) + "/" + (path == null ? "" : path))
 				.replaceAll("//+", "/");
@@ -157,33 +175,17 @@ public class OpenApiGeneratorService {
 		op.put("summary", method.getNameAsString());
 		op.put("operationId", method.getNameAsString());
 
-		String serviceName = extractServiceName(method);
-		serviceName = serviceName != null ? serviceName.toLowerCase().trim() : null;
-
-		String backendUrl = findBackendUrl(serviceName);
-
-		StringBuilder desc = new StringBuilder();
-
-		if (backendUrl != null) {
-			String coreProgram = extractCoreProgram(backendUrl);
-			//desc.append("✅ Backend: ").append(backendUrl);
-
-			if (coreProgram != null) {
-				desc.append("\n\n🔗 Programa: ").append(coreProgram);
-			}
-		} else {
-			desc.append("❌ Backend no encontrado");
+		// ✅ REQUEST
+		Object request = requestBuilder.build(method, schemaMap, exampleMap, IGNORED_TYPES);
+		if (request != null) {
+			op.put("requestBody", request);
 		}
 
-		desc.append("\n\n🔗 Service: ").append(serviceName);
-
-		op.put("description", desc.toString());
-
-		// ✅ REQUEST
-		op.put("requestBody", requestBuilder.build(method, schemaMap, exampleMap, IGNORED_TYPES));
-
 		// ✅ RESPONSE
-		op.put("responses", responseBuilder.build(method, schemaMap, exampleMap, IGNORED_TYPES));
+		Object response = responseBuilder.build(method, schemaMap, exampleMap, IGNORED_TYPES);
+		if (response != null) {
+			op.put("responses", response);
+		}
 
 		Map<String, Object> pathItem = (Map<String, Object>) doc.paths.getOrDefault(fullPath, new LinkedHashMap<>());
 
@@ -254,10 +256,32 @@ public class OpenApiGeneratorService {
 
 	private String extractClassMapping(ClassOrInterfaceDeclaration clazz) {
 
-		return clazz.getAnnotationByName("RequestMapping")
-				.flatMap(a -> a.toString().contains("\"") ? java.util.Optional.of(a.toString().split("\"")[1])
-						: java.util.Optional.empty())
-				.orElse("");
+		return clazz.getAnnotationByName("RequestMapping").map(annotation -> {
+
+			if (annotation.isSingleMemberAnnotationExpr()) {
+
+				var value = annotation.asSingleMemberAnnotationExpr().getMemberValue();
+
+				if (value.isStringLiteralExpr()) {
+					return value.asStringLiteralExpr().asString();
+				}
+			}
+
+			if (annotation.isNormalAnnotationExpr()) {
+
+				for (var pair : annotation.asNormalAnnotationExpr().getPairs()) {
+
+					if (pair.getNameAsString().equals("value") || pair.getNameAsString().equals("path")) {
+
+						if (pair.getValue().isStringLiteralExpr()) {
+							return pair.getValue().asStringLiteralExpr().asString();
+						}
+					}
+				}
+			}
+
+			return "";
+		}).orElse("");
 	}
 
 	private boolean isInBasePackage(ClassOrInterfaceDeclaration clazz, String basePackage) {
@@ -417,112 +441,6 @@ public class OpenApiGeneratorService {
 		}
 	}
 
-	private String extractServiceName(MethodDeclaration method) {
-
-		return method.findAll(com.github.javaparser.ast.expr.MethodCallExpr.class).stream()
-
-				.filter(call -> call.getNameAsString().equals("setServiceName"))
-
-				.map(call -> {
-
-					if (call.getArguments().isEmpty())
-						return null;
-
-					com.github.javaparser.ast.expr.Expression arg = call.getArgument(0);
-
-					try {
-
-						// ✅ CASO 1: STRING DIRECTO
-						// setServiceName("jwt-create")
-						if (arg.isStringLiteralExpr()) {
-							return arg.asStringLiteralExpr().asString();
-						}
-
-						// ✅ CASO 2: CONSTANTE
-						// SecurityConstanstService.JUMIO_AUTENTICAR.getValue()
-						if (arg.isMethodCallExpr()) {
-
-							com.github.javaparser.ast.expr.MethodCallExpr methodCall = arg.asMethodCallExpr();
-
-							// getValue()
-							if (methodCall.getNameAsString().equals("getValue")) {
-
-								java.util.Optional<com.github.javaparser.ast.expr.Expression> scope = methodCall
-										.getScope();
-
-								if (scope.isPresent() && scope.get().isFieldAccessExpr()) {
-
-									com.github.javaparser.ast.expr.FieldAccessExpr fieldAccess = scope.get()
-											.asFieldAccessExpr();
-
-									String constant = fieldAccess.getNameAsString();
-
-									return resolveEnumToValue(constant);
-								}
-							}
-						}
-
-					} catch (Exception ignored) {
-					}
-
-					return null;
-				})
-
-				.filter(v -> v != null && !v.isBlank()).findFirst().orElse(null);
-	}
-
-	private String resolveEnumToValue(String enumName) {
-
-		if (enumName == null)
-			return null;
-
-		try {
-
-			// ✅ rutas típicas donde están los enums
-			List<String> possiblePaths = List.of("constants", "commons");
-
-			// ✅ buscar dentro de beansPath (más rápido y acotado)
-			List<File> baseFiles = findJavaFiles(currentBeansPath);
-
-			for (File file : baseFiles) {
-
-				String path = file.getAbsolutePath().toLowerCase();
-
-				// ✅ filtrar solo carpetas relevantes
-				if (possiblePaths.stream().noneMatch(path::contains)) {
-					continue;
-				}
-
-				CompilationUnit cu = StaticJavaParser.parse(file);
-
-				for (var enumDecl : cu.findAll(com.github.javaparser.ast.body.EnumDeclaration.class)) {
-
-					for (var entry : enumDecl.getEntries()) {
-
-						if (!entry.getNameAsString().equals(enumName)) {
-							continue;
-						}
-
-						// ✅ obtener valor del enum
-						if (!entry.getArguments().isEmpty()) {
-
-							var arg = entry.getArgument(0);
-
-							if (arg.isStringLiteralExpr()) {
-								return arg.asStringLiteralExpr().asString();
-							}
-						}
-					}
-				}
-			}
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		return enumName.toLowerCase().replace("_", "-"); // fallback
-	}
-
 	private String resolveConfigPath(ServiceItem service) {
 
 		// ✅ base fija del banco
@@ -533,33 +451,6 @@ public class OpenApiGeneratorService {
 
 		// ✅ regla real de carpeta
 		return base + "/api-" + name + "/config";
-	}
-
-	private String extractCoreProgram(String url) {
-
-		if (url == null || url.isBlank())
-			return null;
-
-		try {
-			String lastSegment = url.substring(url.lastIndexOf("/") + 1);
-
-			// registrarBancoCompraDivisa-bocs013z
-			if (lastSegment.contains("-")) {
-				return lastSegment.substring(lastSegment.lastIndexOf("-") + 1).toUpperCase();
-			}
-
-		} catch (Exception ignored) {
-		}
-
-		return null;
-	}
-
-	private String findBackendUrl(String serviceName) {
-
-		if (serviceName == null)
-			return null;
-
-		return backendServiceMap.get(serviceName);
 	}
 
 	public OpenApiDoc generateAndSaveReturningDoc(ServiceItem service, String outputDir) {
