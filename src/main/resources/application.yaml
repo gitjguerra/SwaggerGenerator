@@ -6,8 +6,8 @@ swagger:
 services:
   list:
     - name: simf
-      controllersPath: 'C:/DevEnvironment/src/java/bm-workspace/bm-simf/api-simf/src/main/java'
-      beansPath: 'C:/DevEnvironment/src/java/bm-workspace/bm-simf/ws-simf/src/main/java'
+      controllersPath: C:/DevEnvironment/src/java/bm-workspace/bm-simf/api-simf/src/main/java
+      beansPath: C:/DevEnvironment/src/java/bm-workspace/bm-simf/ws-simf/src/main/java
       basePackage: com.mercantilbanco.osba
       basePath: /simf
     - name: security
@@ -32,7 +32,7 @@ services:
       basePath: /persona
     - name: notifications
       controllersPath: C:\DevEnvironment\src\java\bm-workspace\bm-notifications\api-notifications\src\main\java
-      beansPath: C:\DevEnvironment\src\java\bm-workspace\bm-notifications\ws-notifications\src\main\java
+      beansPath: C:\DevEnvironment\src\java\bm-workspace\bm-notifications\db-notifications\src\main\java\com\mercantilbanco\osba\beans
       basePackage: com.mercantilbanco.osba
       basePath: /notifications
     - name: mia
