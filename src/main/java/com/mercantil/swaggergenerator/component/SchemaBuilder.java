@@ -10,6 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.EnumDeclaration;
+import com.github.javaparser.ast.body.FieldDeclaration;
+import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.expr.MemberValuePair;
 import com.mercantil.swaggergenerator.util.ParserUtil;
 import com.mercantil.swaggergenerator.util.TypeUtil;
 
@@ -26,9 +30,14 @@ public class SchemaBuilder {
     private ClassIndexer classIndexer;
 
     private Map<String, Map<String, Object>> schemaMap;
+    private Map<String, EnumDeclaration> enumMap; // ✅ NUEVO
 
     public void setSchemaMap(Map<String, Map<String, Object>> schemaMap) {
         this.schemaMap = schemaMap;
+    }
+
+    public void setEnumMap(Map<String, EnumDeclaration> enumMap) {
+        this.enumMap = enumMap;
     }
 
     public Map<String, Object> build(ClassOrInterfaceDeclaration clazz) {
@@ -48,6 +57,27 @@ public class SchemaBuilder {
         }
 
         // =========================================================
+        // 🔥 HERENCIA
+        // =========================================================
+        clazz.getExtendedTypes().forEach(ext -> {
+
+            String parentName = ext.getNameAsString();
+
+            classIndexer.findClass(parentName).ifPresent(parentClazz -> {
+
+                Map<String, Object> parentSchema = build(parentClazz);
+
+                if (parentSchema.get("properties") != null) {
+                    properties.putAll((Map<String, Object>) parentSchema.get("properties"));
+                }
+
+                if (parentSchema.get("required") != null) {
+                    required.addAll((List<String>) parentSchema.get("required"));
+                }
+            });
+        });
+
+        // =========================================================
         // ✅ PROCESAR CAMPOS
         // =========================================================
         clazz.getFields().forEach(field -> {
@@ -59,7 +89,10 @@ public class SchemaBuilder {
                 String rawType = field.getElementType().asString();
                 boolean isOptional = rawType.startsWith("Optional<");
 
-                String cleanType = isOptional ? parserUtil.extractGeneric(rawType) : rawType;
+                String cleanType = isOptional
+                        ? parserUtil.extractGeneric(rawType)
+                        : rawType;
+
                 String type = parserUtil.resolveFinalType(cleanType);
 
                 Map<String, Object> prop = new LinkedHashMap<>();
@@ -80,34 +113,76 @@ public class SchemaBuilder {
                 }
 
                 // =================================================
-                // ✅ OBJECT (🔥 AQUÍ ESTÁ EL FIX REAL)
+                // ✅ OBJECT (ENTERPRISE)
                 // =================================================
                 else {
-                    ensureSchemaWithParsing(type);
-                    prop.put("$ref", "#/components/schemas/" + type);
+
+                    // ✅ ENUM
+                    if (enumMap != null && enumMap.containsKey(type)) {
+
+                        ensureEnumSchema(type);
+                        prop.put("$ref", "#/components/schemas/" + type);
+                    }
+
+                    // ✅ MAP
+                    else if (rawType.startsWith("Map<")) {
+
+                        String valueType = parserUtil.extractMapValue(rawType);
+
+                        prop.put("type", "object");
+
+                        if (typeUtil.isPrimitive(valueType)) {
+
+                            prop.put("additionalProperties",
+                                    Map.of("type", typeUtil.mapType(valueType)));
+
+                        } else {
+
+                            ensureSchemaWithParsing(valueType);
+
+                            prop.put("additionalProperties",
+                                    Map.of("$ref", "#/components/schemas/" + valueType));
+                        }
+                    }
+
+                    // ✅ OBJETO NORMAL
+                    else {
+                        ensureSchemaWithParsing(type);
+                        prop.put("$ref", "#/components/schemas/" + type);
+                    }
                 }
 
+                // ✅ OPTIONAL
                 if (isOptional) {
                     prop.put("nullable", true);
                 }
 
-                if (field.getAnnotationByName("NotNull").isPresent()) {
+                // ✅ REQUIRED
+                if (field.getAnnotationByName("NotNull").isPresent()
+                        || field.getAnnotationByName("NotEmpty").isPresent()
+                        || field.getAnnotationByName("NotBlank").isPresent()) {
+
                     required.add(name);
                 }
+
+                // ✅ ANNOTATIONS
+                applyAnnotations(field, prop);
 
                 properties.put(name, prop);
             });
         });
 
         // =========================================================
-        // ✅ ARMAR SCHEMA FINAL
+        // ✅ SCHEMA FINAL
         // =========================================================
         Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("type", "object");
 
-        schema.put("properties", properties.isEmpty()
-                ? new LinkedHashMap<>()
-                : properties);
+        if (properties.isEmpty()) {
+            schema.put("description", "Clase sin propiedades definidas");
+        } else {
+            schema.put("properties", properties);
+        }
 
         if (!required.isEmpty()) {
             schema.put("required", required);
@@ -144,16 +219,38 @@ public class SchemaBuilder {
     }
 
     // =========================================================
-    // ✅ 🔥 FIX PRINCIPAL: PARSEO REAL DE CLASES
+    // ✅ ENUM BUILDER
+    // =========================================================
+    private void ensureEnumSchema(String enumName) {
+
+        if (schemaMap.containsKey(enumName)) return;
+
+        if (enumMap == null || !enumMap.containsKey(enumName)) return;
+
+        EnumDeclaration enumDecl = enumMap.get(enumName);
+
+        List<String> values = enumDecl.getEntries().stream()
+                .map(e -> e.getNameAsString())
+                .collect(Collectors.toList());
+
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "string");
+        schema.put("enum", values);
+
+        schemaMap.put(enumName, schema);
+    }
+
+    // =========================================================
+    // ✅ PARSEO REAL
     // =========================================================
     private void ensureSchemaWithParsing(String type) {
 
         if (type == null || type.isBlank()) return;
 
-        // ✅ ya existe
         if (schemaMap.containsKey(type)) return;
 
-        // ✅ intentar encontrar clase real en el proyecto
+        if (!isValidModel(type)) return;
+
         classIndexer.findClass(type).ifPresentOrElse(clazz -> {
 
             System.out.println("✅ Parsing real class: " + type);
@@ -163,20 +260,70 @@ public class SchemaBuilder {
 
         }, () -> {
 
-            // ⚠️ fallback controlado (EVITA {})
             System.out.println("⚠️ No class found, fallback: " + type);
 
             Map<String, Object> fallback = new LinkedHashMap<>();
             fallback.put("type", "object");
-
-            // 👇 evita que Swagger lo deje vacío
-            Map<String, Object> props = new LinkedHashMap<>();
-            props.put("valor", Map.of("type", "string"));
-
-            fallback.put("properties", props);
+            fallback.put("description", "Objeto no resuelto dinámicamente");
+            fallback.put("properties", new LinkedHashMap<>());
 
             schemaMap.put(type, fallback);
         });
+    }
+
+    // =========================================================
+    // ✅ ANNOTATIONS
+    // =========================================================
+    private void applyAnnotations(FieldDeclaration field, Map<String, Object> prop) {
+
+        for (AnnotationExpr ann : field.getAnnotations()) {
+
+            String name = ann.getNameAsString();
+
+            // ✅ SIZE
+            if (name.equals("Size")) {
+                ann.ifNormalAnnotationExpr(a -> {
+                    for (MemberValuePair pair : a.getPairs()) {
+
+                        if (pair.getNameAsString().equals("min")) {
+                            prop.put("minLength", Integer.parseInt(pair.getValue().toString()));
+                        }
+                        if (pair.getNameAsString().equals("max")) {
+                            prop.put("maxLength", Integer.parseInt(pair.getValue().toString()));
+                        }
+                    }
+                });
+            }
+
+            // ✅ SCHEMA / APIMODEL
+            if (name.equals("Schema") || name.equals("ApiModelProperty")) {
+
+                ann.ifNormalAnnotationExpr(a -> {
+                    for (MemberValuePair p : a.getPairs()) {
+
+                        if (p.getNameAsString().equals("description")) {
+                            prop.put("description", p.getValue().toString().replace("\"", ""));
+                        }
+
+                        if (p.getNameAsString().equals("example")) {
+                            prop.put("example", p.getValue().toString().replace("\"", ""));
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    // =========================================================
+    // ✅ FILTRO BASURA
+    // =========================================================
+    private boolean isValidModel(String name) {
+        return !(name.endsWith("Impl")
+                || name.contains("Logger")
+                || name.contains("Client")
+                || name.contains("Config")
+                || name.contains("Filter")
+                || name.contains("Finder"));
     }
 
     // =========================================================

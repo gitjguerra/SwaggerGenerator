@@ -12,6 +12,9 @@ import com.github.javaparser.ast.expr.MemberValuePair;
 @Component
 public class ParserUtil {
 
+    // =========================================================
+    // ✅ JSON PROPERTY
+    // =========================================================
     public String resolveJsonName(FieldDeclaration field, String defaultName) {
 
         Optional<AnnotationExpr> opt = field.getAnnotationByName("JsonProperty");
@@ -51,6 +54,9 @@ public class ParserUtil {
         return defaultName;
     }
 
+    // =========================================================
+    // ✅ GENERIC SIMPLE (recursivo limpio)
+    // =========================================================
     public String extractGeneric(String input) {
 
         if (input == null) return null;
@@ -64,6 +70,7 @@ public class ParserUtil {
 
         String inner = input.substring(start + 1, end);
 
+        // 🔥 soporta generics anidados
         if (inner.contains("<")) {
             return extractGeneric(inner);
         }
@@ -71,32 +78,90 @@ public class ParserUtil {
         return inner.trim();
     }
 
+    // =========================================================
+    // ✅ EXTRAER VALOR DE MAP<K,V>
+    // =========================================================
+    public String extractMapValue(String input) {
+
+        if (input == null || !input.contains(",")) return "Object";
+
+        int start = input.indexOf("<");
+        int end = input.lastIndexOf(">");
+
+        if (start == -1 || end == -1) return "Object";
+
+        String inside = input.substring(start + 1, end);
+
+        String[] parts = inside.split(",");
+
+        if (parts.length < 2) return "Object";
+
+        return resolveFinalType(parts[1].trim());
+    }
+
+    // =========================================================
+    // ✅ LIMPIAR TIPO FINAL
+    // =========================================================
     public String resolveFinalType(String type) {
 
         if (type == null) return null;
 
-        // ✅ quita paquete
+        // 🔥 quitar Optional
+        if (type.startsWith("Optional<")) {
+            type = extractGeneric(type);
+        }
+
+        // 🔥 quitar paquetes
         if (type.contains(".")) {
             type = type.substring(type.lastIndexOf(".") + 1);
         }
 
-        // ✅ maneja generics aún presentes
+        // 🔥 quitar generics restantes
         if (type.contains("<")) {
-            return extractGeneric(type);
+            type = extractGeneric(type);
         }
 
-        return type;
+        return type.trim();
     }
 
-    // 🔥 EXTRA PRO (muy útil para otros builders)
+    // =========================================================
+    // ✅ HELPERS PRO
+    // =========================================================
+
     public boolean isList(String type) {
-        return type != null && type.contains("List<");
+        return type != null && (type.contains("List<") || type.contains("Set<"));
+    }
+
+    public boolean isMap(String type) {
+        return type != null && type.startsWith("Map<");
+    }
+
+    public boolean isOptional(String type) {
+        return type != null && type.startsWith("Optional<");
     }
 
     public String unwrapOptional(String type) {
-        if (type != null && type.startsWith("Optional<")) {
+        if (isOptional(type)) {
             return extractGeneric(type);
         }
         return type;
+    }
+
+    // =========================================================
+    // 🔥 GENERIC COMPLEJO (NIVEL ENTERPRISE)
+    // =========================================================
+    public String extractDeepestType(String type) {
+
+        if (type == null) return null;
+
+        // ejemplos:
+        // List<Map<String, User>> -> User
+        // Optional<List<Account>> -> Account
+
+        while (type.contains("<")) {
+            type = extractGeneric(type);
+        }
+
+        return resolveFinalType(type);
     }
 }
