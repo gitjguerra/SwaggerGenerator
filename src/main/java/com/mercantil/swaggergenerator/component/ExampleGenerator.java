@@ -1,6 +1,5 @@
 package com.mercantil.swaggergenerator.component;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,7 +29,7 @@ public class ExampleGenerator {
 	// ✅ CONTEXTO DE VALORES CONSISTENTES
 	private Map<String, Object> dataContext = new LinkedHashMap<>();
 
-	// ✅ mapa de ejemplos
+	// ✅ mapa de ejemplos (CACHE AISLADO POR EJECUCIÓN)
 	private Map<String, Object> exampleMap = new LinkedHashMap<>();
 
 	// ✅ mapa de schemas
@@ -38,374 +37,110 @@ public class ExampleGenerator {
 
 	public void setSchemaMap(Map<String, Map<String, Object>> schemaMap) {
 		this.schemaMap = schemaMap;
-		this.exampleMap = new LinkedHashMap<>(); // ✅ reset global
+
+		// 🔥 FIX CRÍTICO: limpiar cache COMPLETO
+		this.exampleMap = new LinkedHashMap<>();
 	}
 
-	// ✅ ABBREVIATIONS (parseado del PDF)
 	private static final Map<String, String> ABBREV_MAP = new LinkedHashMap<>();
 	static {
 		loadAbbreviations();
 	}
 
-	public Object generateSmartExample(String name) {
-
-		// ✅ ORIGINAL (🔥 CLAVE)
-		String rawLower = name.toLowerCase();
-
-		// ✅ NORMALIZADO (para semántica expandida)
-		String normalized = normalizeName(name);
-		String lower = normalized.toLowerCase();
-
-		// ✅ tokenización
-		List<String> tokens = tokenize(name);
-
-		// =========================================================
-		// ✅ 1. CONTEXTO (REUTILIZACIÓN)
-		// =========================================================
-		for (Map.Entry<String, Object> entry : dataContext.entrySet()) {
-
-			String key = entry.getKey();
-
-			if (lower.equals(key) || lower.endsWith(key)) {
-				return entry.getValue();
-			}
-		}
-
-		// =========================================================
-		// ✅ 2. REGLAS FUERTES (NORMALIZED)
-		// =========================================================
-		if (lower.contains("codigoproducto"))
-			return "02";
-
-		if (lower.contains("codigopais"))
-			return "VE";
-
-		if (lower.contains("codigoempresa"))
-			return "0108";
-
-		if (lower.contains("codigorazon"))
-			return "01";
-
-		// =========================================================
-		// ✅ 3. SEMÁNTICA (🔥 PRIORIDAD ALTA)
-		// =========================================================
-
-		// ✅ FECHAS (usar raw + semantic)
-		if (rawLower.contains("fch") || lower.contains("fecha")) {
-			return "20251226";
-		}
-
-		// ✅ NÚMERO DE CUENTA
-		if (rawLower.contains("nrocuenta") || lower.contains("numerocuenta") || lower.contains("numcuenta")
-				|| (tokens.contains("cuenta") && tokens.contains("nro"))) {
-
-			return 1242034900;
-		}
-
-		// ✅ EMAIL
-		if (rawLower.contains("email") || lower.contains("correo")) {
-			return "jperez@email.com";
-		}
-
-		// ✅ NOMBRES PERSONA
-		if (rawLower.contains("primernom") || lower.contains("primernombre")) {
-			return "Juan";
-		}
-
-		if (rawLower.contains("segundonom") || lower.contains("segundonombre")) {
-			return "Carlos";
-		}
-
-		// ✅ APELLIDOS
-		if (rawLower.contains("primerapell") || lower.contains("primerapellido")) {
-			return "Pérez";
-		}
-
-		if (rawLower.contains("segundoapell") || lower.contains("segundoapellido")) {
-			return "López";
-		}
-
-		// ✅ TIPO IDENTIFICACION
-		if ((tokens.contains("tipo") && tokens.contains("identificacion")) || lower.contains("tipoidentificacion")) {
-			String v = "V";
-			dataContext.put("tipoidentificacion", v);
-			return v;
-		}
-
-		// ✅ IDENTIFICACIÓN / CÉDULA
-		if ((tokens.contains("cedula") || tokens.contains("rif") || tokens.contains("identificacion")
-				|| lower.contains("cedula") || lower.contains("rif")) && !tokens.contains("tipo")) {
-
-			Integer v = 12345678;
-			dataContext.put("cedula", v);
-			return v;
-		}
-
-		// ✅ PERSONA
-		if (tokens.contains("persona") || lower.contains("numeropersona")) {
-
-			Integer v = 12345678;
-			dataContext.put("persona", v);
-			return v;
-		}
-
-		// ✅ SUBCANAL
-		if (tokens.contains("subcanal") || lower.contains("subcanal")) {
-			return "09";
-		}
-
-		// ✅ MONEDA
-		if (tokens.contains("moneda") || lower.contains("moneda")) {
-			return "VES";
-		}
-
-		// ✅ TARJETA
-		if (tokens.contains("tarjeta")
-		        || tokens.contains("tarj")
-		        || (tokens.contains("nro") && tokens.contains("tarj"))
-		        || (tokens.contains("num") && tokens.contains("tarj"))
-		        || lower.contains("tarj")) {
-
-		    String v = "5888910003058274";
-
-		    if (name.toLowerCase().endsWith("s")) {
-		        return List.of(v);
-		    }
-
-		    return v;
-		}
-
-		// =========================================================
-		// ✅ PERFIL / KYC
-		// =========================================================
-
-		// ✅ SEXO
-		if (rawLower.contains("sexo")) {
-			return "masculino";
-		}
-
-		// ✅ ESTADO CIVIL
-		if (rawLower.contains("estadocivil")) {
-			return "casado";
-		}
-
-		// ✅ CARGA FAMILIAR
-		if (lower.contains("cargafamiliar")) {
-			return "5";
-		}
-
-		// ✅ PAÍS RESIDENCIA
-		if (lower.contains("paisresidencia")) {
-			return "VE";
-		}
-
-		// ✅ AÑOS / ANTIGÜEDAD / TIEMPO
-		if (lower.contains("anio") || lower.contains("anios") || lower.contains("años")) {
-			return "10";
-		}
-
-		// ✅ NIVEL EDUCATIVO
-		if (lower.contains("niveleducativo")) {
-			return "universitario";
-		}
-
-		// ✅ FECHAS LABORALES
-		if (lower.contains("fechaingresolaboral")) {
-			return "20251226";
-		}
-
-		// ✅ PORCENTAJE
-		if (lower.contains("porcentaje")) {
-			return "10";
-		}
-
-		// ✅ SUELDO / INGRESOS
-		if (lower.contains("sueldo") || lower.contains("ingresos")) {
-			return "700000";
-		}
-
-		// ✅ EMPRESA / NOMBRE COMERCIAL
-		if (lower.contains("nombrecomercial")) {
-			return "MiEmpresa C.A.";
-		}
-
-		// ✅ MONTO VENTAS / OTROS INGRESOS
-		if (lower.contains("montoventas") || lower.contains("montootros")) {
-			return "1500000";
-		}
-
-		// ✅ EMPRESAS LABORALES
-		if (lower.contains("empresas")) {
-			return "01";
-		}
-
-		// ✅ CANTIDAD EMPLEADOS
-		if (lower.contains("cantidadempleados") || lower.contains("rangos")) {
-			return 77;
-		}
-
-		// ✅ CARGOS / ACTIVIDAD
-		if (lower.contains("cargo")) {
-			return "Analista";
-		}
-
-		if (lower.contains("actividad")) {
-			return "Servicios";
-		}
-
-		// ✅ CATEGORÍA / PROFESIÓN
-		if (lower.contains("categoria") || lower.contains("profesion")) {
-			return "0001";
-		}
-
-		// ✅ FUNCIONARIO / DIVISION / UNIDAD
-		if (lower.contains("codigofuncionario") || lower.contains("division") || lower.contains("unidadorganizativa")) {
-			return "0001";
-		}
-
-		// ✅ ACTIVO / CONDICIÓN
-		if (lower.contains("codigoactivo") || lower.contains("codigocondicionactivo")) {
-			return "01";
-		}
-
-		// ✅ ACREEDOR
-		if (lower.contains("acreedor")) {
-			return "Banco Mercantil";
-		}
-
-		// ✅ TELÉFONO ACREEDOR
-		if (lower.contains("telefonoacreedor")) {
-			return "04141234567";
-		}
-
-		// ✅ MEDIO COMUNICACIÓN
-		if (lower.contains("mediocomunicacion")) {
-			return "EMAIL";
-		}
-
-		// ✅ REGISTRO MERCANTIL (datos legales)
-		if (lower.contains("folio")) {
-			return "17";
-		}
-
-		if (lower.contains("tomo")) {
-			return "17";
-		}
-
-		if (lower.contains("protocolo") || lower.contains("numerotribunal")) {
-			return "01";
-		}
-
-		if (lower.contains("circunscripcion")) {
-			return "Caracas";
-		}
-
-		// ✅ CAPITAL
-		if (lower.contains("capitalsuscrito")) {
-			return "200000";
-		}
-
-		if (lower.contains("capitalpagado")) {
-			return "100000";
-		}
-
-		// ✅ TIPO EMPRESA
-		if (lower.contains("tipoempresa")) {
-			return "CA";
-		}
-
-		// =========================================================
-		// ✅ PRODUCTO
-		// =========================================================
-		if (rawLower.contains("nroproducto") || rawLower.equals("prod") || rawLower.contains("tpprod")
-				|| rawLower.contains("typprod") || lower.contains("producto")) {
-
-			return "02";
-		}
-
-		// =========================================================
-		// ✅ CÓDIGOS
-		// =========================================================
-
-		if ((tokens.contains("codigo") && tokens.contains("empresa")) || lower.contains("codemp")) {
-			return "0108";
-		}
-
-		if ((tokens.contains("codigo") && tokens.contains("producto")) || lower.contains("codprod")) {
-			return "02";
-		}
-
-		if ((tokens.contains("codigo") && tokens.contains("pais")) || lower.contains("codpais")) {
-			return "VE";
-		}
-
-		if (tokens.contains("razon") || lower.contains("razon")) {
-			return "01";
-		}
-
-		if (tokens.contains("codigo") || lower.startsWith("codigo")) {
-			return "0001";
-		}
-
-		// =========================================================
-		// ✅ FINANCIERO
-		// =========================================================
-
-		if (tokens.contains("monto") || tokens.contains("mto") || lower.contains("mto")) {
-			return 1500.50;
-		}
-
-		if (tokens.contains("tasa") || lower.contains("tasa")) {
-			return 36.75;
-		}
-
-		return null;
-	}
-
+	// =========================================================
+	// ✅ GENERADOR PRINCIPAL (FIX TOTAL)
+	// =========================================================
 	public Object buildExampleFromType(String type) {
 
-		if ("HeaderEntrada".equals(type)) {
+		if ("HeaderEntrada".equals(type))
 			return headerProvider.buildHeaderEntrada();
-		}
 
-		if ("HeaderSalida".equals(type)) {
+		if ("HeaderSalida".equals(type))
 			return headerProvider.buildHeaderSalida();
-		}
 
-		// ✅ si ya existe en cache → usarlo
-		if (exampleMap.containsKey(type)) {
-			return exampleMap.get(type);
-		}
+		if (type == null)
+			return null;
 
-		// ✅ BYTE / BINARIO (IMÁGENES)
-		if (type.equals("byte") || type.equals("byte[]")) {
+		if (type.equals("byte") || type.equals("byte[]"))
 			return "base64-string";
+
+		// 🔥 FIX: CLAVE DE CACHE AISLADA
+		String cacheKey = type + "_CTX_" + System.identityHashCode(dataContext);
+
+		if (exampleMap.containsKey(cacheKey)) {
+			return exampleMap.get(cacheKey);
 		}
 
-		// ✅ buscar en schemas
 		Map<String, Object> schema = schemaMap.get(type);
 
-		// ✅ ENUM → tomar primer valor como ejemplo
-		if (schema != null && schema.containsKey("enum")) {
-
-			List<?> values = (List<?>) schema.get("enum");
-
-			if (!values.isEmpty()) {
-				return values.get(0);
-			}
-		}
-
 		if (schema == null) {
+			System.out.println("⚠️ No schema encontrado para: " + type);
 			return new LinkedHashMap<>();
 		}
 
-		// ✅ construir dinámicamente (recursivo)
+		// ✅ ENUM
+		if (schema.containsKey("enum")) {
+			List<?> values = (List<?>) schema.get("enum");
+			if (!values.isEmpty())
+				return values.get(0);
+		}
+
+		// ✅ RESOLVER REF ROOT
+		if (schema.containsKey("$ref")) {
+
+			String ref = schema.get("$ref").toString();
+			String refType = ref.substring(ref.lastIndexOf("/") + 1);
+
+			return buildExampleFromType(refType);
+		}
+
 		Map<String, Object> example = new LinkedHashMap<>();
 
 		Object propsObj = schema.get("properties");
 
+		// =====================================================
+		// 🔥 FIX CRÍTICO: SOPORTE HERENCIA (allOf)
+		// =====================================================
 		if (!(propsObj instanceof Map)) {
-			return example;
+
+			Map<String, Object> fallback = new LinkedHashMap<>();
+
+			if (schema.containsKey("allOf")) {
+
+				List<?> allOf = (List<?>) schema.get("allOf");
+
+				for (Object obj : allOf) {
+
+					if (obj instanceof Map) {
+
+						Map<String, Object> sub = (Map<String, Object>) obj;
+
+						if (sub.containsKey("$ref")) {
+
+							String ref = sub.get("$ref").toString();
+							String refType = ref.substring(ref.lastIndexOf("/") + 1);
+
+							Object nested = buildExampleFromType(refType);
+
+							if (nested instanceof Map) {
+								fallback.putAll((Map<String, Object>) nested);
+							}
+						}
+
+						// ✅ INLINE PROPERTIES
+						if (sub.containsKey("properties")) {
+
+							Map<String, Object> inlineProps = (Map<String, Object>) sub.get("properties");
+
+							inlineProps.forEach((k, v) -> {
+								fallback.put(k, generateSmartExample(k) != null ? generateSmartExample(k) : "string");
+							});
+						}
+					}
+				}
+			}
+
+			return fallback;
 		}
 
 		Map<String, Object> props = (Map<String, Object>) propsObj;
@@ -417,19 +152,18 @@ public class ExampleGenerator {
 
 			Map<String, Object> prop = (Map<String, Object>) val;
 
-			// ✅ $ref
+			// ✅ REF
 			if (prop.containsKey("$ref")) {
 
 				String ref = prop.get("$ref").toString();
 				String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
-				// ✅ SOLO OBJETO (NO LISTA)
 				example.put(key, buildExampleFromType(refType));
+				return;
 			}
 
-			// ✅ array
-
-			else if ("array".equals(prop.get("type"))) {
+			// ✅ ARRAY
+			if ("array".equals(prop.get("type"))) {
 
 				Object items = prop.get("items");
 
@@ -446,156 +180,291 @@ public class ExampleGenerator {
 
 					} else {
 
-						example.put(key, List.of("string")); // fallback
+						example.put(key, List.of("string"));
 					}
 				}
+				return;
 			}
 
-			// ✅ primitivo
+			// ✅ PRIMITIVO
+			Object value = generateSmartExample(key);
 
-			else {
-
-				Object value = generateSmartExample(key);
-
-				String lowerKey = key.toLowerCase();
-
-				// ✅ FORZAR FECHAS (🔥 FIX FINAL)
-				if (lowerKey.contains("fch") || lowerKey.contains("fecha")) {
-					example.put(key, "20251226");
-					return;
-				}
-
-				// ✅ SI HAY SEMÁNTICA NORMAL
-				if (value != null) {
-					example.put(key, value);
-				} else {
-					example.put(key, "string");
-				}
-			}
-
+			if (value != null)
+				example.put(key, value);
+			else
+				example.put(key, "string");
 		});
 
-		// ✅ fallback si no hubo propiedades
+		// =====================================================
+		// 🔥 FIX FINAL: EVITA OBJETO VACÍO
+		// =====================================================
 		if (example.isEmpty()) {
 
-			// ✅ si no tiene propiedades → devolver objeto simple
 			Map<String, Object> fallback = new LinkedHashMap<>();
-			fallback.put("id", "string");
+
+			props.keySet().forEach(k -> fallback.put(k, "string"));
 
 			return fallback;
 		}
 
-		// ✅ cachear resultado
-		exampleMap.put(type, example);
+		exampleMap.put(cacheKey, example);
 
 		return example;
 	}
 
-	// ✅ =========================
-	// ✅ EXAMPLE
-	// ✅ =========================
+	// =========================================================
+	// ✅ SMART EXAMPLE
+	// =========================================================
+	public Object generateSmartExample(String name) {
+
+		if (name == null)
+			return null;
+
+		String rawLower = name.toLowerCase();
+		String lower = normalizeName(name);
+		List<String> tokens = tokenize(name);
+
+		// =========================================================
+		// ✅ CONTEXTO BASE
+		// =========================================================
+		String nombre = (String) dataContext.computeIfAbsent("nombre", k -> "Juan");
+		String apellido = (String) dataContext.computeIfAbsent("apellido", k -> "Perez");
+
+		// =========================================================
+		// ✅ FECHAS
+		// =========================================================
+		if (rawLower.contains("fch") || lower.contains("fecha")) {
+			return java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+		}
+
+		// =========================================================
+		// ✅ HORA (hh)
+		// =========================================================
+		if (rawLower.contains("hh") || lower.contains("hora")) {
+			return java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HHmmss"));
+		}
+
+		// =========================================================
+		// ✅ MONTO (mto)
+		// =========================================================
+		if (rawLower.contains("mto") || tokens.contains("monto")) {
+			return 1500.75;
+		}
+
+		// =========================================================
+		// ✅ CANTIDAD (cant)
+		// =========================================================
+		if (rawLower.contains("cant") || tokens.contains("cantidad")) {
+			return 7;
+		}
+
+		// =========================================================
+		// ✅ TIPO
+		// =========================================================
+		if (tokens.contains("tipo")) {
+			return "1";
+		}
+
+		// =========================================================
+		// ✅ ESTATUS
+		// =========================================================
+		if (lower.contains("estatus") || lower.contains("estado")) {
+			return "ACTIVO";
+		}
+
+		// =========================================================
+		// ✅ IDENTIFICACIÓN
+		// =========================================================
+		if (lower.contains("tipoid")) {
+			return "V";
+		}
+
+		if (lower.contains("nroid") || (tokens.contains("nro") && tokens.contains("id"))) {
+			return 12345678;
+		}
+
+		if (tokens.contains("id")) {
+			return 123456;
+		}
+
+		// =========================================================
+		// ✅ NOMBRES
+		// =========================================================
+		if (lower.contains("primernom"))
+			return nombre;
+		if (lower.contains("segundonom"))
+			return "Carlos";
+
+		// =========================================================
+		// ✅ APELLIDOS
+		// =========================================================
+		if (lower.contains("primerapell"))
+			return apellido;
+		if (lower.contains("segundoapell"))
+			return "Gomez";
+
+		if (lower.contains("apellcasada"))
+			return "de " + apellido;
+
+		// =========================================================
+		// ✅ EMAIL COHERENTE
+		// =========================================================
+		if (lower.contains("email") || lower.contains("correo")) {
+			return nombre.toLowerCase() + "." + apellido.toLowerCase() + "@mercantil.com";
+		}
+
+		// =========================================================
+		// ✅ TELÉFONOS
+		// =========================================================
+		if (lower.contains("celular"))
+			return "04141234567";
+		if (lower.contains("telf"))
+			return "02121234567";
+
+		// =========================================================
+		// ✅ CUENTA
+		// =========================================================
+		if (lower.contains("cuenta") || lower.contains("cta")) {
+			return "01020123456789012345";
+		}
+
+		// =========================================================
+		// ✅ TARJETA
+		// =========================================================
+		if (lower.contains("tarj")) {
+			return generateCardNumber();
+		}
+
+		// =========================================================
+		// ✅ DIRECCIÓN
+		// =========================================================
+		if (lower.contains("direcc"))
+			return "Av. Francisco de Miranda";
+		if (lower.contains("ciudad"))
+			return "Caracas";
+
+		// =========================================================
+		// ✅ CÓDIGOS (🔥 MUY IMPORTANTE)
+		// =========================================================
+		if (lower.startsWith("cod") || tokens.contains("codigo")) {
+
+			if (lower.contains("pais"))
+				return "VE";
+			if (lower.contains("empresa"))
+				return "0108";
+			if (lower.contains("canal"))
+				return "0006";
+			if (lower.contains("producto"))
+				return "02";
+
+			return "01";
+		}
+
+		// =========================================================
+		// ✅ UBICACIÓN
+		// =========================================================
+		if (lower.contains("zona"))
+			return "1010";
+		if (lower.contains("edo"))
+			return "DC";
+		if (lower.contains("munic"))
+			return "Libertador";
+		if (lower.contains("parroq"))
+			return "Chacao";
+
+		// =========================================================
+		// ✅ GENERO
+		// =========================================================
+		if (lower.contains("genero"))
+			return "M";
+
+		// =========================================================
+		// ✅ NUMEROS GENERALES (nroX)
+		// =========================================================
+		if (lower.contains("nro") || lower.contains("numero")) {
+			return 12345;
+		}
+
+		// =========================================================
+		// ✅ DESCRIPCIONES
+		// =========================================================
+		if (lower.contains("descrip")) {
+			return "Descripción generada";
+		}
+
+		// =========================================================
+		return null;
+	}
+
+	// =========================================================
+	// ✅ BUILD FROM CLASS
+	// =========================================================
 	public Object buildExampleFromClass(ClassOrInterfaceDeclaration clazz) {
 
+		// 🔥 FIX CRÍTICO
 		exampleMap = new LinkedHashMap<>();
-		Map<String, Object> example = new LinkedHashMap<>();
-
-		// ✅ resetear contexto por objeto
 		dataContext = new LinkedHashMap<>();
 
-		// ✅ recorrer campos
+		Map<String, Object> example = new LinkedHashMap<>();
+
 		clazz.getFields().forEach(field -> {
 
 			field.getVariables().forEach(var -> {
 
 				String name = parserUtil.resolveJsonName(field, var.getNameAsString());
 
-				// =========================================================
-				// ✅ tipo del campo
-				// =========================================================
 				String rawType = field.getElementType().asString();
-
 				boolean isOptional = rawType.startsWith("Optional<");
 
 				String cleanType = isOptional ? parserUtil.extractGeneric(rawType) : rawType;
-
 				String type = parserUtil.resolveFinalType(cleanType);
 
-				// =========================================================
-				// ✅ 1. LISTAS
-				// =========================================================
-				if (cleanType.contains("List<") || rawType.contains("List<")) {
+				if (cleanType.contains("List<")) {
 
 					String generic = parserUtil.extractGeneric(cleanType);
-					Object nested = buildExampleFromType(generic);
-
-					example.put(name, List.of(nested));
+					example.put(name, List.of(buildExampleFromType(generic)));
 					return;
 				}
 
-				// =========================================================
-				// ✅ 2. OBJETOS
-				// =========================================================
 				if (!typeUtil.isPrimitive(type)) {
 
-					Object nested = buildExampleFromType(type);
-					example.put(name, nested);
+					example.put(name, buildExampleFromType(type));
 					return;
 				}
 
-				// =========================================================
-				// ✅ 3. buildExampleFromClass SEMÁNTICA
-				// =========================================================
 				Object value = generateSmartExample(name);
 
-				if (value != null) {
-
-					// ✅ adaptar tipo
-
-					String fieldLower = name.toLowerCase();
-
-					// 🔥 detectar campos de fecha
-					boolean isDateField = fieldLower.contains("fch") || fieldLower.contains("fecha");
-
-					// ✅ SOLO convertir si NO es fecha
-					if (!isDateField && typeUtil.isNumericType(type) && value instanceof String) {
-						try {
-							String numeric = value.toString().replaceAll("\\D", "");
-							if (!numeric.isEmpty()) {
-								value = Integer.parseInt(numeric);
-							}
-						} catch (Exception ignored) {
-						}
-					}
-
+				if (value != null)
 					example.put(name, value);
-					return;
-				}
-
-				// =========================================================
-				// ✅ 4. FALLBACK
-				// =========================================================
-				example.put(name, resolveValueByType(type));
+				else
+					example.put(name, "string");
 			});
 		});
 
 		return example;
 	}
 
-	private Object resolveValueByType(String type) {
+	// =========================================================
 
-		if (type.equals("Boolean") || type.equals("boolean"))
-			return true;
+	private static void loadAbbreviations() {
 
-		if (type.equals("Integer") || type.equals("int"))
-			return 1;
+		try (var is = OpenApiGeneratorService.class.getClassLoader().getResourceAsStream("abbreviations.txt")) {
 
-		if (type.equals("Long") || type.equals("long"))
-			return 1L;
+			if (is == null)
+				return;
 
-		if (type.equals("Double") || type.equals("double"))
-			return 100.5;
+			new java.io.BufferedReader(new java.io.InputStreamReader(is)).lines().map(String::trim).forEach(line -> {
 
-		return "string";
+				if (!line.isEmpty() && line.contains("=")) {
+
+					String[] parts = line.split("=");
+					ABBREV_MAP.put(parts[0], parts[1]);
+				}
+			});
+
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	private String normalizeName(String name) {
@@ -605,18 +474,8 @@ public class ExampleGenerator {
 
 		String lower = name.toLowerCase();
 
-		List<Map.Entry<String, String>> entries = new ArrayList<>(ABBREV_MAP.entrySet());
-
-		// ✅ ordenar por tamaño (evita choques tipo id vs identificacion)
-		entries.sort((a, b) -> b.getKey().length() - a.getKey().length());
-
-		for (Map.Entry<String, String> entry : entries) {
-
-			String abbr = entry.getKey();
-			String full = entry.getValue();
-
-			// ✅ REEMPLAZO GLOBAL (FIX IMPORTANTE)
-			lower = lower.replace(abbr, full);
+		for (Map.Entry<String, String> e : ABBREV_MAP.entrySet()) {
+			lower = lower.replace(e.getKey(), e.getValue());
 		}
 
 		return lower;
@@ -627,79 +486,45 @@ public class ExampleGenerator {
 		if (name == null)
 			return List.of();
 
-		// ✅ 1. NORMALIZAR (usa ABBREV_MAP)
 		String normalized = normalizeName(name);
 
-		// ✅ 2. separar camelCase
-		String withSpaces = normalized.replaceAll("([a-z])([A-Z])", "$1 $2");
-
-		// ✅ 3. split base
-		List<String> baseTokens = Arrays.stream(withSpaces.toLowerCase().split("[^a-z0-9]+")).filter(p -> !p.isBlank())
-				.collect(Collectors.toList());
-
-		// ✅ 4. EXPANSIÓN SEMÁNTICA (🔥 CLAVE)
-		List<String> expanded = new ArrayList<>(baseTokens);
-
-		for (String token : baseTokens) {
-
-			// ✅ expansión por abreviaturas
-			if (token.contains("cod"))
-				expanded.add("codigo");
-			if (token.contains("prod"))
-				expanded.add("producto");
-			if (token.contains("emp"))
-				expanded.add("empresa");
-			if (token.contains("pais"))
-				expanded.add("pais");
-			if (token.contains("mon"))
-				expanded.add("moneda");
-			if (token.contains("ident"))
-				expanded.add("identificacion");
-			if (token.contains("pers"))
-				expanded.add("persona");
-			if (token.contains("raz"))
-				expanded.add("razon");
-
-			// ✅ expansión directa
-			if (token.contains("codigo"))
-				expanded.add("codigo");
-			if (token.contains("producto"))
-				expanded.add("producto");
-			if (token.contains("empresa"))
-				expanded.add("empresa");
-			if (token.contains("moneda"))
-				expanded.add("moneda");
-			if (token.contains("identificacion"))
-				expanded.add("identificacion");
-		}
-
-		return expanded;
+		return Arrays.stream(normalized.split("[^a-z0-9]+")).filter(p -> !p.isBlank()).collect(Collectors.toList());
 	}
 
-	private static void loadAbbreviations() {
+	private String generateCardNumber() {
 
-		try (java.io.InputStream is = OpenApiGeneratorService.class.getClassLoader()
-				.getResourceAsStream("abbreviations.txt")) {
+		// 🔹 Prefijo Visa (puedes cambiar por Mastercard = 5, Amex = 34/37)
+		String prefix = "4";
 
-			if (is == null) {
-				throw new RuntimeException("❌ No se encontró abbreviations.txt en resources");
+		// 🔹 Generar 15 dígitos base (sin check digit)
+		StringBuilder number = new StringBuilder(prefix);
+
+		while (number.length() < 15) {
+			number.append((int) (Math.random() * 10));
+		}
+
+		// 🔹 Calcular dígito verificador (Luhn)
+		int sum = 0;
+		boolean alternate = true;
+
+		for (int i = number.length() - 1; i >= 0; i--) {
+			int n = Character.getNumericValue(number.charAt(i));
+
+			if (alternate) {
+				n *= 2;
+				if (n > 9)
+					n -= 9;
 			}
 
-			new java.io.BufferedReader(new java.io.InputStreamReader(is)).lines().map(String::trim)
-					.filter(line -> !line.isEmpty() && !line.startsWith("#")).forEach(line -> {
-
-						String[] parts = line.split("=");
-
-						if (parts.length == 2) {
-							ABBREV_MAP.put(parts[0].toLowerCase(), parts[1].toLowerCase());
-						}
-					});
-
-			System.out.println("✅ Abreviaturas cargadas: " + ABBREV_MAP.size());
-
-		} catch (Exception e) {
-			throw new RuntimeException("Error cargando abbreviations.txt", e);
+			sum += n;
+			alternate = !alternate;
 		}
+
+		int checkDigit = (10 - (sum % 10)) % 10;
+
+		number.append(checkDigit);
+
+		return number.toString();
 	}
 
 }

@@ -32,7 +32,7 @@ services:
       basePath: /persona
     - name: notifications
       controllersPath: C:\DevEnvironment\src\java\bm-workspace\bm-notifications\api-notifications\src\main\java
-      beansPath: C:\DevEnvironment\src\java\bm-workspace\bm-notifications\db-notifications\src\main\java\com\mercantilbanco\osba\beans
+      beansPath: C:\DevEnvironment\src\java\bm-workspace\bm-notifications\db-notifications\src\main\java
       basePackage: com.mercantilbanco.osba
       basePath: /notifications
     - name: mia

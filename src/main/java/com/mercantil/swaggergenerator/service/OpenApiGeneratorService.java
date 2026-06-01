@@ -15,6 +15,7 @@ import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.mercantil.swaggergenerator.component.ClassIndexer;
 import com.mercantil.swaggergenerator.component.ExampleGenerator;
 import com.mercantil.swaggergenerator.component.RequestBuilder;
 import com.mercantil.swaggergenerator.component.ResponseBuilder;
@@ -22,6 +23,7 @@ import com.mercantil.swaggergenerator.component.SchemaBuilder;
 import com.mercantil.swaggergenerator.model.OpenApiDoc;
 import com.mercantil.swaggergenerator.model.ServiceItem;
 import com.mercantil.swaggergenerator.util.HttpMethodUtil;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class OpenApiGeneratorService {
@@ -46,6 +48,9 @@ public class OpenApiGeneratorService {
 	@Autowired
 	private ResponseBuilder responseBuilder;
 
+	@Autowired
+	private ClassIndexer classIndexer;
+
 	// ✅ EXAMPLES MAPS
 	private Map<String, Map<String, Object>> schemaMap = new LinkedHashMap<>();
 	private Map<String, Object> exampleMap = new LinkedHashMap<>();
@@ -67,12 +72,20 @@ public class OpenApiGeneratorService {
 	// ✅ =========================
 	public OpenApiDoc generate(ServiceItem service) {
 
+		System.out.println("\n==============================");
+		System.out.println("🚀 Generando servicio: " + service.getName());
+		System.out.println("📁 BeansPath: " + service.getBeansPath());
+		System.out.println("📁 ControllersPath: " + service.getControllersPath());
+		System.out.println("==============================\n");
+
 		OpenApiDoc doc = new OpenApiDoc();
 
 		schemaMap = new LinkedHashMap<>();
 		schemaBuilder.setSchemaMap(schemaMap);
+
 		exampleMap = new LinkedHashMap<>();
 		exampleGenerator.setSchemaMap(schemaMap);
+
 		backendServiceMap = new LinkedHashMap<>();
 
 		// ✅ ASIGNAR RUTA ACTUAL
@@ -92,12 +105,25 @@ public class OpenApiGeneratorService {
 
 		// ✅ 2. BEANS
 		List<File> beanFiles = findJavaFiles(service.getBeansPath());
+
+		System.out.println("📦 Bean files encontrados: " + beanFiles.size());
+
+		// 🔥 PRIMERO INDEXAR TODO
+		indexAllClasses(beanFiles);
+
+		// ✅ LUEGO PROCESAR
 		beanFiles.forEach(f -> processBeanFile(f, doc, service.getBasePackage()));
 
 		// ✅ 3. CONTROLLERS
 		List<File> controllerFiles = findJavaFiles(service.getControllersPath());
+
+		System.out.println("🎯 Controllers encontrados: " + controllerFiles.size());
+
 		controllerFiles.forEach(f -> processControllerFile(f, doc));
+
 		doc.components.put("schemas", schemaMap);
+
+		System.out.println("✅ Total endpoints generados: " + doc.paths.size());
 
 		return doc;
 	}
@@ -107,7 +133,7 @@ public class OpenApiGeneratorService {
 	// ✅ =========================
 	private void processControllerFile(File file, OpenApiDoc doc) {
 
-		if (!file.getAbsolutePath().toLowerCase().contains("controllers")) {
+		if (!file.getAbsolutePath().toLowerCase().contains("controller")) {
 			return;
 		}
 
@@ -122,12 +148,13 @@ public class OpenApiGeneratorService {
 				if (!hasEndpoint)
 					return;
 
+				System.out.println("✅ Controller detectado: " + clazz.getNameAsString());
+
 				String controllerName = clazz.getNameAsString();
 
 				String tag = controllerName.replace("Controller", "").replaceAll("([a-z])([A-Z])", "$1 $2");
 
 				if (doc.tags.stream().noneMatch(t -> t.get("name").equals(tag))) {
-
 					doc.tags.add(Map.of("name", tag, "description", "Operaciones " + tag));
 				}
 
@@ -137,6 +164,7 @@ public class OpenApiGeneratorService {
 			});
 
 		} catch (Exception e) {
+			System.out.println("❌ Error procesando controller: " + file.getAbsolutePath());
 			e.printStackTrace();
 		}
 	}
@@ -144,7 +172,6 @@ public class OpenApiGeneratorService {
 	// ✅ =========================
 	// ✅ PROCESAR MÉTODOS
 	// ✅ =========================
-
 	private void processMethod(MethodDeclaration method, OpenApiDoc doc, String tag, String basePath) {
 
 		Map<String, String> httpMapping = httpMethodUtil.detect(method);
@@ -152,14 +179,12 @@ public class OpenApiGeneratorService {
 		String httpMethod;
 		String path;
 
-		// ✅ SI NO DETECTA ANNOTATION → FALLBACK OBLIGATORIO
 		if (httpMapping == null) {
 
 			String methodName = method.getNameAsString();
-
 			String fallbackPath = methodName.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase();
 
-			httpMethod = "post"; // tu arquitectura usa POST en todo
+			httpMethod = "post";
 			path = "/" + fallbackPath;
 
 		} else {
@@ -170,22 +195,20 @@ public class OpenApiGeneratorService {
 		String fullPath = ("/" + (basePath == null ? "" : basePath) + "/" + (path == null ? "" : path))
 				.replaceAll("//+", "/");
 
+		System.out.println("🔹 Endpoint: " + httpMethod.toUpperCase() + " " + fullPath);
+
 		Map<String, Object> op = new LinkedHashMap<>();
 		op.put("tags", List.of(tag));
 		op.put("summary", method.getNameAsString());
 		op.put("operationId", method.getNameAsString());
 
-		// ✅ REQUEST
 		Object request = requestBuilder.build(method, schemaMap, exampleMap, IGNORED_TYPES);
-		if (request != null) {
+		if (request != null)
 			op.put("requestBody", request);
-		}
 
-		// ✅ RESPONSE
 		Object response = responseBuilder.build(method, schemaMap, exampleMap, IGNORED_TYPES);
-		if (response != null) {
+		if (response != null)
 			op.put("responses", response);
-		}
 
 		Map<String, Object> pathItem = (Map<String, Object>) doc.paths.getOrDefault(fullPath, new LinkedHashMap<>());
 
@@ -204,15 +227,20 @@ public class OpenApiGeneratorService {
 
 			cu.findAll(ClassOrInterfaceDeclaration.class).forEach(clazz -> {
 
-				if (!isInBasePackage(clazz, basePackage))
+				boolean allowed = isInBasePackage(file, clazz, basePackage);
+
+				if (!allowed) {
+					System.out.println("⛔ IGNORADO: " + clazz.getNameAsString() + " | archivo: " + file.getName());
 					return;
+				}
 
 				String className = clazz.getNameAsString();
 
-				// ✅ IGNORAR TOTALMENTE
 				if (IGNORED_TYPES.contains(className)) {
 					return;
 				}
+
+				System.out.println("✅ Bean detectado: " + className);
 
 				Map<String, Object> schema = schemaBuilder.build(clazz);
 
@@ -222,6 +250,7 @@ public class OpenApiGeneratorService {
 			});
 
 		} catch (Exception e) {
+			System.out.println("❌ Error parseando bean: " + file.getAbsolutePath());
 			e.printStackTrace();
 		}
 	}
@@ -235,8 +264,10 @@ public class OpenApiGeneratorService {
 
 		File dir = new File(root);
 
-		if (!dir.exists())
+		if (!dir.exists()) {
+			System.out.println("❌ Ruta NO existe: " + root);
 			return files;
+		}
 
 		File[] filesArray = dir.listFiles();
 		if (filesArray == null)
@@ -259,7 +290,6 @@ public class OpenApiGeneratorService {
 		return clazz.getAnnotationByName("RequestMapping").map(annotation -> {
 
 			if (annotation.isSingleMemberAnnotationExpr()) {
-
 				var value = annotation.asSingleMemberAnnotationExpr().getMemberValue();
 
 				if (value.isStringLiteralExpr()) {
@@ -284,17 +314,37 @@ public class OpenApiGeneratorService {
 		}).orElse("");
 	}
 
-	private boolean isInBasePackage(ClassOrInterfaceDeclaration clazz, String basePackage) {
+	// ✅ =========================
+	// ✅ FILTRO ROBUSTO (FIX)
+	// ✅ =========================
+	private boolean isInBasePackage(File file, ClassOrInterfaceDeclaration clazz, String basePackage) {
 
-		return clazz.findCompilationUnit().flatMap(c -> c.getPackageDeclaration())
+		if (basePackage == null || basePackage.isBlank())
+			return true;
+
+		boolean packageMatch = clazz.findCompilationUnit().flatMap(c -> c.getPackageDeclaration())
 				.map(p -> p.getNameAsString().startsWith(basePackage)).orElse(false);
+
+		if (packageMatch)
+			return true;
+
+		String normalizedPath = file.getAbsolutePath().replace("\\", ".").toLowerCase();
+
+		String normalizedPkg = basePackage.replace(".", "").toLowerCase();
+
+		return normalizedPath.contains(normalizedPkg);
 	}
 
+	// ✅ =========================
+	// ✅ BASE SCHEMAS
+	// ✅ =========================
 	private void registerBaseSchemas() {
 
 		// =========================================================
 		// ✅ HEADER ENTRADA
 		// =========================================================
+		System.out.println("📌 Registrando schema base: HeaderEntrada");
+
 		Map<String, Object> headerEntrada = new LinkedHashMap<>();
 		headerEntrada.put("type", "object");
 
@@ -315,28 +365,30 @@ public class OpenApiGeneratorService {
 
 		headerEntrada.put("properties", propsEntrada);
 
-		// ✅ Example (CLAVE para Swagger UI)
-		Map<String, Object> headerEntradaExample = new LinkedHashMap<>();
-		headerEntradaExample.put("identificadorUnicoGlobal", "string");
-		headerEntradaExample.put("identificacionCanal", "0006");
-		headerEntradaExample.put("identificacionSubCanal", "01");
-		headerEntradaExample.put("siglaAplicacion", "ABC");
-		headerEntradaExample.put("identificacionUsuario", "user");
-		headerEntradaExample.put("direccionIpConsumidor", "127.0.0.1");
-		headerEntradaExample.put("direccionIpCliente", "127.0.0.1");
-		headerEntradaExample.put("fechaEnvioMensaje", "20260101");
-		headerEntradaExample.put("horaEnvioMensaje", "120000");
-		headerEntradaExample.put("atributoPagineo", "N");
-		headerEntradaExample.put("claveBusqueda", "clave");
-		headerEntradaExample.put("cantidadRegistros", 0);
+		// ✅ Example
+		Map<String, Object> exampleEntrada = new LinkedHashMap<>();
+		exampleEntrada.put("identificadorUnicoGlobal", "string");
+		exampleEntrada.put("identificacionCanal", "0006");
+		exampleEntrada.put("identificacionSubCanal", "01");
+		exampleEntrada.put("siglaAplicacion", "ABC");
+		exampleEntrada.put("identificacionUsuario", "user");
+		exampleEntrada.put("direccionIpConsumidor", "127.0.0.1");
+		exampleEntrada.put("direccionIpCliente", "127.0.0.1");
+		exampleEntrada.put("fechaEnvioMensaje", "20260101");
+		exampleEntrada.put("horaEnvioMensaje", "120000");
+		exampleEntrada.put("atributoPagineo", "N");
+		exampleEntrada.put("claveBusqueda", "clave");
+		exampleEntrada.put("cantidadRegistros", 0);
 
-		headerEntrada.put("example", headerEntradaExample);
+		headerEntrada.put("example", exampleEntrada);
 
 		schemaMap.putIfAbsent("HeaderEntrada", headerEntrada);
 
 		// =========================================================
 		// ✅ HEADER SALIDA
 		// =========================================================
+		System.out.println("📌 Registrando schema base: HeaderSalida");
+
 		Map<String, Object> headerSalida = new LinkedHashMap<>();
 		headerSalida.put("type", "object");
 
@@ -353,107 +405,72 @@ public class OpenApiGeneratorService {
 		headerSalida.put("properties", propsSalida);
 
 		// ✅ Example
-		Map<String, Object> headerSalidaExample = new LinkedHashMap<>();
-		headerSalidaExample.put("tipoMensaje", "F");
-		headerSalidaExample.put("mensajeProgramadorSistema", "Procesado correctamente");
-		headerSalidaExample.put("codigoMensajeProgramador", "0000");
-		headerSalidaExample.put("mensajeUsuario", "Operación exitosa");
-		headerSalidaExample.put("codigoMensajeUsuario", "0000");
-		headerSalidaExample.put("fechaSalidaMensaje", "20260101");
-		headerSalidaExample.put("horaSalidaMensaje", "120000");
+		Map<String, Object> exampleSalida = new LinkedHashMap<>();
+		exampleSalida.put("tipoMensaje", "F");
+		exampleSalida.put("mensajeProgramadorSistema", "Procesado correctamente");
+		exampleSalida.put("codigoMensajeProgramador", "0000");
+		exampleSalida.put("mensajeUsuario", "Operación exitosa");
+		exampleSalida.put("codigoMensajeUsuario", "0000");
+		exampleSalida.put("fechaSalidaMensaje", "20260101");
+		exampleSalida.put("horaSalidaMensaje", "120000");
 
-		headerSalida.put("example", headerSalidaExample);
+		headerSalida.put("example", exampleSalida);
 
 		schemaMap.putIfAbsent("HeaderSalida", headerSalida);
+
+
+		// =========================================================
+		// ✅ CLIENT RESPONSE (HARDCODE ENTERPRISE)
+		// =========================================================
+		System.out.println("📌 Registrando schema base: ClientResponse");
+
+		Map<String, Object> clientResponse = new LinkedHashMap<>();
+		clientResponse.put("type", "object");
+
+		Map<String, Object> crProps = new LinkedHashMap<>();
+
+		crProps.put("code", Map.of("type", "integer"));
+		crProps.put("message", Map.of("type", "string"));
+
+		// 🔥 headerSalida ya existe como schema base
+		crProps.put("headerSalida", Map.of("$ref", "#/components/schemas/HeaderSalida"));
+
+		// 🔥 body dinámico
+		crProps.put("bodySalida", Map.of(
+		        "type", "object",
+		        "description", "Contenido dinámico de la respuesta"
+		));
+
+		clientResponse.put("properties", crProps);
+
+		schemaMap.putIfAbsent("ClientResponse", clientResponse);
+
+		// =========================================================
+		// ✅ CLIENT
+		// =========================================================
+		System.out.println("📌 Registrando schema base: Client");
+
+		Map<String, Object> client = new LinkedHashMap<>();
+		client.put("type", "object");
+
+		Map<String, Object> cProps = new LinkedHashMap<>();
+
+		cProps.put("codigoMensajeProgramador", Map.of("type", "integer"));
+		cProps.put("mensajeProgramador", Map.of("type", "string"));
+
+		client.put("properties", cProps);
+
+		schemaMap.putIfAbsent("Client", client);
+		
+		System.out.println("✅ Base schemas registrados");
 	}
 
 	// =========================================================
-	// ✅ Generar y guardar
+	// ✅ Generar, guardar y devolver documento
 	// =========================================================
-	public String generateAndSave(ServiceItem service, String outputDir) {
-
-		OpenApiDoc doc = generate(service);
-
-		saveDoc(doc, service.getName(), outputDir);
-
-		return new File(outputDir, service.getName() + ".json").getAbsolutePath();
-	}
-
-	// =========================================================
-	// ✅ Generar y guardar todos
-	// =========================================================
-	public List<String> generateAllAndSave(List<ServiceItem> services, String outputDir) {
-
-		List<String> rutas = new ArrayList<>();
-
-		services.forEach(s -> {
-			String path = generateAndSave(s, outputDir);
-			rutas.add(path);
-		});
-
-		return rutas;
-	}
-
-	private void loadBackendServices(String configPath) {
-
-		try {
-
-			// ✅ posibles nombres de archivo
-			List<String> candidates = List.of("restservices.xml", "service.xml", "services.xml");
-
-			File fileFound = null;
-
-			for (String name : candidates) {
-
-				File f = new File(configPath + "/" + name);
-
-				if (f.exists()) {
-					fileFound = f;
-					break;
-				}
-			}
-
-			if (fileFound == null) {
-				System.out.println("⚠️ No se encontró ningún XML en: " + configPath);
-				return;
-			}
-
-			var db = javax.xml.parsers.DocumentBuilderFactory.newInstance();
-			var builder = db.newDocumentBuilder();
-			var doc = builder.parse(fileFound);
-
-			var nodes = doc.getElementsByTagName("service");
-
-			for (int i = 0; i < nodes.getLength(); i++) {
-
-				org.w3c.dom.Element el = (org.w3c.dom.Element) nodes.item(i);
-
-				String name = el.getAttribute("name");
-				String endpoint = el.getAttribute("endpoint");
-
-				backendServiceMap.put(name.toLowerCase(), endpoint);
-			}
-
-			System.out.println("✅ XML cargado: " + fileFound.getName() + " | Servicios: " + backendServiceMap.size());
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	private String resolveConfigPath(ServiceItem service) {
-
-		// ✅ base fija del banco
-		String base = "C:/BM_HOME/appl";
-
-		// ✅ nombre del servicio (simf, tarjeta, etc.)
-		String name = service.getName();
-
-		// ✅ regla real de carpeta
-		return base + "/api-" + name + "/config";
-	}
-
 	public OpenApiDoc generateAndSaveReturningDoc(ServiceItem service, String outputDir) {
+
+		System.out.println("\n📦 Generando y guardando (con retorno) servicio: " + service.getName());
 
 		OpenApiDoc doc = generate(service);
 
@@ -462,12 +479,17 @@ public class OpenApiGeneratorService {
 		return doc;
 	}
 
+	// =========================================================
+	// ✅ Guardar archivo JSON
+	// =========================================================
 	private void saveDoc(OpenApiDoc doc, String serviceName, String outputDir) {
 
 		try {
 			File dir = new File(outputDir);
+
 			if (!dir.exists()) {
 				dir.mkdirs();
+				System.out.println("📁 Directorio creado: " + outputDir);
 			}
 
 			File file = new File(dir, serviceName + ".json");
@@ -477,8 +499,70 @@ public class OpenApiGeneratorService {
 			System.out.println("✅ Archivo generado: " + file.getAbsolutePath());
 
 		} catch (Exception e) {
-			throw new RuntimeException("Error guardando archivo para: " + serviceName, e);
+			System.out.println("❌ Error guardando archivo de: " + serviceName);
+			throw new RuntimeException(e);
 		}
+	}
+
+	// ✅ =========================
+	private void loadBackendServices(String configPath) {
+
+		try {
+
+			File file = new File(configPath + "/restservices.xml");
+
+			if (!file.exists()) {
+				System.out.println("⚠️ XML no encontrado en: " + configPath);
+				return;
+			}
+
+			var db = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+			var builder = db.newDocumentBuilder();
+			var doc = builder.parse(file);
+
+			var nodes = doc.getElementsByTagName("service");
+
+			for (int i = 0; i < nodes.getLength(); i++) {
+
+				org.w3c.dom.Element el = (org.w3c.dom.Element) nodes.item(i);
+
+				backendServiceMap.put(el.getAttribute("name").toLowerCase(), el.getAttribute("endpoint"));
+			}
+
+			System.out.println("✅ Backend services cargados: " + backendServiceMap.size());
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	private String resolveConfigPath(ServiceItem service) {
+		return "C:/BM_HOME/appl/api-" + service.getName() + "/config";
+	}
+
+	private void indexAllClasses(List<File> files) {
+
+		System.out.println("🔍 Indexando clases...");
+
+		AtomicInteger count = new AtomicInteger(0);
+
+		for (File file : files) {
+
+			try {
+				CompilationUnit cu = StaticJavaParser.parse(file);
+
+				cu.findAll(ClassOrInterfaceDeclaration.class).forEach(clazz -> {
+
+					classIndexer.register(clazz);
+					count.incrementAndGet(); // ✅ OK
+				});
+
+			} catch (Exception e) {
+				System.out.println("⚠️ Error indexando: " + file.getName());
+			}
+		}
+
+		System.out.println("✅ Clases indexadas: " + count.get());
 	}
 
 }

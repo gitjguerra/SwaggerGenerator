@@ -46,51 +46,53 @@ public class ResponseBuilder {
             responseType = null;
         }
 
-        // ✅ asegurar schema base
         ensureSchemaExists(responseType, schemaMap);
 
-        // 🔥 nombre del método (CLAVE para consistencia)
         String operationName = capitalize(method.getNameAsString());
 
         // =========================================================
-        // ✅ NOMBRE DEL BODY (CASO MIXTO)
+        // ✅ NOMBRE BODY
         // =========================================================
         String responseBodyName;
 
         if (responseType != null && responseType.startsWith("Response")) {
-
-            responseBodyName = capitalize(
-                    responseType.replace("Response", "")
-            );
-
+            responseBodyName = capitalize(responseType.replace("Response", ""));
         } else {
-
-            // ✅ fallback al nombre del método
             responseBodyName = operationName;
         }
 
         // =========================================================
-        // ✅ RESOLVER CLASE REAL DEL BODY (🔥 FIX CLAVE)
+        // ✅ CLASE REAL BODY
         // =========================================================
         String expectedBodyClass = "BodySalida" + responseBodyName;
 
-        // 🔥 fallback inteligente si no existe
         if (!schemaMap.containsKey(expectedBodyClass) && responseType != null) {
 
-            String fallback = "BodySalida" +
-                    responseType.replace("Response", "");
+            String fallback = "BodySalida" + responseType.replace("Response", "");
 
             if (schemaMap.containsKey(fallback)) {
                 expectedBodyClass = fallback;
-                responseBodyName = capitalize(
-                        responseType.replace("Response", "")
-                );
+                responseBodyName = capitalize(responseType.replace("Response", ""));
             }
         }
 
-        // ✅ asegurar existencia del schema
         if (expectedBodyClass != null && !schemaMap.containsKey(expectedBodyClass)) {
             ensureSchemaExists(expectedBodyClass, schemaMap);
+        }
+
+        // =========================================================
+        // ✅ GENERAR EJEMPLO BODY
+        // =========================================================
+        Object exampleBody = null;
+
+        if (expectedBodyClass != null) {
+
+            exampleBody = exampleMap.get(expectedBodyClass);
+
+            // generar si no existe o está vacío
+            if (!(exampleBody instanceof Map) || ((Map<?, ?>) exampleBody).isEmpty()) {
+                exampleBody = buildExampleFromSchema(expectedBodyClass, schemaMap);
+            }
         }
 
         // =========================================================
@@ -101,7 +103,20 @@ public class ResponseBuilder {
 
         responseProps.put("headerSalida", safeRef.apply("HeaderSalida"));
 
-        if (expectedBodyClass != null) {
+        // ✅ SOLO agregar body si tiene contenido
+        if (exampleBody instanceof Map) {
+
+            Map<?, ?> map = (Map<?, ?>) exampleBody;
+
+            if (!map.isEmpty()) {
+                responseProps.put("bodySalida" + responseBodyName,
+                        safeRef.apply(expectedBodyClass));
+            } else {
+                System.out.println("⚠️ Schema bodySalida omitido: " + expectedBodyClass);
+            }
+
+        } else if (exampleBody != null) {
+
             responseProps.put("bodySalida" + responseBodyName,
                     safeRef.apply(expectedBodyClass));
         }
@@ -116,15 +131,18 @@ public class ResponseBuilder {
 
         responseExample.put("headerSalida", headerProvider.buildHeaderSalida());
 
-        if (expectedBodyClass != null) {
+        // ✅ SOLO agregar body si tiene contenido
+        if (exampleBody instanceof Map) {
 
-            Object exampleBody = exampleMap.get(expectedBodyClass);
+            Map<?, ?> map = (Map<?, ?>) exampleBody;
 
-            // ✅ generar desde schema si está vacío
-            if (!(exampleBody instanceof Map) || ((Map<?, ?>) exampleBody).isEmpty()) {
-
-                exampleBody = buildExampleFromSchema(expectedBodyClass, schemaMap);
+            if (!map.isEmpty()) {
+                responseExample.put("bodySalida" + responseBodyName, exampleBody);
+            } else {
+                System.out.println("⚠️ bodySalida omitido en example: " + expectedBodyClass);
             }
+
+        } else if (exampleBody != null) {
 
             responseExample.put("bodySalida" + responseBodyName, exampleBody);
         }
@@ -188,8 +206,6 @@ public class ResponseBuilder {
         return example;
     }
 
-    // =========================================================
-    // ✅ MOCK VALUES (Java 8 compatible)
     // =========================================================
     private Object mockValue(String type) {
 
