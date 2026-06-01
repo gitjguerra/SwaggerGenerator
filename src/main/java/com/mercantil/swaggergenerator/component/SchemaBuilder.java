@@ -22,6 +22,9 @@ public class SchemaBuilder {
     @Autowired
     private ParserUtil parserUtil;
 
+    @Autowired
+    private ClassIndexer classIndexer;
+
     private Map<String, Map<String, Object>> schemaMap;
 
     public void setSchemaMap(Map<String, Map<String, Object>> schemaMap) {
@@ -37,7 +40,6 @@ public class SchemaBuilder {
         // ✅ ENUM
         // =========================================================
         if (clazz.isEnumDeclaration()) {
-
             List<String> values = clazz.asEnumDeclaration().getEntries().stream()
                     .map(e -> e.getNameAsString())
                     .collect(Collectors.toList());
@@ -78,14 +80,13 @@ public class SchemaBuilder {
                 }
 
                 // =================================================
-                // ✅ OBJECT
+                // ✅ OBJECT (🔥 AQUÍ ESTÁ EL FIX REAL)
                 // =================================================
                 else {
-                    ensureSchemaExists(type);
+                    ensureSchemaWithParsing(type);
                     prop.put("$ref", "#/components/schemas/" + type);
                 }
 
-                // =================================================
                 if (isOptional) {
                     prop.put("nullable", true);
                 }
@@ -104,7 +105,6 @@ public class SchemaBuilder {
         Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("type", "object");
 
-        // 🔥 SIEMPRE CREAR PROPERTIES (CLAVE)
         schema.put("properties", properties.isEmpty()
                 ? new LinkedHashMap<>()
                 : properties);
@@ -117,7 +117,7 @@ public class SchemaBuilder {
     }
 
     // =========================================================
-    // ✅ MANEJO DE LIST
+    // ✅ LIST
     // =========================================================
     private void handleList(Map<String, Object> prop, String rawType) {
 
@@ -135,7 +135,7 @@ public class SchemaBuilder {
 
         } else {
 
-            ensureSchemaExists(generic);
+            ensureSchemaWithParsing(generic);
 
             prop.put("items", Map.of(
                     "$ref", "#/components/schemas/" + generic
@@ -144,25 +144,41 @@ public class SchemaBuilder {
     }
 
     // =========================================================
-    // ✅ ASEGURAR SCHEMA (🔥 FIX PRINCIPAL)
+    // ✅ 🔥 FIX PRINCIPAL: PARSEO REAL DE CLASES
     // =========================================================
-    private void ensureSchemaExists(String type) {
+    private void ensureSchemaWithParsing(String type) {
 
         if (type == null || type.isBlank()) return;
 
+        // ✅ ya existe
         if (schemaMap.containsKey(type)) return;
 
-        Map<String, Object> fallback = new LinkedHashMap<>();
-        fallback.put("type", "object");
+        // ✅ intentar encontrar clase real en el proyecto
+        classIndexer.findClass(type).ifPresentOrElse(clazz -> {
 
-        // 🔥 CLAVE: SIN additionalProperties
-        fallback.put("properties", new LinkedHashMap<>());
+            System.out.println("✅ Parsing real class: " + type);
 
-        schemaMap.put(type, fallback);
+            Map<String, Object> schema = build(clazz);
+            schemaMap.put(type, schema);
+
+        }, () -> {
+
+            // ⚠️ fallback controlado (EVITA {})
+            System.out.println("⚠️ No class found, fallback: " + type);
+
+            Map<String, Object> fallback = new LinkedHashMap<>();
+            fallback.put("type", "object");
+
+            // 👇 evita que Swagger lo deje vacío
+            Map<String, Object> props = new LinkedHashMap<>();
+            props.put("valor", Map.of("type", "string"));
+
+            fallback.put("properties", props);
+
+            schemaMap.put(type, fallback);
+        });
     }
 
-    // =========================================================
-    // ✅ FORMATOS
     // =========================================================
     private void applyFormat(Map<String, Object> prop, String type) {
 
