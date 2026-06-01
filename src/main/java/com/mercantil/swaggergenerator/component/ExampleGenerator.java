@@ -336,6 +336,37 @@ public class ExampleGenerator {
 		}
 
 		// =========================================================
+		// ✅ PRODUCTO INTELIGENTE
+		// =========================================================
+		if (lower.contains("producto") && !lower.startsWith("cod")) {
+
+		    String producto = (String) dataContext.computeIfAbsent("producto", k -> "CUENTA");
+
+		    switch (producto) {
+		        case "CUENTA":
+		            return "CUENTA CORRIENTE";
+		        case "TARJETA":
+		            return "TARJETA DE CRÉDITO";
+		        default:
+		            return "CUENTA CORRIENTE";
+		    }
+		}
+
+		// =========================================================
+		// ✅ CODIGO PRODUCTO CONSISTENTE
+		// =========================================================
+		if (lower.startsWith("codprod") || lower.contains("codproduc")) {
+
+		    String producto = (String) dataContext.computeIfAbsent("producto", k -> "CUENTA");
+
+		    switch (producto) {
+		        case "CUENTA": return "01";
+		        case "TARJETA": return "02";
+		        default: return "01";
+		    }
+		}
+
+		// =========================================================
 		// ✅ DIRECCIÓN
 		// =========================================================
 		if (lower.contains("direcc"))
