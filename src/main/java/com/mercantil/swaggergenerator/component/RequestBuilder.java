@@ -1,9 +1,12 @@
 package com.mercantil.swaggergenerator.component;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -16,13 +19,14 @@ public class RequestBuilder {
     @Autowired
     private HeaderExampleProvider headerProvider;
 
+    private final Map<String, Object> exampleCache = new HashMap<>();
+
     public Map<String, Object> build(
             MethodDeclaration method,
             Map<String, Map<String, Object>> schemaMap,
             Map<String, Object> exampleMap,
             List<String> ignoredTypes) {
 
-        Map<String, Object> requestSchema = new LinkedHashMap<>();
         Map<String, Object> requestProps = new LinkedHashMap<>();
 
         // ✅ SAFE REF
@@ -42,7 +46,9 @@ public class RequestBuilder {
 
         String operationName = capitalize(method.getNameAsString());
 
+        // =========================================================
         // ✅ detectar Request
+        // =========================================================
         Optional<String> requestOpt = method.getParameters().stream()
                 .map(p -> p.getType().asString())
                 .filter(t -> t.startsWith("Request"))
@@ -51,33 +57,39 @@ public class RequestBuilder {
         if (requestOpt.isPresent()) {
 
             requestType = requestOpt.get();
-
             Map<String, Object> reqSchema = schemaMap.get(requestType);
 
-            if (reqSchema != null && reqSchema.get("properties") instanceof Map) {
+            if (reqSchema != null) {
 
-                Map<String, Object> props = (Map<String, Object>) reqSchema.get("properties");
+                Object propsObj = reqSchema.get("properties");
 
-                for (Map.Entry<String, Object> entry : props.entrySet()) {
+                if (propsObj instanceof Map) {
 
-                    if (entry.getKey().toLowerCase().startsWith("bodyentrada")) {
+                    Map<String, Object> props = (Map<String, Object>) propsObj;
+
+                    for (Map.Entry<String, Object> entry : props.entrySet()) {
+
+                        String key = entry.getKey();
+
+                        if (!key.toLowerCase().startsWith("bodyentrada")) continue;
 
                         Map<String, Object> refObj = (Map<String, Object>) entry.getValue();
 
-                        if (refObj.containsKey("$ref")) {
+                        if (!refObj.containsKey("$ref")) continue;
 
-                            String ref = refObj.get("$ref").toString();
-                            bodyType = ref.substring(ref.lastIndexOf("/") + 1);
+                        String ref = refObj.get("$ref").toString();
+                        bodyType = ref.substring(ref.lastIndexOf("/") + 1);
+                        bodyFieldName = key;
 
-                            bodyFieldName = entry.getKey();
-                            break;
-                        }
+                        break;
                     }
                 }
             }
         }
 
+        // =========================================================
         // ✅ fallback
+        // =========================================================
         if (bodyType == null && requestType != null) {
 
             bodyType = requestType.replace("Request", "BodyEntrada");
@@ -86,7 +98,9 @@ public class RequestBuilder {
                     bodyType.replace("BodyEntrada", "");
         }
 
+        // =========================================================
         // ✅ normalización
+        // =========================================================
         if ("bodyEntrada".equals(bodyFieldName)) {
 
             if (bodyType != null && bodyType.startsWith("BodyEntrada")) {
@@ -95,30 +109,31 @@ public class RequestBuilder {
                         bodyType.replace("BodyEntrada", "");
 
             } else {
-
                 bodyFieldName = "bodyEntrada" + operationName;
             }
         }
 
+        // =========================================================
         // ✅ asegurar schema
+        // =========================================================
         if (bodyType != null && !ignoredTypes.contains(bodyType)) {
             ensureSchemaExists(bodyType, schemaMap);
         }
 
-        // ✅ VALIDACIÓN CLAVE 🔥
+        // =========================================================
+        // ✅ validar contenido primero 🔥
+        // =========================================================
         boolean hasBody = hasProperties(bodyType, schemaMap);
 
-        // ✅ agregar body SOLO si tiene data
+        // ✅ agregar body solo si hay contenido
         if (bodyType != null && hasBody) {
             requestProps.put(bodyFieldName, safeRef.apply(bodyType));
         }
 
-        requestSchema.put("type", "object");
-        requestSchema.put("properties", requestProps);
-
+        // =========================================================
         // ✅ example
+        // =========================================================
         Map<String, Object> requestExample = new LinkedHashMap<>();
-
         requestExample.put("headerEntrada", headerProvider.buildHeaderEntrada());
 
         if (bodyType != null && hasBody) {
@@ -132,16 +147,21 @@ public class RequestBuilder {
             requestExample.put(bodyFieldName, bodyExample);
         }
 
-        // ✅ salida
-        Map<String, Object> requestJson = new LinkedHashMap<>();
-        requestJson.put("schema", requestSchema);
-        requestJson.put("examples", Map.of(
-                "default",
-                Map.of(
-                        "summary", "Ejemplo generado",
-                        "value", requestExample
+        // =========================================================
+        // ✅ salida final optimizada
+        // =========================================================
+        Map<String, Object> requestJson = Map.of(
+                "schema", Map.of(
+                        "type", "object",
+                        "properties", requestProps
+                ),
+                "examples", Map.of(
+                        "default", Map.of(
+                                "summary", "Ejemplo generado",
+                                "value", requestExample
+                        )
                 )
-        ));
+        );
 
         return Map.of(
                 "required", true,
@@ -149,21 +169,19 @@ public class RequestBuilder {
         );
     }
 
-    // ✅ NUEVO 🔥
+    // =========================================================
+    // ✅ optimizado
+    // =========================================================
     private boolean hasProperties(String type,
-                                  Map<String, Map<String, Object>> schemaMap) {
+                                 Map<String, Map<String, Object>> schemaMap) {
 
         if (type == null) return false;
 
         Map<String, Object> schema = schemaMap.get(type);
-
         if (schema == null) return false;
 
         Object props = schema.get("properties");
-
-        if (!(props instanceof Map)) return false;
-
-        return !((Map<?, ?>) props).isEmpty();
+        return props instanceof Map && !((Map<?, ?>) props).isEmpty();
     }
 
     private void ensureSchemaExists(String typeName,
@@ -171,41 +189,54 @@ public class RequestBuilder {
 
         if (typeName == null || typeName.isBlank()) return;
 
-        if (schemaMap.containsKey(typeName)) return;
-
-        Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("type", "object");
-        schema.put("properties", new LinkedHashMap<>());
-
-        schemaMap.put(typeName, schema);
+        schemaMap.computeIfAbsent(typeName,
+                k -> Map.of(
+                        "type", "object",
+                        "properties", new LinkedHashMap<>()
+                ));
     }
 
+    // =========================================================
+    // ✅ CACHE + SAFE COPY
+    // =========================================================
     private Object buildExampleFromSchema(String type,
             Map<String, Map<String, Object>> schemaMap) {
 
-        Map<String, Object> schema = schemaMap.get(type);
+        if (exampleCache.containsKey(type)) {
+            return new LinkedHashMap<>((Map<String, Object>) exampleCache.get(type));
+        }
 
+        Object result = buildExampleFromSchema(type, schemaMap, new HashSet<>());
+
+        if (result instanceof Map) {
+            exampleCache.put(type, new LinkedHashMap<>((Map<String, Object>) result));
+        }
+
+        return result;
+    }
+
+    private Object buildExampleFromSchema(String type,
+            Map<String, Map<String, Object>> schemaMap,
+            Set<String> visited) {
+
+        if (type == null) return new LinkedHashMap<>();
+
+        if (visited.contains(type)) return "(circular)";
+
+        visited.add(type);
+
+        Map<String, Object> schema = schemaMap.get(type);
         if (schema == null) return new LinkedHashMap<>();
 
-        if (Boolean.TRUE.equals(schema.get("additionalProperties"))) {
+        Object propsObj = schema.get("properties");
+        if (!(propsObj instanceof Map)) return new LinkedHashMap<>();
 
-            Map<String, Object> dynamic = new LinkedHashMap<>();
-            dynamic.put("campo1", "valor");
-            dynamic.put("campo2", 123);
+        Map<String, Object> props = (Map<String, Object>) propsObj;
 
-            return dynamic;
-        }
-
-        if (!(schema.get("properties") instanceof Map)) {
-            return new LinkedHashMap<>();
-        }
-
-        Map<String, Object> props = (Map<String, Object>) schema.get("properties");
         Map<String, Object> example = new LinkedHashMap<>();
 
         for (Map.Entry<String, Object> entry : props.entrySet()) {
 
-            String field = entry.getKey();
             Map<String, Object> fieldDef = (Map<String, Object>) entry.getValue();
 
             if (fieldDef.containsKey("$ref")) {
@@ -213,14 +244,14 @@ public class RequestBuilder {
                 String ref = fieldDef.get("$ref").toString();
                 String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
-                example.put(field, buildExampleFromSchema(refType, schemaMap));
+                example.put(entry.getKey(),
+                        buildExampleFromSchema(refType, schemaMap, visited));
 
-            } else {
-
-                String typeField = (String) fieldDef.get("type");
-
-                example.put(field, mockValue(typeField));
+                continue;
             }
+
+            example.put(entry.getKey(),
+                    mockValue((String) fieldDef.get("type")));
         }
 
         return example;
@@ -242,6 +273,6 @@ public class RequestBuilder {
 
     private String capitalize(String str) {
         if (str == null || str.isEmpty()) return str;
-        return str.substring(0, 1).toUpperCase() + str.substring(1);
+        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
     }
 }
