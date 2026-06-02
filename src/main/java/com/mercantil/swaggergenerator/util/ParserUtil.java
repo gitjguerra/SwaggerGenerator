@@ -55,7 +55,7 @@ public class ParserUtil {
     }
 
     // =========================================================
-    // ✅ GENERIC SIMPLE (recursivo limpio)
+    // ✅ GENERIC SIMPLE
     // =========================================================
     public String extractGeneric(String input) {
 
@@ -127,7 +127,6 @@ public class ParserUtil {
     // =========================================================
     // ✅ HELPERS PRO
     // =========================================================
-
     public boolean isList(String type) {
         return type != null && (type.contains("List<") || type.contains("Set<"));
     }

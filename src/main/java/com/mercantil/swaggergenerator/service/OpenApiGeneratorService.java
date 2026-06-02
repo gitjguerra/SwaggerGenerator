@@ -67,6 +67,7 @@ public class OpenApiGeneratorService {
 	private final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	// Buscar CONSTANTS
+	@SuppressWarnings("unused")
 	private List<String> currentBeansPath;
 
 	// ✅ =========================
@@ -342,7 +343,7 @@ public class OpenApiGeneratorService {
 	}
 
 	// ✅ =========================
-	// ✅ FILTRO ROBUSTO (FIX)
+	// ✅ FILTRO ROBUSTO
 	// ✅ =========================
 	private boolean isInBasePackage(File file, ClassOrInterfaceDeclaration clazz, String basePackage) {
 
@@ -577,7 +578,7 @@ public class OpenApiGeneratorService {
 				cu.findAll(ClassOrInterfaceDeclaration.class).forEach(clazz -> {
 
 					classIndexer.register(clazz);
-					count.incrementAndGet(); // ✅ OK
+					count.incrementAndGet();
 				});
 
 			} catch (Exception e) {

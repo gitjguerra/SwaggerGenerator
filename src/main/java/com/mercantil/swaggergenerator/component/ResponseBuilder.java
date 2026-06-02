@@ -121,7 +121,7 @@ public class ResponseBuilder {
                 k -> Map.of("type", "object", "properties", new LinkedHashMap<>()));
 
         // =========================================================
-        // ✅ validar contenido (ANTES de generar ejemplo 🔥)
+        // ✅ validar contenido (ANTES de generar ejemplo)
         // =========================================================
         boolean hasBody = hasProperties(bodyClass, schemaMap);
 

@@ -48,7 +48,7 @@ public class ExampleGenerator {
 	}
 
 	// =========================================================
-	// ✅ GENERADOR PRINCIPAL (FIX TOTAL)
+	// ✅ GENERADOR PRINCIPAL
 	// =========================================================
 	public Object buildExampleFromType(String type) {
 
@@ -375,7 +375,7 @@ public class ExampleGenerator {
 			return "Caracas";
 
 		// =========================================================
-		// ✅ CÓDIGOS (🔥 MUY IMPORTANTE)
+		// ✅ CÓDIGOS
 		// =========================================================
 		if (lower.startsWith("cod") || tokens.contains("codigo")) {
 
@@ -524,7 +524,7 @@ public class ExampleGenerator {
 
 	private String generateCardNumber() {
 
-		// 🔹 Prefijo Visa (puedes cambiar por Mastercard = 5, Amex = 34/37)
+		// 🔹 Prefijo Visa (se puede cambiar por Mastercard = 5, Amex = 34/37)
 		String prefix = "4";
 
 		// 🔹 Generar 15 dígitos base (sin check digit)

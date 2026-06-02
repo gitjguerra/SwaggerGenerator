@@ -20,7 +20,7 @@ public class OpenApiDoc {
 
     public List<Map<String, String>> servers = new ArrayList<>();
 
-    public List<Map<String, String>> tags = new ArrayList<>(); // ✅ NUEVO
+    public List<Map<String, String>> tags = new ArrayList<>();
 
     public Map<String, Object> paths = new LinkedHashMap<>();
 
