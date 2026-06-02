@@ -2,95 +2,144 @@ package com.mercantil.swaggergenerator.util;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class AbbreviationUtil {
 
-	private static final Map<String, String> ABBREV_MAP = new LinkedHashMap<>();
-	private static final List<Map.Entry<String, String>> SORTED_ENTRIES = new ArrayList<>();
+    private static final Map<String, String> ABBREV_MAP = new LinkedHashMap<>();
+    private static final List<Map.Entry<String, String>> SORTED_ENTRIES = new ArrayList<>();
 
-	static {
-		loadAbbreviations();
+    static {
+        loadAbbreviations();
 
-		// ordenar UNA SOLA VEZ
-		SORTED_ENTRIES.addAll(ABBREV_MAP.entrySet());
-		SORTED_ENTRIES.sort((a, b) -> b.getKey().length() - a.getKey().length());
-	}
+        // ✅ ordenar UNA SOLA VEZ por longitud (mejor matching)
+        SORTED_ENTRIES.addAll(ABBREV_MAP.entrySet());
+        SORTED_ENTRIES.sort((a, b) -> b.getKey().length() - a.getKey().length());
+    }
 
-	private static void loadAbbreviations() {
+    // =========================================================
+    // ✅ CARGA SEGURA
+    // =========================================================
+    private static void loadAbbreviations() {
 
-		try (var is = AbbreviationUtil.class.getClassLoader().getResourceAsStream("abbreviations.txt")) {
+        try (var is = AbbreviationUtil.class
+                .getClassLoader()
+                .getResourceAsStream("abbreviations.txt")) {
 
-			if (is == null) {
-				throw new RuntimeException("❌ No se encontró abbreviations.txt en resources");
-			}
+            if (is == null) {
+                throw new RuntimeException("❌ No se encontró abbreviations.txt en resources");
+            }
 
-			new BufferedReader(new InputStreamReader(is)).lines().map(String::trim)
-					.filter(line -> !line.isEmpty() && !line.startsWith("#")).forEach(line -> {
+            try (BufferedReader reader =
+                         new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
 
-						String[] parts = line.split("=", 2); // ✅ más robusto
+                reader.lines()
+                        .map(String::trim)
+                        .filter(line -> !line.isEmpty() && !line.startsWith("#"))
+                        .forEach(line -> {
 
-						if (parts.length == 2) {
-							ABBREV_MAP.put(parts[0].toLowerCase().trim(), parts[1].toLowerCase().trim());
-						}
-					});
+                            String[] parts = line.split("=", 2);
 
-			System.out.println("✅ Abreviaturas cargadas: " + ABBREV_MAP.size());
+                            if (parts.length == 2) {
+                                String key = parts[0].toLowerCase().trim();
+                                String value = parts[1].toLowerCase().trim();
 
-		} catch (Exception e) {
-			throw new RuntimeException("Error cargando abbreviations.txt", e);
-		}
-	}
+                                ABBREV_MAP.put(key, value);
+                            }
+                        });
+            }
 
-	// ============================================
-	// ✅ NORMALIZACIÓN
-	// ============================================
-	public static String normalizeName(String name) {
+            System.out.println("✅ Abreviaturas cargadas: " + ABBREV_MAP.size());
 
-		if (name == null)
-			return "";
+        } catch (Exception e) {
+            throw new RuntimeException("Error cargando abbreviations.txt", e);
+        }
+    }
 
-		// ✅ separar camelCase primero
-		String withSpaces = name.replaceAll("([a-z])([A-Z])", "$1 $2");
+    // =========================================================
+    // ✅ NORMALIZACIÓN AVANZADA 🔥
+    // =========================================================
+    public static String normalizeName(String name) {
 
-		List<String> tokens = Arrays.stream(withSpaces.split("[^a-zA-Z0-9]+")).filter(t -> !t.isBlank())
-				.collect(Collectors.toList());
+        if (name == null) return "";
 
-		StringBuilder result = new StringBuilder();
+        // ✅ separar camelCase → camel Case
+        String withSpaces = name.replaceAll("([a-z])([A-Z])", "$1 $2");
 
-		for (String token : tokens) {
+        List<String> tokens = Arrays.stream(withSpaces.split("[^a-zA-Z0-9]+"))
+                .filter(t -> !t.isBlank())
+                .collect(Collectors.toList());
 
-			String lowerToken = token.toLowerCase();
+        StringBuilder result = new StringBuilder();
 
-			// ✅ reemplazo SOLO POR TOKEN (NO global)
-			String normalized = ABBREV_MAP.getOrDefault(lowerToken, lowerToken);
+        for (String token : tokens) {
 
-			result.append(normalized).append(" ");
-		}
+            String lowerToken = token.toLowerCase();
 
-		String finalResult = result.toString().trim();
+            // ✅ lookup directo
+            String normalized = ABBREV_MAP.get(lowerToken);
 
-		return finalResult;
-	}
+            if (normalized == null) {
 
-	// ============================================
-	// ✅ TOKENIZADOR
-	// ============================================
-	public static List<String> tokenize(String name) {
+                // ✅ fallback: buscar coincidencia parcial usando diccionario ordenado
+                normalized = matchByContains(lowerToken);
+            }
 
-		if (name == null)
-			return List.of();
+            if (normalized == null) {
+                normalized = lowerToken;
+            }
 
-		String withSpaces = name.replaceAll("([a-z])([A-Z])", "$1 $2");
+            result.append(normalized).append(" ");
+        }
 
-		String normalized = normalizeName(withSpaces);
+        return result.toString().trim();
+    }
 
-		return Arrays.stream(normalized.toLowerCase().split("[^a-z0-9]+")).filter(p -> !p.isBlank())
-				.collect(Collectors.toList());
-	}
+    // =========================================================
+    // ✅ MATCH INTELIGENTE 🔥
+    // =========================================================
+    private static String matchByContains(String token) {
 
-	public static Map<String, String> getAbbreviations() {
-		return ABBREV_MAP;
-	}
+        for (var entry : SORTED_ENTRIES) {
+
+            if (token.contains(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+
+        return null;
+    }
+
+    // =========================================================
+    // ✅ TOKENIZADOR NORMALIZADO
+    // =========================================================
+    public static List<String> tokenize(String name) {
+
+        if (name == null) return List.of();
+
+        String withSpaces = name.replaceAll("([a-z])([A-Z])", "$1 $2");
+
+        String normalized = normalizeName(withSpaces);
+
+        return Arrays.stream(normalized.toLowerCase().split("[^a-z0-9]+"))
+                .filter(p -> !p.isBlank())
+                .collect(Collectors.toList());
+    }
+
+    // =========================================================
+    // ✅ UTILIDAD EXTRA (MATCH ENTRE NOMBRES)
+    // =========================================================
+    public static boolean matches(String a, String b) {
+
+        List<String> tokensA = tokenize(a);
+        List<String> tokensB = tokenize(b);
+
+        return tokensA.equals(tokensB);
+    }
+
+    public static Map<String, String> getAbbreviations() {
+        return ABBREV_MAP;
+    }
 }
