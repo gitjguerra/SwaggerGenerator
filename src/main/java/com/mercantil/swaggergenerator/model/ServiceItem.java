@@ -1,5 +1,7 @@
 package com.mercantil.swaggergenerator.model;
 
+import java.util.List;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,7 +15,7 @@ public class ServiceItem {
     private String basePath;
 
 	private String controllersPath;
-	private String beansPath;
+	private List<String> beansPath;
 	private String configPath;
 
 }

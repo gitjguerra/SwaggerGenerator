@@ -2,9 +2,12 @@ package com.mercantil.swaggergenerator.service;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,7 +26,6 @@ import com.mercantil.swaggergenerator.component.SchemaBuilder;
 import com.mercantil.swaggergenerator.model.OpenApiDoc;
 import com.mercantil.swaggergenerator.model.ServiceItem;
 import com.mercantil.swaggergenerator.util.HttpMethodUtil;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class OpenApiGeneratorService {
@@ -65,7 +67,7 @@ public class OpenApiGeneratorService {
 	private final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	// Buscar CONSTANTS
-	private String currentBeansPath;
+	private List<String> currentBeansPath;
 
 	// ✅ =========================
 	// ✅ GENERADOR PRINCIPAL
@@ -258,7 +260,32 @@ public class OpenApiGeneratorService {
 	// ✅ =========================
 	// ✅ UTILIDADES
 	// ✅ =========================
+	
+	// ✅ PARA LISTA
+	private List<File> findJavaFiles(List<String> roots) {
+
+		Set<String> seen = new HashSet<>();
+		List<File> files = new ArrayList<>();
+
+		if (roots != null) {
+			for (String root : roots) {
+				for (File f : findJavaFilesRecursive(root)) {
+					if (seen.add(f.getAbsolutePath())) {
+						files.add(f);
+					}
+				}
+			}
+		}
+
+		return files;
+	}
+
+	// ✅ PARA STRING
 	private List<File> findJavaFiles(String root) {
+		return findJavaFilesRecursive(root);
+	}
+
+	private List<File> findJavaFilesRecursive(String root) {
 
 		List<File> files = new ArrayList<>();
 
@@ -276,7 +303,7 @@ public class OpenApiGeneratorService {
 		for (File f : filesArray) {
 
 			if (f.isDirectory()) {
-				files.addAll(findJavaFiles(f.getAbsolutePath()));
+				files.addAll(findJavaFilesRecursive(f.getAbsolutePath()));
 			} else if (f.getName().endsWith(".java")) {
 				files.add(f);
 			}
@@ -418,7 +445,6 @@ public class OpenApiGeneratorService {
 
 		schemaMap.putIfAbsent("HeaderSalida", headerSalida);
 
-
 		// =========================================================
 		// ✅ CLIENT RESPONSE (HARDCODE ENTERPRISE)
 		// =========================================================
@@ -436,10 +462,7 @@ public class OpenApiGeneratorService {
 		crProps.put("headerSalida", Map.of("$ref", "#/components/schemas/HeaderSalida"));
 
 		// 🔥 body dinámico
-		crProps.put("bodySalida", Map.of(
-		        "type", "object",
-		        "description", "Contenido dinámico de la respuesta"
-		));
+		crProps.put("bodySalida", Map.of("type", "object", "description", "Contenido dinámico de la respuesta"));
 
 		clientResponse.put("properties", crProps);
 
@@ -461,7 +484,7 @@ public class OpenApiGeneratorService {
 		client.put("properties", cProps);
 
 		schemaMap.putIfAbsent("Client", client);
-		
+
 		System.out.println("✅ Base schemas registrados");
 	}
 
