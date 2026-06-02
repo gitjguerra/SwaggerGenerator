@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.mercantil.swaggergenerator.util.ParserUtil;
 
 @Component
 public class ResponseBuilder {
@@ -13,15 +14,84 @@ public class ResponseBuilder {
     @Autowired
     private HeaderExampleProvider headerProvider;
 
+    @Autowired
+    private ParserUtil parserUtil;
+
     public Map<String, Object> build(
             MethodDeclaration method,
             Map<String, Map<String, Object>> schemaMap,
             Map<String, Object> exampleMap,
             List<String> ignoredTypes) {
 
-        String operationName = capitalize(method.getNameAsString());
-        String bodyClass = "BodySalida" + operationName;
-        String bodyName = operationName;
+        // =========================================================
+        // ✅ DETECTAR bodySalida REAL 🔥🔥🔥
+        // =========================================================
+        String bodyClass = null;
+        String bodyName = null;
+
+        String rawReturn = method.getType().asString();
+        String responseType = parserUtil.extractGeneric(rawReturn);
+
+        Map<String, Object> responseSchema = schemaMap.get(responseType);
+
+        // ✅ 1. INTENTO: desde schema del response
+        if (responseSchema != null && responseSchema.get("properties") instanceof Map) {
+
+            Map<String, Object> props =
+                    (Map<String, Object>) responseSchema.get("properties");
+
+            for (Map.Entry<String, Object> entry : props.entrySet()) {
+
+                String key = entry.getKey();
+
+                if (key.toLowerCase().startsWith("bodysalida")) {
+
+                    Map<String, Object> refObj =
+                            (Map<String, Object>) entry.getValue();
+
+                    if (refObj.containsKey("$ref")) {
+
+                        String ref = refObj.get("$ref").toString();
+
+                        bodyClass = ref.substring(ref.lastIndexOf("/") + 1);
+                        bodyName = key.replace("bodySalida", "");
+
+                        System.out.println("✅ bodySalida detectado REAL: " + bodyClass);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // ✅ 2. FALLBACK: match flexible 🔥
+        if (bodyClass == null) {
+
+            String methodName = method.getNameAsString().toLowerCase();
+
+            Optional<String> match = schemaMap.keySet().stream()
+                    .filter(k -> k.startsWith("BodySalida"))
+                    .filter(k -> k.toLowerCase().contains(methodName))
+                    .findFirst();
+
+            if (match.isPresent()) {
+
+                bodyClass = match.get();
+                bodyName = bodyClass.replace("BodySalida", "");
+
+                System.out.println("✅ bodySalida match flexible: " + bodyClass);
+            }
+        }
+
+        // ✅ 3. FALLBACK FINAL
+        if (bodyClass == null) {
+
+            String op = capitalize(method.getNameAsString());
+
+            bodyClass = "BodySalida" + op;
+            bodyName = op;
+
+            System.out.println("⚠️ bodySalida fallback: " + bodyClass);
+        }
 
         // =========================================================
         // ✅ ASEGURAR SCHEMA
@@ -34,7 +104,7 @@ public class ResponseBuilder {
         }
 
         // =========================================================
-        // ✅ GENERAR EJEMPLO REAL (CLAVE 🔥)
+        // ✅ GENERAR EJEMPLO REAL 🔥
         // =========================================================
         Object exampleBody = exampleMap.get(bodyClass);
 
@@ -45,18 +115,17 @@ public class ResponseBuilder {
         // =========================================================
         // ✅ SCHEMA RESPONSE
         // =========================================================
-        Map<String, Object> responseSchema = new LinkedHashMap<>();
-        Map<String, Object> props = new LinkedHashMap<>();
+        Map<String, Object> responseSchemaFinal = new LinkedHashMap<>();
+        Map<String, Object> propsFinal = new LinkedHashMap<>();
 
-        props.put("headerSalida",
+        propsFinal.put("headerSalida",
                 Map.of("$ref", "#/components/schemas/HeaderSalida"));
 
-        // ✅ SIEMPRE incluir body
-        props.put("bodySalida" + bodyName,
+        propsFinal.put("bodySalida" + bodyName,
                 Map.of("$ref", "#/components/schemas/" + bodyClass));
 
-        responseSchema.put("type", "object");
-        responseSchema.put("properties", props);
+        responseSchemaFinal.put("type", "object");
+        responseSchemaFinal.put("properties", propsFinal);
 
         // =========================================================
         // ✅ EXAMPLE RESPONSE COMPLETO 🔥
@@ -73,7 +142,7 @@ public class ResponseBuilder {
 
         Map<String, Object> responseJson = new LinkedHashMap<>();
 
-        responseJson.put("schema", responseSchema);
+        responseJson.put("schema", responseSchemaFinal);
         responseJson.put("examples", Map.of(
                 "default",
                 Map.of(
@@ -92,7 +161,7 @@ public class ResponseBuilder {
     }
 
     // =========================================================
-    // ✅ GENERADOR RECURSIVO (IGUAL QUE REQUEST 🔥🔥🔥)
+    // ✅ GENERADOR RECURSIVO ✅ YA FUNCIONA PERFECTO
     // =========================================================
     private Object buildExampleFromSchema(String type,
                                           Map<String, Map<String, Object>> schemaMap) {
@@ -125,9 +194,6 @@ public class ResponseBuilder {
             String field = entry.getKey();
             Map<String, Object> def = (Map<String, Object>) entry.getValue();
 
-            // =====================================================
-            // ✅ OBJETO ($ref)
-            // =====================================================
             if (def.containsKey("$ref")) {
 
                 String ref = def.get("$ref").toString();
@@ -137,9 +203,6 @@ public class ResponseBuilder {
                         buildExampleFromSchema(refType, schemaMap, visited));
             }
 
-            // =====================================================
-            // ✅ ARRAY
-            // =====================================================
             else if ("array".equals(def.get("type"))) {
 
                 Object items = def.get("items");
@@ -163,19 +226,13 @@ public class ResponseBuilder {
                                 mockValue((String) itemMap.get("type"))
                         ));
                     }
-
                 } else {
                     example.put(field, List.of());
                 }
             }
 
-            // =====================================================
-            // ✅ PRIMITIVOS
-            // =====================================================
             else {
-
-                example.put(field,
-                        mockValue((String) def.get("type")));
+                example.put(field, mockValue((String) def.get("type")));
             }
         }
 
@@ -183,23 +240,16 @@ public class ResponseBuilder {
     }
 
     // =========================================================
-    // ✅ VALORES MOCK (IGUAL QUE REQUEST)
-    // =========================================================
     private Object mockValue(String type) {
 
         if (type == null) return "string";
 
         switch (type) {
-            case "string":
-                return "string";
-            case "integer":
-                return 12345;
-            case "number":
-                return 1500.75;
-            case "boolean":
-                return true;
-            default:
-                return "string";
+            case "string": return "string";
+            case "integer": return 12345;
+            case "number": return 1500.75;
+            case "boolean": return true;
+            default: return "string";
         }
     }
 

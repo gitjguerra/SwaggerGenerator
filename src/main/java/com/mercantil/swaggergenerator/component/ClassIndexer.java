@@ -44,6 +44,13 @@ public class ClassIndexer {
     }
 
     // =========================================================
+    // ✅ NUEVO: OBTENER TODAS LAS CLASES 🔥
+    // =========================================================
+    public Map<String, ClassOrInterfaceDeclaration> getAllClasses() {
+        return classMap;
+    }
+
+    // =========================================================
     // ✅ LIMPIAR (útil entre servicios)
     // =========================================================
     public void clear() {

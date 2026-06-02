@@ -35,15 +35,11 @@ public class SchemaBuilder {
         this.enumMap = enumMap;
     }
 
-    // =========================================================
-    // ✅ BUILD PRINCIPAL
-    // =========================================================
     public Map<String, Object> build(ClassOrInterfaceDeclaration clazz) {
 
         Map<String, Object> properties = new LinkedHashMap<>();
         List<String> required = new ArrayList<>();
 
-        // ✅ ENUM
         if (clazz.isEnumDeclaration()) {
             List<String> values = clazz.asEnumDeclaration().getEntries()
                     .stream()
@@ -53,9 +49,7 @@ public class SchemaBuilder {
             return Map.of("type", "string", "enum", values);
         }
 
-        // =========================================================
         // ✅ HERENCIA
-        // =========================================================
         clazz.getExtendedTypes().forEach(ext -> {
 
             String parent = ext.getNameAsString();
@@ -74,9 +68,7 @@ public class SchemaBuilder {
             });
         });
 
-        // =========================================================
         // ✅ CAMPOS
-        // =========================================================
         clazz.getFields().forEach(field -> {
 
             field.getVariables().forEach(var -> {
@@ -101,9 +93,7 @@ public class SchemaBuilder {
                 String resolvedType = resolveFullType(simpleType, clazz);
                 String type = extractSimpleName(resolvedType);
 
-                // =================================================
-                // ✅ ARRAY (byte[]) 🔥
-                // =================================================
+                // ✅ ARRAY
                 if (isArray) {
 
                     String elementType = typeNode.asArrayType()
@@ -130,7 +120,7 @@ public class SchemaBuilder {
 
                         } else {
 
-                            ensureSchemaWithParsing(resolved);
+                            ensureSchemaWithParsing(resolved, clazz);
 
                             prop.put("items", Map.of(
                                     "$ref", "#/components/schemas/" + resolved
@@ -139,47 +129,20 @@ public class SchemaBuilder {
                     }
                 }
 
-                // =================================================
-                // ✅ LIST<T>
-                // =================================================
+                // ✅ LIST<T> 🔥 FIX PRINCIPAL
                 else if (rawType.contains("List<")) {
 
-                    String generic = parserUtil.extractGeneric(rawType);
-
-                    String resolved = extractSimpleName(
-                            resolveFullType(generic, clazz)
-                    );
-
-                    prop.put("type", "array");
-
-                    if (typeUtil.isPrimitive(resolved)) {
-
-                        prop.put("items", Map.of(
-                                "type", typeUtil.mapType(resolved)
-                        ));
-
-                    } else {
-
-                        ensureSchemaWithParsing(resolved);
-
-                        prop.put("items", Map.of(
-                                "$ref", "#/components/schemas/" + resolved
-                        ));
-                    }
+                    handleList(prop, rawType, clazz);
                 }
 
-                // =================================================
                 // ✅ PRIMITIVO
-                // =================================================
                 else if (typeUtil.isPrimitive(type)) {
 
                     prop.put("type", typeUtil.mapType(type));
                     applyFormat(prop, type);
                 }
 
-                // =================================================
                 // ✅ OBJETO
-                // =================================================
                 else {
 
                     if (enumMap != null && enumMap.containsKey(type)) {
@@ -187,9 +150,10 @@ public class SchemaBuilder {
                         ensureEnumSchema(type);
 
                         prop.put("$ref", "#/components/schemas/" + type);
+
                     } else {
 
-                        ensureSchemaWithParsing(type);
+                        ensureSchemaWithParsing(type, clazz);
 
                         prop.put("$ref", "#/components/schemas/" + type);
                     }
@@ -221,17 +185,93 @@ public class SchemaBuilder {
         return schema;
     }
 
-    // =========================================================
-    // ✅ RESOLVER IMPORTS 🔥
-    // =========================================================
+    // ✅ FIX LIST CON CONTEXTO
+    private void handleList(Map<String, Object> prop,
+                            String rawType,
+                            ClassOrInterfaceDeclaration clazz) {
+
+        String generic = parserUtil.extractGeneric(rawType);
+
+        String resolvedFull = resolveFullType(generic, clazz);
+
+        String resolved = extractSimpleName(resolvedFull);
+
+        prop.put("type", "array");
+
+        if (typeUtil.isPrimitive(resolved)) {
+
+            prop.put("items", Map.of(
+                    "type", typeUtil.mapType(resolved)
+            ));
+
+        } else {
+
+            ensureSchemaWithParsing(resolved, clazz);
+
+            prop.put("items", Map.of(
+                    "$ref", "#/components/schemas/" + resolved
+            ));
+        }
+    }
+
+    // ✅ FIX PRINCIPAL 🔥
+    private void ensureSchemaWithParsing(String type,
+                                         ClassOrInterfaceDeclaration context) {
+
+        if (type == null || type.isBlank()) return;
+        if (schemaMap.containsKey(type)) return;
+        if (!isValidModel(type)) return;
+
+        Optional<ClassOrInterfaceDeclaration> clazzOpt =
+                classIndexer.findClass(type);
+
+        if (clazzOpt.isEmpty()) {
+            clazzOpt = findClassFromImports(type, context);
+        }
+
+        clazzOpt.ifPresent(found -> {
+
+            System.out.println("✅ Parsing class: " + type);
+
+            Map<String, Object> schema = build(found);
+            schemaMap.put(type, schema);
+        });
+    }
+
+    // ✅ NUEVO
+    private Optional<ClassOrInterfaceDeclaration> findClassFromImports(
+            String type,
+            ClassOrInterfaceDeclaration contextClass) {
+
+        return contextClass.findCompilationUnit()
+                .flatMap(cu -> cu.getImports().stream()
+                        .filter(i -> !i.isAsterisk())
+                        .filter(i -> i.getName().getIdentifier().equals(type))
+                        .findFirst())
+                .flatMap(importDecl -> {
+
+                    String fullName = importDecl.getNameAsString();
+
+                    return classIndexer.getAllClasses()
+                            .values()
+                            .stream()
+                            .filter(c ->
+                                    c.findCompilationUnit()
+                                            .flatMap(u -> u.getPackageDeclaration())
+                                            .map(p -> p.getNameAsString() + "." + c.getNameAsString())
+                                            .orElse("")
+                                            .equals(fullName)
+                            )
+                            .findFirst();
+                });
+    }
+
     private String resolveFullType(String simpleType, ClassOrInterfaceDeclaration clazz) {
 
         if (simpleType == null) return null;
-
         if (simpleType.contains(".")) return simpleType;
 
         Optional<CompilationUnit> cuOpt = clazz.findCompilationUnit();
-
         if (cuOpt.isEmpty()) return simpleType;
 
         CompilationUnit cu = cuOpt.get();
@@ -245,40 +285,12 @@ public class SchemaBuilder {
     }
 
     private String extractSimpleName(String fullType) {
-
         if (fullType == null) return null;
-
-        if (fullType.contains(".")) {
-            return fullType.substring(fullType.lastIndexOf(".") + 1);
-        }
-
-        return fullType;
+        return fullType.contains(".")
+                ? fullType.substring(fullType.lastIndexOf(".") + 1)
+                : fullType;
     }
 
-    // =========================================================
-    // ✅ ENSURE SCHEMA
-    // =========================================================
-    private void ensureSchemaWithParsing(String type) {
-
-        if (type == null || type.isBlank()) return;
-
-        if (schemaMap.containsKey(type)) return;
-
-        if (!isValidModel(type)) return;
-
-        classIndexer.findClass(type).ifPresent(clazz -> {
-
-            System.out.println("✅ Parsing real class: " + type);
-
-            Map<String, Object> schema = build(clazz);
-
-            schemaMap.put(type, schema);
-        });
-    }
-
-    // =========================================================
-    // ✅ ENUM
-    // =========================================================
     private void ensureEnumSchema(String enumName) {
 
         if (schemaMap.containsKey(enumName)) return;
@@ -322,16 +334,10 @@ public class SchemaBuilder {
 
     private void applyFormat(Map<String, Object> prop, String type) {
 
-        if ("UUID".equals(type))
-            prop.put("format", "uuid");
-
-        if ("LocalDate".equals(type))
-            prop.put("format", "date");
-
+        if ("UUID".equals(type)) prop.put("format", "uuid");
+        if ("LocalDate".equals(type)) prop.put("format", "date");
         if ("LocalDateTime".equals(type) || "Date".equals(type))
             prop.put("format", "date-time");
-
-        if ("BigDecimal".equals(type))
-            prop.put("format", "double");
+        if ("BigDecimal".equals(type)) prop.put("format", "double");
     }
 }
