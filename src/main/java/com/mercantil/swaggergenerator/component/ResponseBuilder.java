@@ -1,14 +1,11 @@
 package com.mercantil.swaggergenerator.component;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.mercantil.swaggergenerator.util.ParserUtil;
 
 @Component
 public class ResponseBuilder {
@@ -16,138 +13,66 @@ public class ResponseBuilder {
     @Autowired
     private HeaderExampleProvider headerProvider;
 
-    @Autowired
-    private ParserUtil parserUtil;
-
     public Map<String, Object> build(
             MethodDeclaration method,
             Map<String, Map<String, Object>> schemaMap,
             Map<String, Object> exampleMap,
             List<String> ignoredTypes) {
 
-        // =========================================================
-        // ✅ SAFE REF
-        // =========================================================
-        java.util.function.Function<String, Map<String, Object>> safeRef = type -> {
-            if (type == null || ignoredTypes.contains(type)) {
-                return Map.of("type", "object");
-            }
-            return Map.of("$ref", "#/components/schemas/" + type);
-        };
-
-        // =========================================================
-        // ✅ DETECTAR RESPONSE TYPE
-        // =========================================================
-        String rawReturn = method.getType().asString();
-        String responseType = unwrapResponseType(rawReturn);
-
-        if (responseType == null || ignoredTypes.contains(responseType)
-                || "ClientResponse".equals(responseType)) {
-            responseType = null;
-        }
-
-        ensureSchemaExists(responseType, schemaMap);
-
         String operationName = capitalize(method.getNameAsString());
+        String bodyClass = "BodySalida" + operationName;
+        String bodyName = operationName;
 
         // =========================================================
-        // ✅ NOMBRE BODY
+        // ✅ ASEGURAR SCHEMA
         // =========================================================
-        String responseBodyName;
-
-        if (responseType != null && responseType.startsWith("Response")) {
-            responseBodyName = capitalize(responseType.replace("Response", ""));
-        } else {
-            responseBodyName = operationName;
+        if (!schemaMap.containsKey(bodyClass)) {
+            schemaMap.put(bodyClass, Map.of(
+                    "type", "object",
+                    "properties", new LinkedHashMap<>()
+            ));
         }
 
         // =========================================================
-        // ✅ CLASE REAL BODY
+        // ✅ GENERAR EJEMPLO REAL (CLAVE 🔥)
         // =========================================================
-        String expectedBodyClass = "BodySalida" + responseBodyName;
+        Object exampleBody = exampleMap.get(bodyClass);
 
-        if (!schemaMap.containsKey(expectedBodyClass) && responseType != null) {
-
-            String fallback = "BodySalida" + responseType.replace("Response", "");
-
-            if (schemaMap.containsKey(fallback)) {
-                expectedBodyClass = fallback;
-                responseBodyName = capitalize(responseType.replace("Response", ""));
-            }
-        }
-
-        if (expectedBodyClass != null && !schemaMap.containsKey(expectedBodyClass)) {
-            ensureSchemaExists(expectedBodyClass, schemaMap);
-        }
-
-        // =========================================================
-        // ✅ GENERAR EJEMPLO BODY
-        // =========================================================
-        Object exampleBody = null;
-
-        if (expectedBodyClass != null) {
-
-            exampleBody = exampleMap.get(expectedBodyClass);
-
-            // generar si no existe o está vacío
-            if (!(exampleBody instanceof Map) || ((Map<?, ?>) exampleBody).isEmpty()) {
-                exampleBody = buildExampleFromSchema(expectedBodyClass, schemaMap);
-            }
+        if (exampleBody == null) {
+            exampleBody = buildExampleFromSchema(bodyClass, schemaMap);
         }
 
         // =========================================================
         // ✅ SCHEMA RESPONSE
         // =========================================================
         Map<String, Object> responseSchema = new LinkedHashMap<>();
-        Map<String, Object> responseProps = new LinkedHashMap<>();
+        Map<String, Object> props = new LinkedHashMap<>();
 
-        responseProps.put("headerSalida", safeRef.apply("HeaderSalida"));
+        props.put("headerSalida",
+                Map.of("$ref", "#/components/schemas/HeaderSalida"));
 
-        // ✅ SOLO agregar body si tiene contenido
-        if (exampleBody instanceof Map) {
-
-            Map<?, ?> map = (Map<?, ?>) exampleBody;
-
-            if (!map.isEmpty()) {
-                responseProps.put("bodySalida" + responseBodyName,
-                        safeRef.apply(expectedBodyClass));
-            } else {
-                System.out.println("⚠️ Schema bodySalida omitido: " + expectedBodyClass);
-            }
-
-        } else if (exampleBody != null) {
-
-            responseProps.put("bodySalida" + responseBodyName,
-                    safeRef.apply(expectedBodyClass));
-        }
+        // ✅ SIEMPRE incluir body
+        props.put("bodySalida" + bodyName,
+                Map.of("$ref", "#/components/schemas/" + bodyClass));
 
         responseSchema.put("type", "object");
-        responseSchema.put("properties", responseProps);
+        responseSchema.put("properties", props);
 
         // =========================================================
-        // ✅ EJEMPLO RESPONSE
+        // ✅ EXAMPLE RESPONSE COMPLETO 🔥
         // =========================================================
         Map<String, Object> responseExample = new LinkedHashMap<>();
 
-        responseExample.put("headerSalida", headerProvider.buildHeaderSalida());
+        responseExample.put("headerSalida",
+                headerProvider.buildHeaderSalida());
 
-        // ✅ SOLO agregar body si tiene contenido
-        if (exampleBody instanceof Map) {
-
-            Map<?, ?> map = (Map<?, ?>) exampleBody;
-
-            if (!map.isEmpty()) {
-                responseExample.put("bodySalida" + responseBodyName, exampleBody);
-            } else {
-                System.out.println("⚠️ bodySalida omitido en example: " + expectedBodyClass);
-            }
-
-        } else if (exampleBody != null) {
-
-            responseExample.put("bodySalida" + responseBodyName, exampleBody);
-        }
+        responseExample.put(
+                "bodySalida" + bodyName,
+                exampleBody != null ? exampleBody : new LinkedHashMap<>()
+        );
 
         Map<String, Object> responseJson = new LinkedHashMap<>();
+
         responseJson.put("schema", responseSchema);
         responseJson.put("examples", Map.of(
                 "default",
@@ -167,39 +92,90 @@ public class ResponseBuilder {
     }
 
     // =========================================================
-    // ✅ GENERADOR DE EJEMPLOS DESDE SCHEMA
+    // ✅ GENERADOR RECURSIVO (IGUAL QUE REQUEST 🔥🔥🔥)
     // =========================================================
     private Object buildExampleFromSchema(String type,
-            Map<String, Map<String, Object>> schemaMap) {
+                                          Map<String, Map<String, Object>> schemaMap) {
+        return buildExampleFromSchema(type, schemaMap, new HashSet<>());
+    }
 
-        Map<String, Object> schema = schemaMap.get(type);
+    private Object buildExampleFromSchema(String type,
+                                          Map<String, Map<String, Object>> schemaMap,
+                                          Set<String> visited) {
 
-        if (schema == null) return new LinkedHashMap<>();
-
-        if (!(schema.get("properties") instanceof Map)) {
+        if (type == null || visited.contains(type)) {
             return new LinkedHashMap<>();
         }
 
-        Map<String, Object> props = (Map<String, Object>) schema.get("properties");
+        visited.add(type);
+
+        Map<String, Object> schema = schemaMap.get(type);
+
+        if (schema == null || !(schema.get("properties") instanceof Map)) {
+            return new LinkedHashMap<>();
+        }
+
+        Map<String, Object> props =
+                (Map<String, Object>) schema.get("properties");
+
         Map<String, Object> example = new LinkedHashMap<>();
 
         for (Map.Entry<String, Object> entry : props.entrySet()) {
 
             String field = entry.getKey();
-            Map<String, Object> fieldDef = (Map<String, Object>) entry.getValue();
+            Map<String, Object> def = (Map<String, Object>) entry.getValue();
 
-            if (fieldDef.containsKey("$ref")) {
+            // =====================================================
+            // ✅ OBJETO ($ref)
+            // =====================================================
+            if (def.containsKey("$ref")) {
 
-                String ref = fieldDef.get("$ref").toString();
+                String ref = def.get("$ref").toString();
                 String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
-                example.put(field, buildExampleFromSchema(refType, schemaMap));
+                example.put(field,
+                        buildExampleFromSchema(refType, schemaMap, visited));
+            }
 
-            } else {
+            // =====================================================
+            // ✅ ARRAY
+            // =====================================================
+            else if ("array".equals(def.get("type"))) {
 
-                String typeField = (String) fieldDef.get("type");
+                Object items = def.get("items");
 
-                example.put(field, mockValue(typeField));
+                if (items instanceof Map) {
+
+                    Map<String, Object> itemMap = (Map<String, Object>) items;
+
+                    if (itemMap.containsKey("$ref")) {
+
+                        String ref = itemMap.get("$ref").toString();
+                        String refType = ref.substring(ref.lastIndexOf("/") + 1);
+
+                        example.put(field, List.of(
+                                buildExampleFromSchema(refType, schemaMap, visited)
+                        ));
+
+                    } else {
+
+                        example.put(field, List.of(
+                                mockValue((String) itemMap.get("type"))
+                        ));
+                    }
+
+                } else {
+                    example.put(field, List.of());
+                }
+            }
+
+            // =====================================================
+            // ✅ PRIMITIVOS
+            // =====================================================
+            else {
+
+                example.put(field,
+                        mockValue((String) def.get("type")));
             }
         }
 
@@ -207,61 +183,28 @@ public class ResponseBuilder {
     }
 
     // =========================================================
+    // ✅ VALORES MOCK (IGUAL QUE REQUEST)
+    // =========================================================
     private Object mockValue(String type) {
 
-        if (type == null) return "";
+        if (type == null) return "string";
 
         switch (type) {
             case "string":
                 return "string";
             case "integer":
-                return 123;
+                return 12345;
             case "number":
-                return 123.45;
+                return 1500.75;
             case "boolean":
                 return true;
-            case "array":
-                return new java.util.ArrayList<>();
             default:
-                return "";
+                return "string";
         }
-    }
-
-    // =========================================================
-    private void ensureSchemaExists(String typeName,
-            Map<String, Map<String, Object>> schemaMap) {
-
-        if (typeName == null || typeName.isBlank()) return;
-
-        if (schemaMap.containsKey(typeName)) return;
-
-        Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("type", "object");
-        schema.put("properties", new LinkedHashMap<>());
-
-        schemaMap.put(typeName, schema);
     }
 
     private String capitalize(String str) {
         if (str == null || str.isEmpty()) return str;
         return str.substring(0, 1).toUpperCase() + str.substring(1);
-    }
-
-    private String unwrapResponseType(String type) {
-
-        List<String> wrappers = List.of("ResponseEntity", "ClientResponse", "Optional");
-
-        String current = type;
-
-        while (current.contains("<") && current.contains(">")) {
-
-            String outer = current.substring(0, current.indexOf("<")).trim();
-
-            if (!wrappers.contains(outer)) break;
-
-            current = parserUtil.extractGeneric(current);
-        }
-
-        return parserUtil.resolveFinalType(current);
     }
 }
