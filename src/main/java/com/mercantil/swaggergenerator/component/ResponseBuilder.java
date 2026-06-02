@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.expr.CastExpr;
 import com.mercantil.swaggergenerator.util.ParserUtil;
 
 @Component
@@ -17,53 +18,62 @@ public class ResponseBuilder {
     @Autowired
     private ParserUtil parserUtil;
 
+    @Autowired
+    private ClassIndexer classIndexer;
+
     public Map<String, Object> build(
             MethodDeclaration method,
             Map<String, Map<String, Object>> schemaMap,
             Map<String, Object> exampleMap,
             List<String> ignoredTypes) {
 
-        // =========================================================
-        // ✅ DETECTAR bodySalida REAL 🔥🔥🔥
-        // =========================================================
         String bodyClass = null;
         String bodyName = null;
 
         String rawReturn = method.getType().asString();
         String responseType = parserUtil.extractGeneric(rawReturn);
 
-        Map<String, Object> responseSchema = schemaMap.get(responseType);
+        // ✅ 1. constructor
+        Optional<String> inferred = inferBodyFromConstructor(responseType);
 
-        // ✅ 1. INTENTO: desde schema del response
-        if (responseSchema != null && responseSchema.get("properties") instanceof Map) {
+        if (inferred.isPresent()) {
+            bodyClass = inferred.get();
+            bodyName = bodyClass.replace("BodySalida", "");
+        }
 
-            Map<String, Object> props =
-                    (Map<String, Object>) responseSchema.get("properties");
+        // ✅ 2. schema
+        if (bodyClass == null) {
 
-            for (Map.Entry<String, Object> entry : props.entrySet()) {
+            Map<String, Object> responseSchema = schemaMap.get(responseType);
 
-                String key = entry.getKey();
+            if (responseSchema != null && responseSchema.get("properties") instanceof Map) {
 
-                if (key.toLowerCase().startsWith("bodysalida")) {
+                Map<String, Object> props =
+                        (Map<String, Object>) responseSchema.get("properties");
 
-                    Map<String, Object> refObj =
-                            (Map<String, Object>) entry.getValue();
+                for (Map.Entry<String, Object> entry : props.entrySet()) {
 
-                    if (refObj.containsKey("$ref")) {
+                    String key = entry.getKey();
 
-                        String ref = refObj.get("$ref").toString();
+                    if (key.toLowerCase().startsWith("bodysalida")) {
 
-                        bodyClass = ref.substring(ref.lastIndexOf("/") + 1);
-                        bodyName = key.replace("bodySalida", "");
+                        Map<String, Object> refObj =
+                                (Map<String, Object>) entry.getValue();
 
-                        System.out.println("✅ bodySalida detectado REAL: " + bodyClass);
-                        break;
+                        if (refObj.containsKey("$ref")) {
+
+                            String ref = refObj.get("$ref").toString();
+
+                            bodyClass = ref.substring(ref.lastIndexOf("/") + 1);
+                            bodyName = key.replace("bodySalida", "");
+                            break;
+                        }
                     }
                 }
             }
         }
 
-        // ✅ 2. FALLBACK: match flexible 🔥
+        // ✅ 3. match flexible
         if (bodyClass == null) {
 
             String methodName = method.getNameAsString().toLowerCase();
@@ -74,28 +84,19 @@ public class ResponseBuilder {
                     .findFirst();
 
             if (match.isPresent()) {
-
                 bodyClass = match.get();
                 bodyName = bodyClass.replace("BodySalida", "");
-
-                System.out.println("✅ bodySalida match flexible: " + bodyClass);
             }
         }
 
-        // ✅ 3. FALLBACK FINAL
+        // ✅ 4. fallback
         if (bodyClass == null) {
-
             String op = capitalize(method.getNameAsString());
-
             bodyClass = "BodySalida" + op;
             bodyName = op;
-
-            System.out.println("⚠️ bodySalida fallback: " + bodyClass);
         }
 
-        // =========================================================
-        // ✅ ASEGURAR SCHEMA
-        // =========================================================
+        // ✅ asegurar schema
         if (!schemaMap.containsKey(bodyClass)) {
             schemaMap.put(bodyClass, Map.of(
                     "type", "object",
@@ -103,14 +104,15 @@ public class ResponseBuilder {
             ));
         }
 
-        // =========================================================
-        // ✅ GENERAR EJEMPLO REAL 🔥
-        // =========================================================
+        // ✅ ejemplo
         Object exampleBody = exampleMap.get(bodyClass);
 
         if (exampleBody == null) {
             exampleBody = buildExampleFromSchema(bodyClass, schemaMap);
         }
+
+        // ✅ VALIDACIÓN CLAVE 🔥
+        boolean hasBody = hasProperties(bodyClass, schemaMap);
 
         // =========================================================
         // ✅ SCHEMA RESPONSE
@@ -121,24 +123,25 @@ public class ResponseBuilder {
         propsFinal.put("headerSalida",
                 Map.of("$ref", "#/components/schemas/HeaderSalida"));
 
-        propsFinal.put("bodySalida" + bodyName,
-                Map.of("$ref", "#/components/schemas/" + bodyClass));
+        if (hasBody) {
+            propsFinal.put("bodySalida" + bodyName,
+                    Map.of("$ref", "#/components/schemas/" + bodyClass));
+        }
 
         responseSchemaFinal.put("type", "object");
         responseSchemaFinal.put("properties", propsFinal);
 
         // =========================================================
-        // ✅ EXAMPLE RESPONSE COMPLETO 🔥
+        // ✅ EXAMPLE
         // =========================================================
         Map<String, Object> responseExample = new LinkedHashMap<>();
 
         responseExample.put("headerSalida",
                 headerProvider.buildHeaderSalida());
 
-        responseExample.put(
-                "bodySalida" + bodyName,
-                exampleBody != null ? exampleBody : new LinkedHashMap<>()
-        );
+        if (hasBody) {
+            responseExample.put("bodySalida" + bodyName, exampleBody);
+        }
 
         Map<String, Object> responseJson = new LinkedHashMap<>();
 
@@ -160,9 +163,33 @@ public class ResponseBuilder {
         );
     }
 
-    // =========================================================
-    // ✅ GENERADOR RECURSIVO ✅ YA FUNCIONA PERFECTO
-    // =========================================================
+    // ✅ NUEVO 🔥🔥🔥
+    private boolean hasProperties(String type,
+                                  Map<String, Map<String, Object>> schemaMap) {
+
+        Map<String, Object> schema = schemaMap.get(type);
+
+        if (schema == null) return false;
+
+        Object props = schema.get("properties");
+
+        if (!(props instanceof Map)) return false;
+
+        return !((Map<?, ?>) props).isEmpty();
+    }
+
+    private Optional<String> inferBodyFromConstructor(String responseType) {
+
+        return classIndexer.findClass(responseType).flatMap(clazz ->
+                clazz.getConstructors().stream()
+                        .flatMap(c -> c.getBody().getStatements().stream())
+                        .flatMap(stmt -> stmt.findAll(CastExpr.class).stream())
+                        .map(cast -> cast.getType().asString())
+                        .filter(t -> t.startsWith("BodySalida"))
+                        .findFirst()
+        );
+    }
+
     private Object buildExampleFromSchema(String type,
                                           Map<String, Map<String, Object>> schemaMap) {
         return buildExampleFromSchema(type, schemaMap, new HashSet<>());
@@ -195,12 +222,9 @@ public class ResponseBuilder {
             Map<String, Object> def = (Map<String, Object>) entry.getValue();
 
             if (def.containsKey("$ref")) {
-
                 String ref = def.get("$ref").toString();
                 String refType = ref.substring(ref.lastIndexOf("/") + 1);
-
-                example.put(field,
-                        buildExampleFromSchema(refType, schemaMap, visited));
+                example.put(field, buildExampleFromSchema(refType, schemaMap, visited));
             }
 
             else if ("array".equals(def.get("type"))) {
@@ -212,16 +236,13 @@ public class ResponseBuilder {
                     Map<String, Object> itemMap = (Map<String, Object>) items;
 
                     if (itemMap.containsKey("$ref")) {
-
                         String ref = itemMap.get("$ref").toString();
                         String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
                         example.put(field, List.of(
                                 buildExampleFromSchema(refType, schemaMap, visited)
                         ));
-
                     } else {
-
                         example.put(field, List.of(
                                 mockValue((String) itemMap.get("type"))
                         ));
@@ -239,7 +260,6 @@ public class ResponseBuilder {
         return example;
     }
 
-    // =========================================================
     private Object mockValue(String type) {
 
         if (type == null) return "string";
