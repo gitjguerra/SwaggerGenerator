@@ -207,9 +207,22 @@ public class ExampleGenerator {
 			return fallback;
 		}
 
+		// =====================================================
+		// ✅ FLATTEN WRAPPER (RESTAURADO 🔥)
+		// =====================================================
+		if (example.size() == 1) {
+
+			Object onlyValue = example.values().iterator().next();
+
+			if (onlyValue instanceof Map) {
+				return onlyValue;
+			}
+		}
+
 		exampleMap.put(cacheKey, example);
 
 		return example;
+
 	}
 
 	// =========================================================
