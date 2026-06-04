@@ -57,3 +57,17 @@ services:
         - C:\DevEnvironment\src\java\bm-workspace\bm-mia\ws-mia\src\main\java
       basePackage: com.mercantilbanco.osba
       basePath: /mia
+      
+    - name: creditos
+      controllersPath: C:\DevEnvironment\src\java\bm-workspace\bm-creditos\api-creditos\src\main\java
+      beansPath:
+        - C:\DevEnvironment\src\java\bm-workspace\bm-creditos\ws-creditos\src\main\java
+      basePackage: com.mercantilbanco.osba
+      basePath: /creditos
+      
+    - name: safe
+      controllersPath: C:\DevEnvironment\src\java\bm-workspace\bm-safe\api-safe\src\main\java
+      beansPath:
+        - C:\DevEnvironment\src\java\bm-workspace\bm-safe\ws-safe\src\main\java
+      basePackage: com.mercantilbanco.osba
+      basePath: /safe
