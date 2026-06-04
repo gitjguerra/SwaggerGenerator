@@ -38,7 +38,12 @@ public class SmartExampleUtil {
 
 		String rawLower = name.toLowerCase();
 		String lower = normalizeName(name);
+
+		// ✅ tokens desde camelCase original
 		List<String> tokens = tokenize(name);
+
+		// ✅ tokens desde normalizado (cta → cuenta)
+		tokens.addAll(tokenize(lower));
 
 		// =========================================================
 		// ✅ CONTEXTO CONSISTENTE
@@ -86,7 +91,7 @@ public class SmartExampleUtil {
 			return "0.16";
 
 		// =========================================================
-		// ✅ IDENTIFICACIÓN (CI / RIF)
+		// ✅ IDENTIFICACIÓN
 		// =========================================================
 		if (tokens.contains("cedula") || tokens.contains("rif"))
 			return 124332657;
@@ -99,7 +104,6 @@ public class SmartExampleUtil {
 
 		// =========================================================
 		// ✅ INTENTOS DISPONIBLES
-		// intentosDisponibles
 		// =========================================================
 		if (lower.contains("intentos") && tokens.contains("disponibles")) {
 			return "3";
@@ -112,7 +116,7 @@ public class SmartExampleUtil {
 			return "MPLUS";
 
 		// =========================================================
-		// ✅ ACCIÓN REQUERIDA
+		// ✅ ACCIÓN
 		// =========================================================
 		if (tokens.contains("accion") && tokens.contains("requer"))
 			return "1";
@@ -136,7 +140,7 @@ public class SmartExampleUtil {
 			return "0009";
 
 		// =========================================================
-		// ✅ NOMBRES PERSONA
+		// ✅ NOMBRES
 		// =========================================================
 		if (lower.contains("nombenef") || tokens.contains("cliente")) {
 			return nombre + " " + apellido;
@@ -161,7 +165,7 @@ public class SmartExampleUtil {
 			return "01";
 
 		// =========================================================
-		// ✅ INDICADORES GENERALES
+		// ✅ INDICADORES
 		// =========================================================
 		if (lower.contains("indic"))
 			return "01";
@@ -183,8 +187,28 @@ public class SmartExampleUtil {
 			return "02121234567";
 
 		// =========================================================
+		// ✅ NUMERO PERSONA (PRIORIDAD ALTA 🔥)
+		// nroPer, numeroPersona
+		// =========================================================
+		if (tokens.contains("per") || tokens.contains("persona")) {
+
+		    if (tokens.contains("nro") || tokens.contains("numero")) {
+		        return 11844825;
+		    }
+		}
+
+		// =========================================================
+		// ✅ NUMERO CUENTA (PRIORIDAD ALTA 🔥)
+		// nroCta, numeroCuenta
+		// =========================================================
+		if ((tokens.contains("cuenta") || tokens.contains("cta")) &&
+		    (tokens.contains("numero") || tokens.contains("nro"))) {
+
+		    return "01020123456789012345";
+		}
+
+		// =========================================================
 		// ✅ SALDO CUENTA
-		// Detecta saldoCta, saldoCuenta
 		// =========================================================
 		if (tokens.contains("saldo") && (tokens.contains("cuenta") || tokens.contains("cta"))) {
 			return "1000,00";
@@ -192,7 +216,6 @@ public class SmartExampleUtil {
 
 		// =========================================================
 		// ✅ PAIS CUENTA
-		// Detecta paisCta, paisCuenta
 		// =========================================================
 		if (tokens.contains("pais") && (tokens.contains("cuenta") || tokens.contains("cta"))) {
 			return "USA";
@@ -200,7 +223,6 @@ public class SmartExampleUtil {
 
 		// =========================================================
 		// ✅ MONEDA CUENTA
-		// monedaCta, monedaCuenta
 		// =========================================================
 		if (tokens.contains("moneda") && (tokens.contains("cuenta") || tokens.contains("cta"))) {
 			return "USD";
@@ -208,16 +230,14 @@ public class SmartExampleUtil {
 
 		// =========================================================
 		// ✅ TIPO CUENTA
-		// tipoCta, tipoCuenta
 		// =========================================================
 		if ((tokens.contains("tipo") || lower.contains("tipocta"))
 				&& (tokens.contains("cuenta") || tokens.contains("cta"))) {
-			return "AHO"; // Ahorro
+			return "AHO";
 		}
 
 		// =========================================================
 		// ✅ BANCO DESTINO
-		// bancoDest, bancoDestino
 		// =========================================================
 		if ((tokens.contains("banco") && tokens.contains("dest")) || lower.contains("bancodest")
 				|| lower.contains("bancodestino")) {
@@ -226,7 +246,6 @@ public class SmartExampleUtil {
 
 		// =========================================================
 		// ✅ SWIFT
-		// swift, codigoSwift
 		// =========================================================
 		if (lower.contains("swift")) {
 			return "BOFAUS3N";
@@ -234,15 +253,13 @@ public class SmartExampleUtil {
 
 		// =========================================================
 		// ✅ IBAN
-		// ibanCuenta
 		// =========================================================
 		if (lower.contains("iban")) {
 			return "US12345678901234567890";
 		}
 
 		// =========================================================
-		// ✅ BANCO (CODIGO)
-		// bco
+		// ✅ BANCO
 		// =========================================================
 		if (lower.equals("bco") || tokens.contains("banco")) {
 			return "0105";
@@ -250,7 +267,6 @@ public class SmartExampleUtil {
 
 		// =========================================================
 		// ✅ APLICACION
-		// aplic
 		// =========================================================
 		if (lower.equals("aplic") || tokens.contains("aplicacion")) {
 			return "01";
@@ -258,7 +274,6 @@ public class SmartExampleUtil {
 
 		// =========================================================
 		// ✅ CODIGO GRUPO
-		// codGrupo
 		// =========================================================
 		if (lower.contains("codgrupo") || (tokens.contains("codigo") && tokens.contains("grupo"))) {
 			return "01";
@@ -266,15 +281,13 @@ public class SmartExampleUtil {
 
 		// =========================================================
 		// ✅ PASSWORD
-		// password
 		// =========================================================
-		if (lower.equals("password") || lower.contains("password")) {
+		if (lower.contains("password")) {
 			return "hsgr42$%&";
 		}
 
 		// =========================================================
 		// ✅ NEW PASSWORD
-		// newPassword
 		// =========================================================
 		if (lower.contains("newpassword") || (tokens.contains("new") && tokens.contains("password"))) {
 			return "87262%3$6*";
@@ -282,7 +295,6 @@ public class SmartExampleUtil {
 
 		// =========================================================
 		// ✅ RECURSO
-		// recurso
 		// =========================================================
 		if (lower.contains("recurso")) {
 			return "servicio";
@@ -290,14 +302,13 @@ public class SmartExampleUtil {
 
 		// =========================================================
 		// ✅ PROFILE
-		// profile
 		// =========================================================
 		if (lower.contains("profile") || lower.contains("perfil")) {
 			return "analista";
 		}
 
 		// =========================================================
-		// ✅ CUENTA
+		// ✅ CUENTA (GENÉRICO)
 		// =========================================================
 		if (lower.contains("cuenta"))
 			return "01020123456789012345";
@@ -315,13 +326,13 @@ public class SmartExampleUtil {
 			return "CUENTA CORRIENTE";
 
 		// =========================================================
-		// ✅ CLAVE / PIN
+		// ✅ CLAVE
 		// =========================================================
 		if (lower.contains("clave") || lower.equals("clv"))
 			return 1234;
 
 		// =========================================================
-		// ✅ CODIGOS GENERICOS
+		// ✅ CODIGO
 		// =========================================================
 		if (lower.startsWith("cod"))
 			return "01";
@@ -333,21 +344,15 @@ public class SmartExampleUtil {
 			return "Caracas";
 
 		// =========================================================
-		// ✅ NUMERO PERSONA
-		// numeroPersona, nroPer
+		// ✅ NUMEROS GENERICOS (ÚLTIMO 🔥)
 		// =========================================================
-		if ((tokens.contains("persona") || tokens.contains("per") || tokens.contains("cliente"))) {
-			return 11844825;
+		if ((lower.contains("nro") || lower.contains("numero"))
+				&& !(tokens.contains("cuenta") || tokens.contains("persona") || tokens.contains("per"))) {
+			return 12345;
 		}
 
 		// =========================================================
-		// ✅ NUMEROS GENERICOS
-		// =========================================================
-		if (lower.contains("nro") || lower.contains("numero"))
-			return 12345;
-
-		// =========================================================
-		// ✅ DESCRIPCION
+		// ✅ DESCRIPCIÓN
 		// =========================================================
 		if (lower.contains("descrip"))
 			return "Descripción generada";

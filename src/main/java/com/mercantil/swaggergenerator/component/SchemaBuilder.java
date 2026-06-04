@@ -37,14 +37,16 @@ public class SchemaBuilder {
 		this.enumMap = enumMap;
 	}
 
+	private static final Set<String> IGNORED_TYPES = Set.of("ConstructorRequired", "BeansZOS", "SendRequestRest");
+
 	public Map<String, Object> build(ClassOrInterfaceDeclaration clazz) {
 
 		String className = clazz.getNameAsString();
 
 		// ✅ evita reprocesar
-		//if (schemaMap.containsKey(className)) {
-		//	return schemaMap.get(className);
-		//}
+		// if (schemaMap.containsKey(className)) {
+		// return schemaMap.get(className);
+		// }
 
 		// ✅ evita loops infinitos
 		if (processing.contains(className)) {
@@ -90,7 +92,7 @@ public class SchemaBuilder {
 				String name = parserUtil.resolveJsonName(field, var.getNameAsString());
 
 				// 🔥 DEBUG CLAVE
-				        System.out.println("SCHEMA FIELD: " + var.getNameAsString() + " -> " + name);
+				System.out.println("SCHEMA FIELD: " + var.getNameAsString() + " -> " + name);
 
 				Map<String, Object> prop = new LinkedHashMap<>();
 
@@ -205,6 +207,7 @@ public class SchemaBuilder {
 				// =========================================================
 				// ✅ OBJETO
 				// =========================================================
+
 				else {
 
 					if ("byte".equalsIgnoreCase(resolved) || "String".equals(resolved)) {
@@ -219,9 +222,18 @@ public class SchemaBuilder {
 
 					} else {
 
-						ensureSchemaWithParsing(resolved, clazz);
+						// 🔥 IGNORAR CLASES EXTERNAS (CRÍTICO)
+						if (IGNORED_TYPES.contains(resolved)) {
 
-						prop.put("$ref", "#/components/schemas/" + resolved);
+							// fallback limpio (NO $ref)
+							prop.put("type", "object");
+
+						} else {
+
+							ensureSchemaWithParsing(resolved, clazz);
+
+							prop.put("$ref", "#/components/schemas/" + resolved);
+						}
 					}
 				}
 
