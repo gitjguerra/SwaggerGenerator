@@ -208,10 +208,11 @@ public class SmartExampleUtil {
 		}
 
 		// =========================================================
-		// ✅ SALDO CUENTA
+		// ✅ SALDOS (GENERAL 🔥)
+		// saldoDisp, saldoBloq, saldoActual, etc.
 		// =========================================================
-		if (tokens.contains("saldo") && (tokens.contains("cuenta") || tokens.contains("cta"))) {
-			return "1000,00";
+		if (tokens.contains("saldo")) {
+		    return "1000,00";
 		}
 
 		// =========================================================
