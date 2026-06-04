@@ -58,7 +58,8 @@ public class OpenApiGeneratorService {
 	private Map<String, Object> exampleMap = new LinkedHashMap<>();
 
 	// ✅ IGNORANDO CLASES DE API-COMMONS
-	private static final List<String> IGNORED_TYPES = List.of("ConstructorRequired", "BeansZOS");
+	private static final List<String> IGNORED_TYPES = List.of("ConstructorRequired", "BeansZOS", "SendRequestRest",
+			"CentraSite", "RestConstants");
 
 	// ✅ cache de endpoints por nombre
 	private Map<String, String> backendServiceMap = new LinkedHashMap<>();
@@ -261,7 +262,7 @@ public class OpenApiGeneratorService {
 	// ✅ =========================
 	// ✅ UTILIDADES
 	// ✅ =========================
-	
+
 	// ✅ PARA LISTA
 	private List<File> findJavaFiles(List<String> roots) {
 
