@@ -19,6 +19,9 @@ public class RequestBuilder {
     @Autowired
     private HeaderExampleProvider headerProvider;
 
+    @Autowired
+    private ClassIndexer classIndexer;
+
     private final Map<String, Object> exampleCache = new HashMap<>();
 
     public Map<String, Object> build(
@@ -71,11 +74,13 @@ public class RequestBuilder {
 
                         String key = entry.getKey();
 
-                        if (!key.toLowerCase().startsWith("bodyentrada")) continue;
+                        if (!key.toLowerCase().startsWith("bodyentrada"))
+                            continue;
 
                         Map<String, Object> refObj = (Map<String, Object>) entry.getValue();
 
-                        if (!refObj.containsKey("$ref")) continue;
+                        if (!refObj.containsKey("$ref"))
+                            continue;
 
                         String ref = refObj.get("$ref").toString();
                         bodyType = ref.substring(ref.lastIndexOf("/") + 1);
@@ -94,8 +99,7 @@ public class RequestBuilder {
 
             bodyType = requestType.replace("Request", "BodyEntrada");
 
-            bodyFieldName = "bodyEntrada" +
-                    bodyType.replace("BodyEntrada", "");
+            bodyFieldName = "bodyEntrada" + bodyType.replace("BodyEntrada", "");
         }
 
         // =========================================================
@@ -105,8 +109,7 @@ public class RequestBuilder {
 
             if (bodyType != null && bodyType.startsWith("BodyEntrada")) {
 
-                bodyFieldName = "bodyEntrada" +
-                        bodyType.replace("BodyEntrada", "");
+                bodyFieldName = "bodyEntrada" + bodyType.replace("BodyEntrada", "");
 
             } else {
                 bodyFieldName = "bodyEntrada" + operationName;
@@ -125,7 +128,6 @@ public class RequestBuilder {
         // =========================================================
         boolean hasBody = hasProperties(bodyType, schemaMap);
 
-        // ✅ agregar body solo si hay contenido
         if (bodyType != null && hasBody) {
             requestProps.put(bodyFieldName, safeRef.apply(bodyType));
         }
@@ -139,17 +141,16 @@ public class RequestBuilder {
         if (bodyType != null && hasBody) {
 
             Object bodyExample = exampleMap.get(bodyType);
+            bodyExample = flattenIfWrapper(bodyExample);
 
             if (!(bodyExample instanceof Map) || ((Map<?, ?>) bodyExample).isEmpty()) {
                 bodyExample = buildExampleFromSchema(bodyType, schemaMap);
+                bodyExample = flattenIfWrapper(bodyExample);
             }
 
-            requestExample.put(bodyFieldName, bodyExample);
+            requestExample.put(bodyFieldName, flattenIfWrapper(bodyExample));
         }
 
-        // =========================================================
-        // ✅ salida final optimizada
-        // =========================================================
         Map<String, Object> requestJson = Map.of(
                 "schema", Map.of(
                         "type", "object",
@@ -170,24 +171,25 @@ public class RequestBuilder {
     }
 
     // =========================================================
-    // ✅ optimizado
-    // =========================================================
     private boolean hasProperties(String type,
                                  Map<String, Map<String, Object>> schemaMap) {
 
-        if (type == null) return false;
+        if (type == null)
+            return false;
 
         Map<String, Object> schema = schemaMap.get(type);
-        if (schema == null) return false;
+        if (schema == null)
+            return false;
 
         Object props = schema.get("properties");
         return props instanceof Map && !((Map<?, ?>) props).isEmpty();
     }
 
     private void ensureSchemaExists(String typeName,
-            Map<String, Map<String, Object>> schemaMap) {
+                                    Map<String, Map<String, Object>> schemaMap) {
 
-        if (typeName == null || typeName.isBlank()) return;
+        if (typeName == null || typeName.isBlank())
+            return;
 
         schemaMap.computeIfAbsent(typeName,
                 k -> Map.of(
@@ -215,27 +217,37 @@ public class RequestBuilder {
         return result;
     }
 
+    // =========================================================
+    // ✅ AQUÍ ESTÁ EL FIX REAL (JsonProperty + flatten)
+    // =========================================================
     private Object buildExampleFromSchema(String type,
             Map<String, Map<String, Object>> schemaMap,
             Set<String> visited) {
 
-        if (type == null) return new LinkedHashMap<>();
+        if (type == null)
+            return new LinkedHashMap<>();
 
-        if (visited.contains(type)) return "(circular)";
+        if (visited.contains(type))
+            return "(circular)";
 
         visited.add(type);
 
         Map<String, Object> schema = schemaMap.get(type);
-        if (schema == null) return new LinkedHashMap<>();
+        if (schema == null)
+            return new LinkedHashMap<>();
 
         Object propsObj = schema.get("properties");
-        if (!(propsObj instanceof Map)) return new LinkedHashMap<>();
+        if (!(propsObj instanceof Map))
+            return new LinkedHashMap<>();
 
         Map<String, Object> props = (Map<String, Object>) propsObj;
 
         Map<String, Object> example = new LinkedHashMap<>();
 
         for (Map.Entry<String, Object> entry : props.entrySet()) {
+
+            String fieldName = entry.getKey();
+            String jsonName = resolveJsonName(type, fieldName);
 
             Map<String, Object> fieldDef = (Map<String, Object>) entry.getValue();
 
@@ -244,22 +256,52 @@ public class RequestBuilder {
                 String ref = fieldDef.get("$ref").toString();
                 String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
-                example.put(entry.getKey(),
+                example.put(jsonName,
                         buildExampleFromSchema(refType, schemaMap, visited));
 
                 continue;
             }
 
-            example.put(entry.getKey(),
+            example.put(jsonName,
                     mockValue((String) fieldDef.get("type")));
+        }
+
+        // ✅ flatten automático
+        if (example.size() == 1) {
+            Object onlyValue = example.values().iterator().next();
+            if (onlyValue instanceof Map) {
+                return onlyValue;
+            }
         }
 
         return example;
     }
 
+    // =========================================================
+    // ✅ RESOLVER @JsonProperty
+    // =========================================================
+    private String resolveJsonName(String className, String fieldName) {
+
+        return classIndexer.findClass(className)
+                .map(clazz -> clazz.getConstructors().stream()
+                        .flatMap(c -> c.getParameters().stream())
+                        .filter(p -> p.getNameAsString().equals(fieldName))
+                        .map(p -> p.getAnnotationByName("JsonProperty"))
+                        .flatMap(Optional::stream)
+                        .map(a -> a.asSingleMemberAnnotationExpr()
+                                .getMemberValue()
+                                .toString()
+                                .replace("\"", ""))
+                        .findFirst()
+                        .orElse(fieldName)
+                )
+                .orElse(fieldName);
+    }
+
     private Object mockValue(String type) {
 
-        if (type == null) return "";
+        if (type == null)
+            return "";
 
         switch (type) {
             case "string": return "string";
@@ -272,7 +314,27 @@ public class RequestBuilder {
     }
 
     private String capitalize(String str) {
-        if (str == null || str.isEmpty()) return str;
+        if (str == null || str.isEmpty())
+            return str;
         return Character.toUpperCase(str.charAt(0)) + str.substring(1);
+    }
+
+    private Object flattenIfWrapper(Object example) {
+
+        if (!(example instanceof Map))
+            return example;
+
+        Map<?, ?> map = (Map<?, ?>) example;
+
+        if (map.size() == 1) {
+
+            Object onlyValue = map.values().iterator().next();
+
+            if (onlyValue instanceof Map) {
+                return onlyValue;
+            }
+        }
+
+        return example;
     }
 }

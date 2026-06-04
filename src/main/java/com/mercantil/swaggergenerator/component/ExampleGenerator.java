@@ -225,6 +225,13 @@ public class ExampleGenerator {
 		List<String> tokens = tokenize(name);
 
 		// =========================================================
+		// ✅ TOKEN / AUTHORIZATION
+		// =========================================================
+		if (tokens.contains("token") || tokens.contains("auth") || tokens.contains("authorization")) {
+			return "Bearer WjY3MjBEMDE6WjAxRDY3MjA=";
+		}
+
+		// =========================================================
 		// ✅ CONTEXTO BASE
 		// =========================================================
 		String nombre = (String) dataContext.computeIfAbsent("nombre", k -> "Juan");
@@ -258,6 +265,18 @@ public class ExampleGenerator {
 			return 7;
 		}
 
+		if (tokens.contains("tasa") || lower.contains("tasa")) {
+			return "0.16";
+		}
+
+		if (tokens.contains("cedula") || tokens.contains("rif") || lower.contains("cedula") || lower.contains("rif")) {
+			return 124332657;
+		}
+
+		if ((tokens.contains("tipo") && tokens.contains("operacion")) || lower.contains("tipooperacion")) {
+			return "01";
+		}
+
 		// =========================================================
 		// ✅ TIPO
 		// =========================================================
@@ -287,6 +306,10 @@ public class ExampleGenerator {
 			return 123456;
 		}
 
+		if (lower.contains("subcanal")) {
+			return "0009";
+		}
+
 		// =========================================================
 		// ✅ NOMBRES
 		// =========================================================
@@ -305,6 +328,13 @@ public class ExampleGenerator {
 
 		if (lower.contains("apellcasada"))
 			return "de " + apellido;
+
+		// =========================================================
+		// ✅ NOMBRE CLIENTE
+		// =========================================================
+		if (tokens.contains("cliente") && tokens.contains("nombre")) {
+			return nombre + " " + apellido;
+		}
 
 		// =========================================================
 		// ✅ EMAIL COHERENTE
@@ -340,16 +370,16 @@ public class ExampleGenerator {
 		// =========================================================
 		if (lower.contains("producto") && !lower.startsWith("cod")) {
 
-		    String producto = (String) dataContext.computeIfAbsent("producto", k -> "CUENTA");
+			String producto = (String) dataContext.computeIfAbsent("producto", k -> "CUENTA");
 
-		    switch (producto) {
-		        case "CUENTA":
-		            return "CUENTA CORRIENTE";
-		        case "TARJETA":
-		            return "TARJETA DE CRÉDITO";
-		        default:
-		            return "CUENTA CORRIENTE";
-		    }
+			switch (producto) {
+			case "CUENTA":
+				return "CUENTA CORRIENTE";
+			case "TARJETA":
+				return "TARJETA DE CRÉDITO";
+			default:
+				return "CUENTA CORRIENTE";
+			}
 		}
 
 		// =========================================================
@@ -357,13 +387,16 @@ public class ExampleGenerator {
 		// =========================================================
 		if (lower.startsWith("codprod") || lower.contains("codproduc")) {
 
-		    String producto = (String) dataContext.computeIfAbsent("producto", k -> "CUENTA");
+			String producto = (String) dataContext.computeIfAbsent("producto", k -> "CUENTA");
 
-		    switch (producto) {
-		        case "CUENTA": return "01";
-		        case "TARJETA": return "02";
-		        default: return "01";
-		    }
+			switch (producto) {
+			case "CUENTA":
+				return "01";
+			case "TARJETA":
+				return "02";
+			default:
+				return "01";
+			}
 		}
 
 		// =========================================================
@@ -517,7 +550,10 @@ public class ExampleGenerator {
 		if (name == null)
 			return List.of();
 
-		String normalized = normalizeName(name);
+		// 🔥 SPLIT CAMEL CASE
+		String camelSplit = name.replaceAll("([a-z])([A-Z])", "$1 $2");
+
+		String normalized = normalizeName(camelSplit.toLowerCase());
 
 		return Arrays.stream(normalized.split("[^a-z0-9]+")).filter(p -> !p.isBlank()).collect(Collectors.toList());
 	}

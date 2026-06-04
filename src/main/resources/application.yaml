@@ -3,7 +3,7 @@ spring:
     name: swaggergenerator
 
 swagger:
-  output-dir: C:\DevEnvironment\src\java\monitor-workspace\swagger
+  output-dir: C:\SwaggerGenerator\openapi-json-files
 
 services:
   list:
