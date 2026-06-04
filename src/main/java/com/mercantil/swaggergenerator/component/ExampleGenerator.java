@@ -26,6 +26,9 @@ public class ExampleGenerator {
 	@Autowired
 	private HeaderExampleProvider headerProvider;
 
+	@Autowired
+	private ClassIndexer classIndexer;
+
 	// ✅ CONTEXTO DE VALORES CONSISTENTES
 	private Map<String, Object> dataContext = new LinkedHashMap<>();
 
@@ -152,17 +155,18 @@ public class ExampleGenerator {
 
 			Map<String, Object> prop = (Map<String, Object>) val;
 
-			// ✅ REF
+			// ✅ FIX REAL
+			String jsonKey = resolveJsonNameFromClass(type, key);
+
 			if (prop.containsKey("$ref")) {
 
 				String ref = prop.get("$ref").toString();
 				String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
-				example.put(key, buildExampleFromType(refType));
+				example.put(jsonKey, buildExampleFromType(refType));
 				return;
 			}
 
-			// ✅ ARRAY
 			if ("array".equals(prop.get("type"))) {
 
 				Object items = prop.get("items");
@@ -176,23 +180,19 @@ public class ExampleGenerator {
 						String ref = itemMap.get("$ref").toString();
 						String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
-						example.put(key, List.of(buildExampleFromType(refType)));
+						example.put(jsonKey, List.of(buildExampleFromType(refType)));
 
 					} else {
 
-						example.put(key, List.of("string"));
+						example.put(jsonKey, List.of("string"));
 					}
 				}
 				return;
 			}
 
-			// ✅ PRIMITIVO
 			Object value = generateSmartExample(key);
 
-			if (value != null)
-				example.put(key, value);
-			else
-				example.put(key, "string");
+			example.put(jsonKey, value != null ? value : "string");
 		});
 
 		// =====================================================
@@ -605,6 +605,13 @@ public class ExampleGenerator {
 		number.append(checkDigit);
 
 		return number.toString();
+	}
+
+	private String resolveJsonNameFromClass(String className, String fieldName) {
+
+		return classIndexer.findClass(className).map(clazz -> clazz.getFields().stream()
+				.flatMap(f -> f.getVariables().stream().filter(v -> v.getNameAsString().equals(fieldName)).map(v -> f))
+				.findFirst().map(f -> parserUtil.resolveJsonName(f, fieldName)).orElse(fieldName)).orElse(fieldName);
 	}
 
 }

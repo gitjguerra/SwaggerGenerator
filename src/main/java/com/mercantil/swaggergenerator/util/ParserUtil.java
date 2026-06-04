@@ -1,166 +1,195 @@
 package com.mercantil.swaggergenerator.util;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 
+import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
-import com.github.javaparser.ast.expr.Expression;
-import com.github.javaparser.ast.expr.MemberValuePair;
 
 @Component
 public class ParserUtil {
 
-    // =========================================================
-    // ✅ JSON PROPERTY
-    // =========================================================
-    public String resolveJsonName(FieldDeclaration field, String defaultName) {
+	// =========================================================
+	// ✅ JSON PROPERTY
+	// =========================================================
+	public String resolveJsonName(FieldDeclaration field, String defaultName) {
 
-        Optional<AnnotationExpr> opt = field.getAnnotationByName("JsonProperty");
+		// ✅ 1. Field directo
+		Optional<AnnotationExpr> annOpt = field.getAnnotationByName("JsonProperty");
 
-        if (opt.isPresent()) {
+		if (annOpt.isPresent()) {
+			String val = extractJsonValue(annOpt.get());
+			if (val != null)
+				return val;
+		}
 
-            AnnotationExpr ann = opt.get();
+		// ✅ 2. Getter
+		Optional<String> getterValue = field.findCompilationUnit().flatMap(
+				cu -> cu.findAll(MethodDeclaration.class).stream().filter(m -> isGetterForField(m, defaultName))
+						.map(m -> m.getAnnotationByName("JsonProperty")).filter(Optional::isPresent).map(Optional::get)
+						.map(this::extractJsonValue).filter(Objects::nonNull).findFirst());
 
-            try {
+		if (getterValue.isPresent())
+			return getterValue.get();
 
-                // ✅ @JsonProperty("name")
-                if (ann.isSingleMemberAnnotationExpr()) {
-                    Expression value =
-                        ann.asSingleMemberAnnotationExpr().getMemberValue();
+		// ✅ 3. Constructor (@JsonCreator)
+		Optional<String> constructorValue = field.findCompilationUnit()
+				.flatMap(cu -> cu.findAll(ConstructorDeclaration.class).stream()
+						.filter(c -> c.getAnnotationByName("JsonCreator").isPresent())
+						.flatMap(c -> c.getParameters().stream()).filter(p -> p.getNameAsString().equals(defaultName))
+						.map(p -> p.getAnnotationByName("JsonProperty")).filter(Optional::isPresent).map(Optional::get)
+						.map(this::extractJsonValue).filter(Objects::nonNull).findFirst());
 
-                    return value.asStringLiteralExpr().asString();
-                }
+		return constructorValue.orElse(defaultName);
+	}
 
-                // ✅ @JsonProperty(value = "name")
-                if (ann.isNormalAnnotationExpr()) {
+	private String extractJsonValue(AnnotationExpr ann) {
 
-                    for (MemberValuePair pair :
-                            ann.asNormalAnnotationExpr().getPairs()) {
+		// ✅ CASO 1: @JsonProperty("nroPer")
+		if (ann.isSingleMemberAnnotationExpr()) {
 
-                        if ("value".equals(pair.getNameAsString())) {
-                            return pair.getValue()
-                                       .asStringLiteralExpr()
-                                       .asString();
-                        }
-                    }
-                }
+			return ann.asSingleMemberAnnotationExpr().getMemberValue().toString().replace("\"", "");
+		}
 
-            } catch (Exception ignored) {
-            }
-        }
+		// ✅ CASO 2: @JsonProperty(value = "nroPer")
+		if (ann.isNormalAnnotationExpr()) {
 
-        return defaultName;
-    }
+			return ann.asNormalAnnotationExpr().getPairs().stream().filter(p -> p.getNameAsString().equals("value"))
+					.findFirst().map(p -> p.getValue().toString().replace("\"", "")).orElse(null);
+		}
 
-    // =========================================================
-    // ✅ GENERIC SIMPLE
-    // =========================================================
-    public String extractGeneric(String input) {
+		// ✅ CASO 3: @JsonProperty (sin valor explícito)
+		// (raro, pero evitamos NPE)
+		return null;
+	}
 
-        if (input == null) return null;
+	// =========================================================
+	// ✅ GENERIC SIMPLE
+	// =========================================================
+	public String extractGeneric(String input) {
 
-        int start = input.indexOf("<");
-        int end = input.lastIndexOf(">");
+		if (input == null)
+			return null;
 
-        if (start == -1 || end == -1 || end <= start) {
-            return input;
-        }
+		int start = input.indexOf("<");
+		int end = input.lastIndexOf(">");
 
-        String inner = input.substring(start + 1, end);
+		if (start == -1 || end == -1 || end <= start) {
+			return input;
+		}
 
-        // 🔥 soporta generics anidados
-        if (inner.contains("<")) {
-            return extractGeneric(inner);
-        }
+		String inner = input.substring(start + 1, end);
 
-        return inner.trim();
-    }
+		// 🔥 soporta generics anidados
+		if (inner.contains("<")) {
+			return extractGeneric(inner);
+		}
 
-    // =========================================================
-    // ✅ EXTRAER VALOR DE MAP<K,V>
-    // =========================================================
-    public String extractMapValue(String input) {
+		return inner.trim();
+	}
 
-        if (input == null || !input.contains(",")) return "Object";
+	// =========================================================
+	// ✅ EXTRAER VALOR DE MAP<K,V>
+	// =========================================================
+	public String extractMapValue(String input) {
 
-        int start = input.indexOf("<");
-        int end = input.lastIndexOf(">");
+		if (input == null || !input.contains(","))
+			return "Object";
 
-        if (start == -1 || end == -1) return "Object";
+		int start = input.indexOf("<");
+		int end = input.lastIndexOf(">");
 
-        String inside = input.substring(start + 1, end);
+		if (start == -1 || end == -1)
+			return "Object";
 
-        String[] parts = inside.split(",");
+		String inside = input.substring(start + 1, end);
 
-        if (parts.length < 2) return "Object";
+		String[] parts = inside.split(",");
 
-        return resolveFinalType(parts[1].trim());
-    }
+		if (parts.length < 2)
+			return "Object";
 
-    // =========================================================
-    // ✅ LIMPIAR TIPO FINAL
-    // =========================================================
-    public String resolveFinalType(String type) {
+		return resolveFinalType(parts[1].trim());
+	}
 
-        if (type == null) return null;
+	// =========================================================
+	// ✅ LIMPIAR TIPO FINAL
+	// =========================================================
+	public String resolveFinalType(String type) {
 
-        // 🔥 quitar Optional
-        if (type.startsWith("Optional<")) {
-            type = extractGeneric(type);
-        }
+		if (type == null)
+			return null;
 
-        // 🔥 quitar paquetes
-        if (type.contains(".")) {
-            type = type.substring(type.lastIndexOf(".") + 1);
-        }
+		// 🔥 quitar Optional
+		if (type.startsWith("Optional<")) {
+			type = extractGeneric(type);
+		}
 
-        // 🔥 quitar generics restantes
-        if (type.contains("<")) {
-            type = extractGeneric(type);
-        }
+		// 🔥 quitar paquetes
+		if (type.contains(".")) {
+			type = type.substring(type.lastIndexOf(".") + 1);
+		}
 
-        return type.trim();
-    }
+		// 🔥 quitar generics restantes
+		if (type.contains("<")) {
+			type = extractGeneric(type);
+		}
 
-    // =========================================================
-    // ✅ HELPERS PRO
-    // =========================================================
-    public boolean isList(String type) {
-        return type != null && (type.contains("List<") || type.contains("Set<"));
-    }
+		return type.trim();
+	}
 
-    public boolean isMap(String type) {
-        return type != null && type.startsWith("Map<");
-    }
+	// =========================================================
+	// ✅ HELPERS PRO
+	// =========================================================
+	public boolean isList(String type) {
+		return type != null && (type.contains("List<") || type.contains("Set<"));
+	}
 
-    public boolean isOptional(String type) {
-        return type != null && type.startsWith("Optional<");
-    }
+	public boolean isMap(String type) {
+		return type != null && type.startsWith("Map<");
+	}
 
-    public String unwrapOptional(String type) {
-        if (isOptional(type)) {
-            return extractGeneric(type);
-        }
-        return type;
-    }
+	public boolean isOptional(String type) {
+		return type != null && type.startsWith("Optional<");
+	}
 
-    // =========================================================
-    // 🔥 GENERIC COMPLEJO (NIVEL ENTERPRISE)
-    // =========================================================
-    public String extractDeepestType(String type) {
+	public String unwrapOptional(String type) {
+		if (isOptional(type)) {
+			return extractGeneric(type);
+		}
+		return type;
+	}
 
-        if (type == null) return null;
+	// =========================================================
+	// 🔥 GENERIC COMPLEJO (NIVEL ENTERPRISE)
+	// =========================================================
+	public String extractDeepestType(String type) {
 
-        // ejemplos:
-        // List<Map<String, User>> -> User
-        // Optional<List<Account>> -> Account
+		if (type == null)
+			return null;
 
-        while (type.contains("<")) {
-            type = extractGeneric(type);
-        }
+		// ejemplos:
+		// List<Map<String, User>> -> User
+		// Optional<List<Account>> -> Account
 
-        return resolveFinalType(type);
-    }
+		while (type.contains("<")) {
+			type = extractGeneric(type);
+		}
+
+		return resolveFinalType(type);
+	}
+
+	private boolean isGetterForField(MethodDeclaration m, String fieldName) {
+
+		String methodName = m.getNameAsString();
+
+		String expected = "get" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
+
+		return methodName.equals(expected);
+	}
+
 }
