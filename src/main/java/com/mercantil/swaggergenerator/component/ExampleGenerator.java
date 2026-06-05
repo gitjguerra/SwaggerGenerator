@@ -156,7 +156,16 @@ public class ExampleGenerator {
 				String ref = prop.get("$ref").toString();
 				String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
-				example.put(jsonKey, buildExampleFromType(refType));
+				Object nested = buildExampleFromType(refType);
+
+				// 🔥 FLATTEN AUTOMÁTICO
+				if (isSingleFieldWrapper(nested)) {
+					Map<String, Object> map = (Map<String, Object>) nested;
+					map.forEach((k, v) -> example.put(k, v));
+				} else {
+					example.put(jsonKey, nested);
+				}
+
 				return;
 			}
 
@@ -271,6 +280,12 @@ public class ExampleGenerator {
 		return classIndexer.findClass(className).map(clazz -> clazz.getFields().stream()
 				.flatMap(f -> f.getVariables().stream().filter(v -> v.getNameAsString().equals(fieldName)).map(v -> f))
 				.findFirst().map(f -> parserUtil.resolveJsonName(f, fieldName)).orElse(fieldName)).orElse(fieldName);
+	}
+
+	private boolean isSingleFieldWrapper(Object value) {
+		if (!(value instanceof Map))
+			return false;
+		return ((Map<?, ?>) value).size() == 1;
 	}
 
 }

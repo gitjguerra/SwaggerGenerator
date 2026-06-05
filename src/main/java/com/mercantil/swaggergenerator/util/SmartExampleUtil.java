@@ -7,9 +7,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * ========================================================= 
- * ✅ SMART EXAMPLE UTIL 
- * =========================================================
+ * ========================================================= ✅ SMART EXAMPLE
+ * UTIL =========================================================
  *
  * Motor de generación de ejemplos basado en semántica del nombre.
  *
@@ -193,19 +192,19 @@ public class SmartExampleUtil {
 		// =========================================================
 		if (tokens.contains("per") || tokens.contains("persona")) {
 
-		    if (tokens.contains("nro") || tokens.contains("numero")) {
-		        return 11844825;
-		    }
+			if (tokens.contains("nro") || tokens.contains("numero")) {
+				return 11844825;
+			}
 		}
 
 		// =========================================================
 		// ✅ NUMERO CUENTA (PRIORIDAD ALTA 🔥)
 		// nroCta, numeroCuenta
 		// =========================================================
-		if ((tokens.contains("cuenta") || tokens.contains("cta")) &&
-		    (tokens.contains("numero") || tokens.contains("nro"))) {
+		if ((tokens.contains("cuenta") || tokens.contains("cta"))
+				&& (tokens.contains("numero") || tokens.contains("nro"))) {
 
-		    return "01020123456789012345";
+			return "01020123456789012345";
 		}
 
 		// =========================================================
@@ -213,7 +212,7 @@ public class SmartExampleUtil {
 		// saldoDisp, saldoBloq, saldoActual, etc.
 		// =========================================================
 		if (tokens.contains("saldo")) {
-		    return "1000,00";
+			return "1000,00";
 		}
 
 		// =========================================================
@@ -318,8 +317,16 @@ public class SmartExampleUtil {
 		// =========================================================
 		// ✅ TARJETA
 		// =========================================================
-		if (lower.contains("tarj"))
-			return generateCardNumber();
+		if (lower.contains("tarj")) {
+
+			if (tokens.contains("deb"))
+				return generateCardNumber(18, "5");
+
+			if (tokens.contains("cred"))
+				return generateCardNumber(16, "4");
+
+			return generateCardNumber(16, "4");
+		}
 
 		// =========================================================
 		// ✅ PRODUCTO
@@ -331,13 +338,13 @@ public class SmartExampleUtil {
 		// ✅ CLAVE
 		// =========================================================
 		if (lower.contains("clave") || lower.equals("clv"))
-			return 1234;
+			return "1234";
 
 		// =========================================================
 		// ✅ CODIGO
 		// =========================================================
 		if (lower.startsWith("cod"))
-			return "01";
+			return 27;
 
 		// =========================================================
 		// ✅ UBICACION
@@ -346,11 +353,11 @@ public class SmartExampleUtil {
 			return "Caracas";
 
 		// =========================================================
-		// ✅ NUMEROS GENERICOS (ÚLTIMO 🔥)
+		// ✅ NUMEROS GENERICOS
 		// =========================================================
 		if ((lower.contains("nro") || lower.contains("numero"))
 				&& !(tokens.contains("cuenta") || tokens.contains("persona") || tokens.contains("per"))) {
-			return 12345;
+			return "12345";
 		}
 
 		// =========================================================
@@ -396,11 +403,11 @@ public class SmartExampleUtil {
 	// =========================================================
 	// ✅ GENERADOR TARJETA (LUHN)
 	// =========================================================
-	private static String generateCardNumber() {
+	private static String generateCardNumber(int length, String prefix) {
 
-		StringBuilder number = new StringBuilder("4");
+		StringBuilder number = new StringBuilder(prefix);
 
-		while (number.length() < 15) {
+		while (number.length() < length - 1) {
 			number.append((int) (Math.random() * 10));
 		}
 
@@ -408,7 +415,6 @@ public class SmartExampleUtil {
 		boolean alternate = true;
 
 		for (int i = number.length() - 1; i >= 0; i--) {
-
 			int n = Character.getNumericValue(number.charAt(i));
 
 			if (alternate) {
@@ -422,7 +428,6 @@ public class SmartExampleUtil {
 		}
 
 		int checkDigit = (10 - (sum % 10)) % 10;
-
 		number.append(checkDigit);
 
 		return number.toString();
