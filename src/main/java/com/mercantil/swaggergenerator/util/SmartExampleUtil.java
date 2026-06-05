@@ -100,7 +100,7 @@ public class SmartExampleUtil {
 		// ✅ TIPO IDENTIFICACIÓN (FIX CRÍTICO 🔥)
 		// =========================================================
 		if (lower.contains("tipoidentificacion") || lower.contains("tipoid")) {
-		    return "V";
+			return "V";
 		}
 
 		// =========================================================
@@ -253,6 +253,19 @@ public class SmartExampleUtil {
 		}
 
 		// =========================================================
+		// ✅ PAIS BANCO (FIX CRÍTICO 🔥)
+		// =========================================================
+		if (lower.contains("paisbanco")) {
+
+			// lógica simple
+			if (tokens.contains("ext") || tokens.contains("internacional")) {
+				return "US";
+			}
+
+			return "VE";
+		}
+
+		// =========================================================
 		// ✅ PAIS CUENTA
 		// =========================================================
 		if (tokens.contains("pais") && (tokens.contains("cuenta") || tokens.contains("cta"))) {
@@ -399,11 +412,10 @@ public class SmartExampleUtil {
 		// =========================================================
 		// ✅ NUMEROS GENERICOS
 		// =========================================================
-		if ((lower.contains("nro") || lower.contains("numero")) && !(tokens.contains("cuenta")
-				|| tokens.contains("persona") || tokens.contains("per") || lower.contains("telf")
-				|| lower.contains("telefono") || lower.contains("cel") || lower.contains("area")
-				|| lower.contains("codpais") 
-				|| lower.contains("tarj"))) {
+		if ((lower.contains("nro") || lower.contains("numero"))
+				&& !(tokens.contains("cuenta") || tokens.contains("persona") || tokens.contains("per")
+						|| lower.contains("telf") || lower.contains("telefono") || lower.contains("cel")
+						|| lower.contains("area") || lower.contains("codpais") || lower.contains("tarj"))) {
 
 			return "12345";
 		}
