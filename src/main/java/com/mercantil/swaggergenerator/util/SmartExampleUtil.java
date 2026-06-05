@@ -97,6 +97,13 @@ public class SmartExampleUtil {
 			return 124332657;
 
 		// =========================================================
+		// ✅ TIPO IDENTIFICACIÓN (FIX CRÍTICO 🔥)
+		// =========================================================
+		if (lower.contains("tipoidentificacion") || lower.contains("tipoid")) {
+		    return "V";
+		}
+
+		// =========================================================
 		// ✅ TIPO
 		// =========================================================
 		if (lower.contains("tipoper"))
