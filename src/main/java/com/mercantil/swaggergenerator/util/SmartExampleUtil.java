@@ -341,6 +341,13 @@ public class SmartExampleUtil {
 			return "1234";
 
 		// =========================================================
+		// ✅ CODIGO MONEDA (PRIORIDAD ALTA 🔥)
+		// =========================================================
+		if ((tokens.contains("cod") && tokens.contains("moneda")) || lower.equals("codmoneda")) {
+		    return "VEB";
+		}
+
+		// =========================================================
 		// ✅ CODIGO
 		// =========================================================
 		if (lower.startsWith("cod"))
