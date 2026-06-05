@@ -132,7 +132,7 @@ public class ExampleGenerator {
 							inlineProps.forEach((k, v) -> {
 
 								Object value = SmartExampleUtil.generate(k, dataContext);
-								fallback.put(k, value != null ? value : "string");
+								fallback.put(k, value != null ? value : "");
 
 							});
 						}
@@ -189,7 +189,7 @@ public class ExampleGenerator {
 
 					} else {
 
-						example.put(jsonKey, List.of("string"));
+						example.put(jsonKey, List.of(""));
 					}
 				}
 				return;
@@ -202,12 +202,13 @@ public class ExampleGenerator {
 			Object value;
 
 			if (ruleValue != null) {
-				value = parseValueWithSchema(type, key, ruleValue);
+				value = parseValueWithSchema(type, key, ruleValue); // ✅ rules
 			} else {
-				value = SmartExampleUtil.generate(key, dataContext);
+				Object smartValue = SmartExampleUtil.generate(key, dataContext);
+				value = normalizeSmartValue(type, key, smartValue);
 			}
 
-			example.put(jsonKey, value != null ? value : "string");
+			example.put(jsonKey, value != null ? value : "");
 		});
 
 		// =====================================================
@@ -217,7 +218,7 @@ public class ExampleGenerator {
 
 			Map<String, Object> fallback = new LinkedHashMap<>();
 
-			props.keySet().forEach(k -> fallback.put(k, "string"));
+			props.keySet().forEach(k -> fallback.put(k, ""));
 
 			return fallback;
 		}
@@ -281,7 +282,7 @@ public class ExampleGenerator {
 				if (value != null)
 					example.put(name, value);
 				else
-					example.put(name, "string");
+					example.put(name, "");
 			});
 		});
 
@@ -319,13 +320,26 @@ public class ExampleGenerator {
 		return normalized;
 	}
 
-	private Object parseValue(String value) {
+	private Object parseValue(String key, String value) {
 
 		if (value == null || value.isEmpty()) {
 			return "";
 		}
 
-		// ✅ entero
+		String lower = key.toLowerCase();
+
+		// =========================================================
+		// ✅ CAMPOS QUE DEBEN SER STRING SIEMPRE (CRÍTICO 🔥)
+		// =========================================================
+		if (lower.contains("cuenta") || lower.contains("cta") || lower.contains("tarj") || lower.contains("card")
+				|| lower.contains("identificador") || lower.contains("telf") || lower.contains("telefono")
+				|| lower.contains("cel") || value.startsWith("0")) {
+			return value;
+		}
+
+		// =========================================================
+		// ✅ ENTERO
+		// =========================================================
 		if (value.matches("-?\\d+")) {
 			try {
 				return Integer.parseInt(value);
@@ -334,20 +348,28 @@ public class ExampleGenerator {
 			}
 		}
 
-		// ✅ decimal
+		// =========================================================
+		// ✅ DECIMAL
+		// =========================================================
 		if (value.matches("-?\\d+\\.\\d+")) {
 			return Double.parseDouble(value);
 		}
 
-		// ✅ boolean
+		// =========================================================
+		// ✅ BOOLEAN
+		// =========================================================
 		if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value)) {
 			return Boolean.parseBoolean(value);
 		}
 
-		return value; // ✅ string fallback
+		return value;
 	}
 
 	private Object parseValueWithSchema(String type, String field, String value) {
+
+		if (value == null || value.isEmpty()) {
+			return "";
+		}
 
 		Map<String, Object> schema = schemaMap.get(type);
 
@@ -361,21 +383,103 @@ public class ExampleGenerator {
 
 				String schemaType = (String) prop.get("type");
 
-				if ("integer".equals(schemaType)) {
-					return Integer.parseInt(value);
+				// =========================================================
+				// ✅ RESPETAR STRING CRÍTICO (CUENTAS / TARJETAS)
+				// =========================================================
+				if ("string".equals(schemaType)) {
+					return value;
 				}
 
-				if ("number".equals(schemaType)) {
-					return Double.parseDouble(value);
-				}
+				try {
+					if ("integer".equals(schemaType)) {
+						return Integer.parseInt(value);
+					}
 
-				if ("boolean".equals(schemaType)) {
-					return Boolean.parseBoolean(value);
+					if ("number".equals(schemaType)) {
+						return Double.parseDouble(value.replace(",", "."));
+					}
+
+					if ("boolean".equals(schemaType)) {
+						return Boolean.parseBoolean(value);
+					}
+				} catch (Exception e) {
+					// fallback abajo
 				}
 			}
 		}
 
-		return parseValue(value); // fallback
+		// ✅ fallback inteligente
+		return parseValue(field, value);
+	}
+
+	private Object normalizeSmartValue(String type, String field, Object value) {
+
+		if (value == null)
+			return null;
+
+		String lower = field.toLowerCase();
+
+		// =========================================================
+		// ✅ PROTEGER CAMPOS QUE SIEMPRE SON STRING (CRÍTICO 🔥)
+		// =========================================================
+		if (lower.contains("telf") || lower.contains("telefono") || lower.contains("cel") || lower.contains("tarj")
+				|| lower.contains("card") || lower.contains("cta") || lower.contains("cuenta")
+				|| lower.contains("identificador") || lower.contains("rif") || lower.contains("codarea")
+				|| lower.contains("codpais")) {
+			return value.toString(); // ✅ FORZAR STRING SIEMPRE
+		}
+
+		// =========================================================
+		// ✅ AHORA SÍ: si es número o boolean → respetar
+		// =========================================================
+		if (value instanceof Number || value instanceof Boolean) {
+			return value;
+		}
+
+		String val = value.toString();
+
+		// =========================================================
+		// ✅ USAR SCHEMA COMO PRIORIDAD
+		// =========================================================
+		Map<String, Object> schema = schemaMap.get(type);
+
+		if (schema != null && schema.containsKey("properties")) {
+
+			Map<String, Object> props = (Map<String, Object>) schema.get("properties");
+
+			if (props.containsKey(field)) {
+
+				Map<String, Object> prop = (Map<String, Object>) props.get(field);
+
+				String schemaType = (String) prop.get("type");
+
+				try {
+					if ("string".equals(schemaType)) {
+						return val;
+					}
+
+					if ("integer".equals(schemaType)) {
+						return Integer.parseInt(val);
+					}
+
+					if ("number".equals(schemaType)) {
+						return Double.parseDouble(val.replace(",", "."));
+					}
+
+					if ("boolean".equals(schemaType)) {
+						return Boolean.parseBoolean(val);
+					}
+
+				} catch (Exception e) {
+					// fallback abajo
+				}
+			}
+		}
+
+		// =========================================================
+		// ✅ FALLBACK FINAL
+		// =========================================================
+		return parseValue(field, val);
 	}
 
 }

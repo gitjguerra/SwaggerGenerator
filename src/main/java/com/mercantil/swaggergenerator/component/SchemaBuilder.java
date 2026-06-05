@@ -91,8 +91,7 @@ public class SchemaBuilder {
 
 				String name = parserUtil.resolveJsonName(field, var.getNameAsString());
 
-				// 🔥 DEBUG CLAVE
-				System.out.println("SCHEMA FIELD: " + var.getNameAsString() + " -> " + name);
+				//System.out.println("SCHEMA FIELD: " + var.getNameAsString() + " -> " + name);
 
 				Map<String, Object> prop = new LinkedHashMap<>();
 

@@ -22,7 +22,7 @@ public class ClassIndexer {
         String name = clazz.getNameAsString();
 
         // 🔥 LOG
-        System.out.println("📌 Registrando clase: " + name);
+        ///System.out.println("📌 Registrando clase: " + name);
 
         classMap.put(name, clazz);
     }
@@ -35,9 +35,9 @@ public class ClassIndexer {
         ClassOrInterfaceDeclaration clazz = classMap.get(name);
 
         if (clazz == null) {
-            System.out.println("❌ ClassIndexer no encontró: " + name);
+            //System.out.println("❌ ClassIndexer no encontró: " + name);
         } else {
-            System.out.println("✅ ClassIndexer encontró: " + name);
+            //System.out.println("✅ ClassIndexer encontró: " + name);
         }
 
         return Optional.ofNullable(clazz);

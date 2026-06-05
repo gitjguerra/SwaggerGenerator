@@ -263,11 +263,11 @@ public class ResponseBuilder {
 	private Object mockValue(String type) {
 
 		if (type == null)
-			return "string";
+			return "";
 
 		switch (type) {
 		case "string":
-			return "string";
+			return "";
 		case "integer":
 			return 12345;
 		case "number":
@@ -275,7 +275,7 @@ public class ResponseBuilder {
 		case "boolean":
 			return true;
 		default:
-			return "string";
+			return "";
 		}
 	}
 

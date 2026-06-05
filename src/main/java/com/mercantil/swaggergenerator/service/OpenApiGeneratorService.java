@@ -199,7 +199,7 @@ public class OpenApiGeneratorService {
 		String fullPath = ("/" + (basePath == null ? "" : basePath) + "/" + (path == null ? "" : path))
 				.replaceAll("//+", "/");
 
-		System.out.println("🔹 Endpoint: " + httpMethod.toUpperCase() + " " + fullPath);
+		//System.out.println("🔹 Endpoint: " + httpMethod.toUpperCase() + " " + fullPath);
 
 		Map<String, Object> op = new LinkedHashMap<>();
 		op.put("tags", List.of(tag));
@@ -244,7 +244,7 @@ public class OpenApiGeneratorService {
 					return;
 				}
 
-				System.out.println("✅ Bean detectado: " + className);
+				//System.out.println("✅ Bean detectado: " + className);
 
 				Map<String, Object> schema = schemaBuilder.build(clazz);
 
@@ -379,18 +379,18 @@ public class OpenApiGeneratorService {
 
 		Map<String, Object> propsEntrada = new LinkedHashMap<>();
 
-		propsEntrada.put("identificadorUnicoGlobal", Map.of("type", "string"));
-		propsEntrada.put("identificacionCanal", Map.of("type", "string"));
-		propsEntrada.put("identificacionSubCanal", Map.of("type", "string"));
+		propsEntrada.put("identificadorUnicoGlobal", Map.of("type", ""));
+		propsEntrada.put("identificacionCanal", Map.of("type", ""));
+		propsEntrada.put("identificacionSubCanal", Map.of("type", ""));
 		propsEntrada.put("siglaAplicacion", Map.of("type", "string", "minLength", 1, "maxLength", 4));
-		propsEntrada.put("identificacionUsuario", Map.of("type", "string"));
-		propsEntrada.put("direccionIpConsumidor", Map.of("type", "string"));
-		propsEntrada.put("direccionIpCliente", Map.of("type", "string"));
-		propsEntrada.put("fechaEnvioMensaje", Map.of("type", "string"));
-		propsEntrada.put("horaEnvioMensaje", Map.of("type", "string"));
-		propsEntrada.put("atributoPagineo", Map.of("type", "string"));
-		propsEntrada.put("claveBusqueda", Map.of("type", "string"));
-		propsEntrada.put("cantidadRegistros", Map.of("type", "integer"));
+		propsEntrada.put("identificacionUsuario", Map.of("type", ""));
+		propsEntrada.put("direccionIpConsumidor", Map.of("type", ""));
+		propsEntrada.put("direccionIpCliente", Map.of("type", ""));
+		propsEntrada.put("fechaEnvioMensaje", Map.of("type", ""));
+		propsEntrada.put("horaEnvioMensaje", Map.of("type", ""));
+		propsEntrada.put("atributoPagineo", Map.of("type", ""));
+		propsEntrada.put("claveBusqueda", Map.of("type", ""));
+		propsEntrada.put("cantidadRegistros", Map.of("type", 0));
 
 		headerEntrada.put("properties", propsEntrada);
 
@@ -423,13 +423,13 @@ public class OpenApiGeneratorService {
 
 		Map<String, Object> propsSalida = new LinkedHashMap<>();
 
-		propsSalida.put("tipoMensaje", Map.of("type", "string", "example", "F"));
-		propsSalida.put("mensajeProgramadorSistema", Map.of("type", "string"));
-		propsSalida.put("codigoMensajeProgramador", Map.of("type", "string"));
-		propsSalida.put("mensajeUsuario", Map.of("type", "string"));
-		propsSalida.put("codigoMensajeUsuario", Map.of("type", "string"));
-		propsSalida.put("fechaSalidaMensaje", Map.of("type", "string"));
-		propsSalida.put("horaSalidaMensaje", Map.of("type", "string"));
+		propsSalida.put("tipoMensaje", Map.of("type", "", "example", "F"));
+		propsSalida.put("mensajeProgramadorSistema", Map.of("type", ""));
+		propsSalida.put("codigoMensajeProgramador", Map.of("type", ""));
+		propsSalida.put("mensajeUsuario", Map.of("type", ""));
+		propsSalida.put("codigoMensajeUsuario", Map.of("type", ""));
+		propsSalida.put("fechaSalidaMensaje", Map.of("type", ""));
+		propsSalida.put("horaSalidaMensaje", Map.of("type", ""));
 
 		headerSalida.put("properties", propsSalida);
 
@@ -481,7 +481,7 @@ public class OpenApiGeneratorService {
 		Map<String, Object> cProps = new LinkedHashMap<>();
 
 		cProps.put("codigoMensajeProgramador", Map.of("type", "integer"));
-		cProps.put("mensajeProgramador", Map.of("type", "string"));
+		cProps.put("mensajeProgramador", Map.of("type", ""));
 
 		client.put("properties", cProps);
 

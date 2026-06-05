@@ -88,7 +88,7 @@ public class SmartExampleUtil {
 		// ✅ TASA
 		// =========================================================
 		if (tokens.contains("tasa"))
-			return "0.16";
+			return 0.16;
 
 		// =========================================================
 		// ✅ IDENTIFICACIÓN
@@ -99,8 +99,11 @@ public class SmartExampleUtil {
 		// =========================================================
 		// ✅ TIPO
 		// =========================================================
+		if (lower.contains("tipoper"))
+			return 1;
+
 		if (tokens.contains("tipo"))
-			return "1";
+			return "1"; // fallback
 
 		// =========================================================
 		// ✅ INTENTOS DISPONIBLES
@@ -140,10 +143,37 @@ public class SmartExampleUtil {
 			return "0009";
 
 		// =========================================================
-		// ✅ NOMBRES
+		// ✅ NOMBRES (FIX 🔥)
 		// =========================================================
-		if (lower.contains("nombenef") || tokens.contains("cliente")) {
-			return nombre + " " + apellido;
+		if (tokens.contains("nom") || lower.contains("nombre")) {
+
+			if (tokens.contains("primer"))
+				return nombre;
+
+			if (tokens.contains("segundo"))
+				return "Carlos";
+
+			if (lower.contains("comerc"))
+				return "Empresa XYZ";
+
+			return nombre;
+		}
+
+		// =========================================================
+		// ✅ APELLIDOS (FIX 🔥)
+		// =========================================================
+		if (tokens.contains("apell") || tokens.contains("apellido")) {
+
+			if (tokens.contains("primer"))
+				return apellido;
+
+			if (tokens.contains("segundo"))
+				return "Gonzalez";
+
+			if (lower.contains("casada"))
+				return "de Perez";
+
+			return apellido;
 		}
 
 		// =========================================================
@@ -212,7 +242,7 @@ public class SmartExampleUtil {
 		// saldoDisp, saldoBloq, saldoActual, etc.
 		// =========================================================
 		if (tokens.contains("saldo")) {
-			return "1000,00";
+			return 1000.00;
 		}
 
 		// =========================================================
@@ -344,7 +374,7 @@ public class SmartExampleUtil {
 		// ✅ CODIGO MONEDA (PRIORIDAD ALTA 🔥)
 		// =========================================================
 		if ((tokens.contains("cod") && tokens.contains("moneda")) || lower.equals("codmoneda")) {
-		    return "VEB";
+			return "VEB";
 		}
 
 		// =========================================================
@@ -362,8 +392,12 @@ public class SmartExampleUtil {
 		// =========================================================
 		// ✅ NUMEROS GENERICOS
 		// =========================================================
-		if ((lower.contains("nro") || lower.contains("numero"))
-				&& !(tokens.contains("cuenta") || tokens.contains("persona") || tokens.contains("per"))) {
+		if ((lower.contains("nro") || lower.contains("numero")) && !(tokens.contains("cuenta")
+				|| tokens.contains("persona") || tokens.contains("per") || lower.contains("telf")
+				|| lower.contains("telefono") || lower.contains("cel") || lower.contains("area")
+				|| lower.contains("codpais") 
+				|| lower.contains("tarj"))) {
+
 			return "12345";
 		}
 

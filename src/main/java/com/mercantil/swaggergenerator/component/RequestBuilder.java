@@ -304,7 +304,7 @@ public class RequestBuilder {
             return "";
 
         switch (type) {
-            case "string": return "string";
+            case "string": return "";
             case "integer": return 123;
             case "number": return 123.45;
             case "boolean": return true;
