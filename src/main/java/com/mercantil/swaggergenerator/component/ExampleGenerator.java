@@ -25,6 +25,9 @@ public class ExampleGenerator {
 	@Autowired
 	private ClassIndexer classIndexer;
 
+	@Autowired
+	private RuleEngine ruleEngine;
+
 	// ✅ CONTEXTO DE VALORES CONSISTENTES
 	private Map<String, Object> dataContext = new LinkedHashMap<>();
 
@@ -192,7 +195,17 @@ public class ExampleGenerator {
 				return;
 			}
 
-			Object value = SmartExampleUtil.generate(key, dataContext);
+			String apiName = extractApiName(type);
+
+			String ruleValue = ruleEngine.getValue(apiName, jsonKey);
+
+			Object value;
+
+			if (ruleValue != null) {
+				value = parseValueWithSchema(type, key, ruleValue);
+			} else {
+				value = SmartExampleUtil.generate(key, dataContext);
+			}
 
 			example.put(jsonKey, value != null ? value : "string");
 		});
@@ -286,6 +299,83 @@ public class ExampleGenerator {
 		if (!(value instanceof Map))
 			return false;
 		return ((Map<?, ?>) value).size() == 1;
+	}
+
+	private String extractApiName(String type) {
+
+		if (type == null)
+			return null;
+
+		String normalized = type.trim();
+
+		if (normalized.startsWith("BodyEntrada")) {
+			return normalized.substring("BodyEntrada".length()).trim();
+		}
+
+		if (normalized.startsWith("BodySalida")) {
+			return normalized.substring("BodySalida".length()).trim();
+		}
+
+		return normalized;
+	}
+
+	private Object parseValue(String value) {
+
+		if (value == null || value.isEmpty()) {
+			return "";
+		}
+
+		// ✅ entero
+		if (value.matches("-?\\d+")) {
+			try {
+				return Integer.parseInt(value);
+			} catch (Exception e) {
+				return Long.parseLong(value);
+			}
+		}
+
+		// ✅ decimal
+		if (value.matches("-?\\d+\\.\\d+")) {
+			return Double.parseDouble(value);
+		}
+
+		// ✅ boolean
+		if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value)) {
+			return Boolean.parseBoolean(value);
+		}
+
+		return value; // ✅ string fallback
+	}
+
+	private Object parseValueWithSchema(String type, String field, String value) {
+
+		Map<String, Object> schema = schemaMap.get(type);
+
+		if (schema != null && schema.containsKey("properties")) {
+
+			Map<String, Object> props = (Map<String, Object>) schema.get("properties");
+
+			if (props.containsKey(field)) {
+
+				Map<String, Object> prop = (Map<String, Object>) props.get(field);
+
+				String schemaType = (String) prop.get("type");
+
+				if ("integer".equals(schemaType)) {
+					return Integer.parseInt(value);
+				}
+
+				if ("number".equals(schemaType)) {
+					return Double.parseDouble(value);
+				}
+
+				if ("boolean".equals(schemaType)) {
+					return Boolean.parseBoolean(value);
+				}
+			}
+		}
+
+		return parseValue(value); // fallback
 	}
 
 }

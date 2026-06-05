@@ -1,0 +1,185 @@
+<rules>
+
+    <api name="ConsultarDatosBasicos">
+        <field name="nroPer" value="0"/>
+        <field name="codPais" value="VEN"/>
+        <field name="tipoId" value="V"/>
+        <field name="nroId" value="15518542"/>
+    </api>
+    
+    <api name="ConsultarSaldo">
+        <field name="codTrans" value="1234"/>
+        <field name="indicReverso" value=""/>
+        <field name="codTerm" value="4484"/>
+        <field name="nroTarj" value="00501878200077413252"/>
+        <field name="fchVcto" value="0"/>
+        <field name="tipoCta" value=""/>
+        <field name="nroCta" value="00000000000140094857"/>
+        <field name="indicCobro" value="N"/>
+        <field name="nroCi" value="11428799"/>
+        <field name="inicValCi" value="1"/>
+        <field name="longValCi" value="10"/>
+        <field name="codMoneda" value="VEB"/>
+        <field name="codSubCanal" value="0"/>
+    </api>
+
+    <api name="ConsultarMovimientoResumido">
+        <field name="nroCta" value="00000000000191097802"/>
+        <field name="fchInic" value="20250901"/>
+        <field name="fchFin" value="20250930"/>
+    </api>
+
+    <api name="ConsultarSaldoBloqueado">
+        <field name="numeroCuenta" value="01050750271750071525"/>
+    </api>
+
+    <api name="ConsultarSaldoDiferido">
+        <field name="numeroCuenta" value="5061024036"/>
+    </api>
+
+    <api name="ConsultarCuentasCompanyGroup">
+        <field name="subCanal" value="2"/>
+        <field name="grupo" value="1500"/>
+        <field name="nac" value=""/>
+        <field name="nroRif" value="0"/>
+        <field name="nroPer" value="0"/>
+        <field name="categ" value=""/>
+        <field name="tipoProd" value=""/>
+        <field name="divisa" value=""/>
+        <field name="produc" value=""/>
+        <field name="comentarios" value=""/>
+    </api>
+
+    <api name="ConsultarCuentasDisponiblesDebitoAmpliada">
+        <field name="tipoBusca" value="I"/>
+        <field name="paisBusca" value="VEN"/>
+        <field name="tipoIdBusca" value="V"/>
+        <field name="nroIdentBusca" value="7994013"/>
+        <field name="nroPerBusca" value="0"/>
+        <field name="codGrupoBusca" value="0"/>
+        <field name="codMoneda" value="VES"/>
+        <field name="mto" value="2"/>
+        <field name="term" value="2085"/>
+        <field name="pref" value="900"/>
+    </api>
+
+    <api name="ActualizarMiscelaneosCuentaDeposito">
+        <field name="sistOrigen" value=""/>
+        <field name="accionRequer" value="0"/>
+        <field name="nroCtaDepos" value="0"/>
+        <field name="nroPer" value="0"/>
+        <field name="idUsuaMplus" value="0"/>
+    </api>
+
+    <api name="ActualizarEstatusTarjetaDebito">
+        <field name="sistOrigen" value="MPLUS"/>
+        <field name="estatusAccionRequer" value="1"/>
+        <field name="nroTarjDeb" value="501878270004776345"/>
+        <field name="nroPer" value="1"/>
+        <field name="idUsuMplus" value="585769"/>
+    </api>
+
+    <api name="ActualizarClaveTarjeta">
+        <field name="nroTarj" value="501878200062873205"/>
+        <field name="clv" value="7894"/>
+    </api>
+
+    <api name="AfiliarServicio">
+        <field name="montoTransaccion" value=""/>
+        <field name="modoEjecucion" value=""/>
+        <field name="numeroCuenta" value=""/>
+        <field name="nombreCliente" value=""/>
+        <field name="direccionEmail" value=""/>
+        <field name="applid" value=""/>
+        <field name="tipoClave" value=""/>
+        <field name="nombreHd" value=""/>
+        <field name="accion" value=""/>
+        <field name="indicadorNacionalidad" value=""/>
+        <field name="numeroIdentificacion" value="0"/>
+    </api>
+
+    <api name="AfiliarServiciosAmpliados">
+        <field name="codTrans" value=""/>
+        <field name="codSubCanal" value="01"/>
+        <field name="indicAccion" value="P"/>
+
+        <field name="regAfili[0].idNac" value="V"/>
+        <field name="regAfili[0].nroId" value="19546854"/>
+        <field name="regAfili[0].codGrupo" value="0"/>
+        <field name="regAfili[0].codServProduc" value="27"/>
+        <field name="regAfili[0].descripServProduc" value="AFILIACION T PAGO"/>
+        <field name="regAfili[0].nroServProduc" value="4121234778"/>
+        <field name="regAfili[0].nomBenef" value="PRUEBAS QA CALIDAD QA"/>
+    </api>
+
+    <api name="ParametroSimpleAmpliado">
+
+        <field name="parametros[0].clave.codTipoValor" value="3"/>
+        <field name="parametros[0].clave.tipoPer" value="N"/>
+        <field name="parametros[0].clave.codTipoCondic" value="MTOLIMIT"/>
+        <field name="parametros[0].clave.codCondic" value="MTOLIM01"/>
+
+        <field name="parametros[1].clave.codTipoValor" value="3"/>
+        <field name="parametros[1].clave.tipoPer" value="N"/>
+        <field name="parametros[1].clave.codTipoCondic" value="MTOLIMIT"/>
+        <field name="parametros[1].clave.codCondic" value="MTOLIM02"/>
+
+    </api>
+
+    <api name="PagarServicios">
+        <field name="codigoTransaccion" value=""/>
+        <field name="indcReverso" value=""/>
+        <field name="codTerm" value=""/>
+        <field name="nroCta" value=""/>
+        <field name="mtoTransac" value="0"/>
+        <field name="referencias[0].refServ" value="0"/>
+    </api>
+
+    <api name="PagarServiciosBolp">
+        <field name="cvv" value="0"/>
+        <field name="tipoServ" value="1"/>
+        <field name="nroPer" value="1800056"/>
+        <field name="serialOper" value="6706039920"/>
+        <field name="nroCtaTarj" value="00000000001618034715"/>
+    </api>
+
+    <api name="TransferirEntreCuentas">
+        <field name="nroCtaOrigen" value=""/>
+        <field name="nroCtaDestino" value=""/>
+        <field name="mtoOrigen" value="0"/>
+        <field name="mtoDestino" value="0"/>
+    </api>
+
+    <api name="TransferirFondosTerceros">
+        <field name="entraDatos.entraDatosCuentaFrom.entraCuentaLx" value=""/>
+        <field name="entraDatos.entraDatosCuentaTo.entraCuenta2Lx" value=""/>
+        <field name="entraMonto" value=""/>
+        <field name="entraCodigoVerificacion.entraCodVeri1" value="0"/>
+    </api>
+
+    <api name="RecargarSaldoCelular">
+        <field name="numeroservicio" value="04242074100"/>
+        <field name="montotransaccion" value="400"/>
+        <field name="codigoterminal" value="4484"/>
+        <field name="numerocedula" value="13138745"/>
+    </api>
+
+    <api name="DesafiliarServicios">
+        <field name="gasRetri.codTransac" value="0"/>
+        <field name="gasRetri.codSubCanal" value="01"/>
+        <field name="gasRetri.registroAfil[0].nroPer" value="1902223"/>
+        <field name="gasRetri.registroAfil[0].codServProduc" value="27"/>
+    </api>
+
+    <api name="ValidarClaveATMPos">
+        <field name="tarjetaAbra24.numeroTarjeta" value="501878200062873205"/>
+        <field name="claveFull" value="131300"/>
+    </api>
+
+    <api name="ValidarCuentaSafe">
+        <field name="nrocta" value="7031028817"/>
+        <field name="terminal" value="0"/>
+        <field name="montoTrans" value="0"/>
+    </api>
+
+</rules>
