@@ -7,8 +7,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * ========================================================= ✅ SMART EXAMPLE
- * UTIL =========================================================
+ * ========================================================= 
+ * ✅ SMART EXAMPLE UTIL 
+ * =========================================================
  *
  * Motor de generación de ejemplos basado en semántica del nombre.
  *
