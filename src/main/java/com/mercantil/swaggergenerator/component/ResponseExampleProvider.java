@@ -21,11 +21,13 @@ public class ResponseExampleProvider {
     // =========================================================
     // ✅ BUILD RESPONSE EXAMPLE
     // ✅ lookup usando endpointPath
+    // ✅ usa bodyKey REAL del schema
+    // ✅ evita contaminación por operationName
     // =========================================================
     public Map<String, Object> build(
             String endpointPath,
+            String bodyKey,
             String bodyType,
-            String operationName,
             Map<String, Map<String, Object>> schemaMap,
             Map<String, Object> exampleMap) {
 
@@ -35,7 +37,8 @@ public class ResponseExampleProvider {
         // =====================================================
         // ✅ VALIDAR BODY
         // =====================================================
-        if (bodyType == null) {
+        if (bodyType == null
+                || bodyType.isBlank()) {
 
             return response;
         }
@@ -43,12 +46,15 @@ public class ResponseExampleProvider {
         // =====================================================
         // ✅ PRIORIDAD 1
         // ✅ RULES.XML
-        // ✅ path-based lookup
+        // ✅ PATH-BASED LOOKUP
         // =====================================================
         Map<String, String> rules =
                 ruleEngine.getResponseRules(
                         endpointPath);
 
+        // =====================================================
+        // ✅ SI EXISTEN RULES
+        // =====================================================
         if (!rules.isEmpty()) {
 
             buildFromRules(
@@ -60,11 +66,15 @@ public class ResponseExampleProvider {
 
         // =====================================================
         // ✅ PRIORIDAD 2
-        // ✅ FALLBACK AUTOMÁTICO
+        // ✅ EXAMPLE MAP
         // =====================================================
         Object generated =
                 exampleMap.get(bodyType);
 
+        // =====================================================
+        // ✅ PRIORIDAD 3
+        // ✅ GENERACIÓN AUTOMÁTICA
+        // =====================================================
         if (generated == null) {
 
             generated =
@@ -73,8 +83,13 @@ public class ResponseExampleProvider {
                                     bodyType);
         }
 
+        // =====================================================
+        // ✅ USAR bodyKey REAL
+        // ✅ NO:
+        // ✅ bodySalida + operationName
+        // =====================================================
         response.put(
-                "bodySalida" + operationName,
+                bodyKey,
                 generated);
 
         return response;

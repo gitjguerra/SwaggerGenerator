@@ -145,18 +145,33 @@ public class ResponseBuilder {
 
             // =================================================
             // ✅ RESPONSE EXAMPLE
+            // ✅ USAR bodyKey REAL
             // =================================================
             Map<String, Object> generated =
                     responseExampleProvider.build(
                             endpointPath,
+                            bodyKey,
                             bodyType,
-                            operationName,
                             schemaMap,
                             exampleMap);
 
             // =================================================
-            // ✅ CASO SIMPLE
-            // ✅ bodySalida
+            // ✅ SI EL PROVIDER YA TRAJO
+            // ✅ EL BODY CORRECTO
+            // =================================================
+            if (generated.containsKey(bodyKey)) {
+
+                responseExample.put(
+
+                        bodyKey,
+
+                        generated.get(bodyKey));
+
+                continue;
+            }
+
+            // =================================================
+            // ✅ FALLBACK bodySalida
             // =================================================
             if (generated.containsKey(
                     "bodySalida")) {
@@ -172,23 +187,7 @@ public class ResponseBuilder {
             }
 
             // =================================================
-            // ✅ CASO MULTI BODY
-            // =================================================
-            if (generated.containsKey(
-                    bodyKey)) {
-
-                responseExample.put(
-
-                        bodyKey,
-
-                        generated.get(
-                                bodyKey));
-
-                continue;
-            }
-
-            // =================================================
-            // ✅ FALLBACK
+            // ✅ FALLBACK exampleMap
             // =================================================
             Object fallback =
                     exampleMap.get(bodyType);

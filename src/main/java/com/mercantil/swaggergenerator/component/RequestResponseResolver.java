@@ -66,15 +66,23 @@ public class RequestResponseResolver {
                         String key =
                                 entry.getKey();
 
+                        // ✅ SOLO bodyEntrada*
                         if (!key.toLowerCase()
                                 .startsWith("bodyentrada")) {
 
                             continue;
                         }
 
+                        Object value =
+                                entry.getValue();
+
+                        if (!(value instanceof Map)) {
+
+                            continue;
+                        }
+
                         Map<String, Object> refObj =
-                                (Map<String, Object>)
-                                        entry.getValue();
+                                (Map<String, Object>) value;
 
                         if (!refObj.containsKey("$ref")) {
 
@@ -129,6 +137,7 @@ public class RequestResponseResolver {
 
     // =========================================================
     // ✅ RESOLVE RESPONSE
+    // ✅ FIX CONTAMINACIÓN ENTRE ENDPOINTS
     // =========================================================
     @SuppressWarnings("unchecked")
     public Map<String, String> resolveResponseBodies(
@@ -146,7 +155,7 @@ public class RequestResponseResolver {
                 schemaMap.get(responseType);
 
         // =====================================================
-        // ✅ BUSCAR bodySalida*
+        // ✅ BUSCAR SOLO bodySalida*
         // =====================================================
         if (responseSchema != null) {
 
@@ -164,9 +173,13 @@ public class RequestResponseResolver {
                     String key =
                             entry.getKey();
 
-                    // ✅ solo bodies
+                    // =================================================
+                    // ✅ SOLO bodySalida*
+                    // ✅ EVITA contaminación de requests
+                    // ✅ EVITA contaminación entre endpoints
+                    // =================================================
                     if (!key.toLowerCase()
-                            .startsWith("body")) {
+                            .startsWith("bodysalida")) {
 
                         continue;
                     }
@@ -195,8 +208,9 @@ public class RequestResponseResolver {
                             ref.substring(
                                     ref.lastIndexOf("/") + 1);
 
-                    // ✅ usar EXACTAMENTE lo definido
-                    // ✅ por el schema
+                    // =================================================
+                    // ✅ MATCH EXACTO
+                    // =================================================
                     bodies.put(
                             key,
                             refType);
@@ -205,10 +219,11 @@ public class RequestResponseResolver {
         }
 
         // =====================================================
-        // ✅ FALLBACK
-        // ✅ SOLO si NO se encontró body real
+        // ✅ FALLBACK CONTROLADO
+        // ✅ SOLO SI NO EXISTE RESPONSE SCHEMA
         // =====================================================
-        if (bodies.isEmpty()) {
+        if (bodies.isEmpty()
+                && responseSchema == null) {
 
             String cleanedOperation =
                     capitalize(operationName);
