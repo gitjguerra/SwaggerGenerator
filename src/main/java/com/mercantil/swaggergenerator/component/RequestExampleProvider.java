@@ -5,7 +5,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,309 +13,413 @@ import org.springframework.stereotype.Component;
 @Component
 public class RequestExampleProvider {
 
-	@Autowired
-	private RuleEngine ruleEngine;
+    @Autowired
+    private RuleEngine ruleEngine;
+
+    @Autowired
+    private ClassIndexer classIndexer;
+
+    @Autowired
+    private ExamplePathResolver examplePathResolver;
+
+    // =========================================================
+    // ✅ CACHE
+    // =========================================================
+    private final Map<String, Object> exampleCache =
+            new HashMap<>();
+
+    // =========================================================
+    // ✅ BUILD REQUEST EXAMPLE
+    // ✅ lookup usando endpointPath
+    // =========================================================
+    public Object build(
+            String endpointPath,
+            String bodyType,
+            Map<String, Map<String, Object>> schemaMap,
+            Map<String, Object> exampleMap) {
+
+        if (bodyType == null) {
+
+            return new LinkedHashMap<>();
+        }
+
+        // =====================================================
+        // ✅ PRIORIDAD 1
+        // ✅ exampleMap generado previamente
+        // =====================================================
+        Object bodyExample =
+                exampleMap.get(bodyType);
+
+        bodyExample =
+                flattenIfWrapper(bodyExample);
+
+        // =====================================================
+        // ✅ PRIORIDAD 2
+        // ✅ resolver por schema traversal
+        // =====================================================
+        if (!(bodyExample instanceof Map)
+                || ((Map<?, ?>) bodyExample).isEmpty()) {
 
-	@Autowired
-	private ClassIndexer classIndexer;
+            bodyExample =
+                    buildExampleFromSchema(
+                            endpointPath,
+                            bodyType,
+                            schemaMap);
 
-	@Autowired
-	private ExamplePathResolver examplePathResolver;
+            bodyExample =
+                    flattenIfWrapper(bodyExample);
+        }
 
-	private final Map<String, Object> exampleCache = new HashMap<>();
+        return bodyExample;
+    }
+
+    // =========================================================
+    // ✅ CACHE + SAFE COPY
+    // =========================================================
+    @SuppressWarnings("unchecked")
+    private Object buildExampleFromSchema(
+            String endpointPath,
+            String type,
+            Map<String, Map<String, Object>> schemaMap) {
+
+        String cacheKey =
+                endpointPath + "::" + type;
+
+        if (exampleCache.containsKey(cacheKey)) {
+
+            return new LinkedHashMap<>(
+                    (Map<String, Object>)
+                            exampleCache.get(cacheKey));
+        }
+
+        Object result =
+                buildExampleFromSchema(
+                        endpointPath,
+                        type,
+                        schemaMap,
+                        new HashSet<>());
+
+        if (result instanceof Map) {
+
+            exampleCache.put(
+
+                    cacheKey,
+
+                    new LinkedHashMap<>(
+                            (Map<String, Object>) result));
+        }
+
+        return result;
+    }
+
+    // =========================================================
+    // ✅ BUILD RECURSIVO
+    // =========================================================
+    @SuppressWarnings("unchecked")
+    private Object buildExampleFromSchema(
+            String endpointPath,
+            String type,
+            Map<String, Map<String, Object>> schemaMap,
+            Set<String> visited) {
 
-	// =========================================================
-	// ✅ BUILD REQUEST EXAMPLE
-	// =========================================================
-	public Object build(String bodyType, Map<String, Map<String, Object>> schemaMap, Map<String, Object> exampleMap) {
+        if (type == null) {
 
-		if (bodyType == null) {
-			return new LinkedHashMap<>();
-		}
+            return new LinkedHashMap<>();
+        }
 
-		// =====================================================
-		// ✅ PRIORIDAD 1:
-		// ✅ examples generados previamente
-		// =====================================================
-		Object bodyExample = exampleMap.get(bodyType);
+        // =====================================================
+        // ✅ PREVENIR REFERENCIAS CIRCULARES
+        // =====================================================
+        if (visited.contains(type)) {
 
-		bodyExample = flattenIfWrapper(bodyExample);
+            return "(circular)";
+        }
 
-		// =====================================================
-		// ✅ PRIORIDAD 2:
-		// ✅ fallback schema traversal
-		// =====================================================
-		if (!(bodyExample instanceof Map) || ((Map<?, ?>) bodyExample).isEmpty()) {
+        visited.add(type);
 
-			bodyExample = buildExampleFromSchema(bodyType, schemaMap);
+        Map<String, Object> schema =
+                schemaMap.get(type);
 
-			bodyExample = flattenIfWrapper(bodyExample);
-		}
+        if (schema == null) {
 
-		return bodyExample;
-	}
+            return new LinkedHashMap<>();
+        }
 
-	// =========================================================
-	// ✅ CACHE + SAFE COPY
-	// =========================================================
-	private Object buildExampleFromSchema(String type, Map<String, Map<String, Object>> schemaMap) {
+        Object propsObj =
+                schema.get("properties");
 
-		if (exampleCache.containsKey(type)) {
+        if (!(propsObj instanceof Map)) {
 
-			return new LinkedHashMap<>((Map<String, Object>) exampleCache.get(type));
-		}
+            return new LinkedHashMap<>();
+        }
 
-		Object result = buildExampleFromSchema(type, schemaMap, new HashSet<>());
+        Map<String, Object> props =
+                (Map<String, Object>) propsObj;
 
-		if (result instanceof Map) {
+        Map<String, Object> example =
+                new LinkedHashMap<>();
 
-			exampleCache.put(type, new LinkedHashMap<>((Map<String, Object>) result));
-		}
+        // =====================================================
+        // ✅ RECORRER PROPERTIES
+        // =====================================================
+        for (Map.Entry<String, Object> entry
+                : props.entrySet()) {
 
-		return result;
-	}
+            String fieldName =
+                    entry.getKey();
 
-	// =========================================================
-	// ✅ BUILD RECURSIVO
-	// =========================================================
-	private Object buildExampleFromSchema(String type, Map<String, Map<String, Object>> schemaMap,
-			Set<String> visited) {
+            String jsonName =
+                    resolveJsonName(
+                            type,
+                            fieldName);
 
-		if (type == null) {
+            Map<String, Object> fieldDef =
+                    (Map<String, Object>)
+                            entry.getValue();
 
-			return new LinkedHashMap<>();
-		}
+            // =================================================
+            // ✅ RULES.XML OVERRIDE
+            // ✅ path-based lookup
+            // =================================================
+            String ruleValue =
+                    ruleEngine.getRequestValue(
+                            endpointPath,
+                            jsonName);
 
-		if (visited.contains(type)) {
+            // =================================================
+            // ✅ OBJECT REF
+            // =================================================
+            if (fieldDef.containsKey("$ref")) {
 
-			return "(circular)";
-		}
+                String ref =
+                        fieldDef
+                                .get("$ref")
+                                .toString();
 
-		visited.add(type);
+                String refType =
+                        ref.substring(
+                                ref.lastIndexOf("/") + 1);
 
-		Map<String, Object> schema = schemaMap.get(type);
+                example.put(
 
-		if (schema == null) {
+                        jsonName,
 
-			return new LinkedHashMap<>();
-		}
+                        buildExampleFromSchema(
+                                endpointPath,
+                                refType,
+                                schemaMap,
+                                visited));
 
-		Object propsObj = schema.get("properties");
+                continue;
+            }
 
-		if (!(propsObj instanceof Map)) {
+            // =================================================
+            // ✅ ARRAY
+            // =================================================
+            if ("array".equals(
+                    fieldDef.get("type"))) {
 
-			return new LinkedHashMap<>();
-		}
+                Object items =
+                        fieldDef.get("items");
 
-		Map<String, Object> props = (Map<String, Object>) propsObj;
+                if (items instanceof Map) {
 
-		Map<String, Object> example = new LinkedHashMap<>();
+                    Map<?, ?> itemMap =
+                            (Map<?, ?>) items;
 
-		String apiName = extractApiName(type);
+                    // =========================================
+                    // ✅ ARRAY REF
+                    // =========================================
+                    if (itemMap.containsKey("$ref")) {
 
-		// =====================================================
-		// ✅ RECORRER PROPS
-		// =====================================================
-		for (Map.Entry<String, Object> entry : props.entrySet()) {
+                        String ref =
+                                itemMap
+                                        .get("$ref")
+                                        .toString();
 
-			String fieldName = entry.getKey();
+                        String refType =
+                                ref.substring(
+                                        ref.lastIndexOf("/") + 1);
 
-			String jsonName = resolveJsonName(type, fieldName);
+                        example.put(
 
-			Map<String, Object> fieldDef = (Map<String, Object>) entry.getValue();
+                                jsonName,
 
-			// =================================================
-			// ✅ RULES.XML REQUEST OVERRIDE
-			// =================================================
-			String ruleValue = ruleEngine.getRequestValue(apiName, jsonName);
+                                List.of(
 
-			// =================================================
-			// ✅ REF
-			// =================================================
-			if (fieldDef.containsKey("$ref")) {
+                                        buildExampleFromSchema(
+                                                endpointPath,
+                                                refType,
+                                                schemaMap,
+                                                visited)));
+                    }
 
-				String ref = fieldDef.get("$ref").toString();
+                    // =========================================
+                    // ✅ ARRAY PRIMITIVO
+                    // =========================================
+                    else {
 
-				String refType = ref.substring(ref.lastIndexOf("/") + 1);
+                        example.put(
 
-				example.put(jsonName,
+                                jsonName,
 
-						buildExampleFromSchema(refType, schemaMap, visited));
+                                List.of(
 
-				continue;
-			}
+                                        mockValue(
+                                                (String) itemMap.get("type"))));
+                    }
+                }
 
-			// =================================================
-			// ✅ ARRAY
-			// =================================================
-			if ("array".equals(fieldDef.get("type"))) {
+                continue;
+            }
 
-				Object items = fieldDef.get("items");
+            // =================================================
+            // ✅ VALUE DESDE RULES.XML
+            // =================================================
+            if (ruleValue != null) {
 
-				if (items instanceof Map) {
+                examplePathResolver.setNestedValue(
 
-					Map<?, ?> itemMap = (Map<?, ?>) items;
+                        example,
 
-					if (itemMap.containsKey("$ref")) {
+                        jsonName,
 
-						String ref = itemMap.get("$ref").toString();
+                        examplePathResolver.parseValue(
+                                jsonName,
+                                ruleValue));
 
-						String refType = ref.substring(ref.lastIndexOf("/") + 1);
+                continue;
+            }
 
-						example.put(jsonName,
+            // =================================================
+            // ✅ MOCK DEFAULT
+            // =================================================
+            example.put(
 
-								List.of(buildExampleFromSchema(refType, schemaMap, visited)));
+                    jsonName,
 
-					} else {
+                    mockValue(
+                            (String) fieldDef.get("type")));
+        }
 
-						example.put(jsonName,
+        // =====================================================
+        // ✅ FLATTEN WRAPPER
+        // =====================================================
+        if (example.size() == 1) {
 
-								List.of(mockValue((String) itemMap.get("type"))));
-					}
-				}
+            Object onlyValue =
+                    example.values()
+                            .iterator()
+                            .next();
 
-				continue;
-			}
+            if (onlyValue instanceof Map) {
 
-			// =================================================
-			// ✅ RULE VALUE
-			// =================================================
-			if (ruleValue != null) {
+                return onlyValue;
+            }
+        }
 
-				examplePathResolver.setNestedValue(example, jsonName, examplePathResolver.parseValue(jsonName, ruleValue));
+        return example;
+    }
 
-				continue;
-			}
+    // =========================================================
+    // ✅ RESOLVER JSON PROPERTY
+    // =========================================================
+    private String resolveJsonName(
+            String className,
+            String fieldName) {
 
-			// =================================================
-			// ✅ DEFAULT MOCK
-			// =================================================
-			example.put(jsonName,
+        return classIndexer.findClass(className)
 
-					mockValue((String) fieldDef.get("type")));
-		}
+                .map(clazz -> clazz.getConstructors()
+                        .stream()
 
-		// =====================================================
-		// ✅ FLATTEN WRAPPER
-		// =====================================================
-		if (example.size() == 1) {
+                        .flatMap(c ->
+                                c.getParameters()
+                                        .stream())
 
-			Object onlyValue = example.values().iterator().next();
+                        .filter(p ->
+                                p.getNameAsString()
+                                        .equals(fieldName))
 
-			if (onlyValue instanceof Map) {
+                        .map(p ->
+                                p.getAnnotationByName(
+                                        "JsonProperty"))
 
-				return onlyValue;
-			}
-		}
+                        .flatMap(java.util.Optional::stream)
 
-		return example;
-	}
+                        .map(a ->
+                                a.asSingleMemberAnnotationExpr()
+                                        .getMemberValue()
+                                        .toString()
+                                        .replace("\"", ""))
 
-	// =========================================================
-	// ✅ API NAME
-	// =========================================================
-	private String extractApiName(String type) {
+                        .findFirst()
 
-		if (type == null) {
-			return null;
-		}
+                        .orElse(fieldName))
 
-		String normalized = type.trim();
+                .orElse(fieldName);
+    }
 
-		if (normalized.startsWith("BodyEntrada")) {
+    // =========================================================
+    // ✅ MOCK VALUES
+    // =========================================================
+    private Object mockValue(
+            String type) {
 
-			return normalized.substring("BodyEntrada".length()).trim();
-		}
+        if (type == null) {
 
-		if (normalized.startsWith("BodySalida")) {
+            return "";
+        }
 
-			return normalized.substring("BodySalida".length()).trim();
-		}
+        switch (type) {
 
-		return normalized;
-	}
+        case "string":
+            return "";
 
-	// =========================================================
-	// ✅ JSON NAME
-	// =========================================================
-	private String resolveJsonName(String className, String fieldName) {
+        case "integer":
+            return 123;
 
-		return classIndexer.findClass(className)
+        case "number":
+            return 123.45;
 
-				.map(clazz -> clazz.getConstructors().stream()
+        case "boolean":
+            return true;
 
-						.flatMap(c -> c.getParameters().stream())
+        case "array":
+            return new java.util.ArrayList<>();
 
-						.filter(p -> p.getNameAsString().equals(fieldName))
+        default:
+            return "";
+        }
+    }
 
-						.map(p -> p.getAnnotationByName("JsonProperty"))
+    // =========================================================
+    // ✅ FLATTEN WRAPPER SIMPLE
+    // =========================================================
+    private Object flattenIfWrapper(
+            Object example) {
 
-						.flatMap(Optional::stream)
+        if (!(example instanceof Map)) {
 
-						.map(a -> a.asSingleMemberAnnotationExpr().getMemberValue().toString().replace("\"", ""))
+            return example;
+        }
 
-						.findFirst()
+        Map<?, ?> map =
+                (Map<?, ?>) example;
 
-						.orElse(fieldName))
+        if (map.size() == 1) {
 
-				.orElse(fieldName);
-	}
+            Object onlyValue =
+                    map.values()
+                            .iterator()
+                            .next();
 
-	// =========================================================
-	// ✅ MOCK VALUE
-	// =========================================================
-	private Object mockValue(String type) {
+            if (onlyValue instanceof Map) {
 
-		if (type == null) {
+                return onlyValue;
+            }
+        }
 
-			return "";
-		}
-
-		switch (type) {
-
-		case "string":
-			return "";
-
-		case "integer":
-			return 123;
-
-		case "number":
-			return 123.45;
-
-		case "boolean":
-			return true;
-
-		case "array":
-			return new java.util.ArrayList<>();
-
-		default:
-			return "";
-		}
-	}
-
-	// =========================================================
-	// ✅ FLATTEN
-	// =========================================================
-	private Object flattenIfWrapper(Object example) {
-
-		if (!(example instanceof Map)) {
-
-			return example;
-		}
-
-		Map<?, ?> map = (Map<?, ?>) example;
-
-		if (map.size() == 1) {
-
-			Object onlyValue = map.values().iterator().next();
-
-			if (onlyValue instanceof Map) {
-
-				return onlyValue;
-			}
-		}
-
-		return example;
-	}
-
+        return example;
+    }
 }

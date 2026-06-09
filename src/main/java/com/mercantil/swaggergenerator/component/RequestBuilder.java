@@ -23,9 +23,10 @@ public class RequestBuilder {
 
 	// =========================================================
 	// ✅ BUILD REQUEST
+	// ✅ AHORA SOPORTA ENDPOINT PATH
 	// =========================================================
-	public Map<String, Object> build(MethodDeclaration method, Map<String, Map<String, Object>> schemaMap,
-			Map<String, Object> exampleMap, List<String> ignoredTypes) {
+	public Map<String, Object> build(String endpointPath, MethodDeclaration method,
+			Map<String, Map<String, Object>> schemaMap, Map<String, Object> exampleMap, List<String> ignoredTypes) {
 
 		Map<String, Object> requestProps = new LinkedHashMap<>();
 
@@ -43,10 +44,13 @@ public class RequestBuilder {
 		};
 
 		// =====================================================
-		// ✅ HEADER
+		// ✅ HEADER ENTRADA
 		// =====================================================
 		requestProps.put("headerEntrada", safeRef.apply("HeaderEntrada"));
 
+		// =====================================================
+		// ✅ RESOLVER BODY REQUESTS
+		// =====================================================
 		Map<String, String> requestBodies = requestResponseResolver.resolveRequestBodies(method, schemaMap);
 
 		String bodyFieldName = null;
@@ -74,9 +78,16 @@ public class RequestBuilder {
 		// =====================================================
 		boolean hasBody = hasProperties(bodyType, schemaMap);
 
+		// =====================================================
+		// ✅ AGREGAR BODY SCHEMA
+		// =====================================================
 		if (bodyType != null && hasBody) {
 
-			requestProps.put(bodyFieldName, safeRef.apply(bodyType));
+			requestProps.put(
+
+					bodyFieldName,
+
+					safeRef.apply(bodyType));
 		}
 
 		// =====================================================
@@ -88,10 +99,11 @@ public class RequestBuilder {
 
 		// =====================================================
 		// ✅ BODY EXAMPLE
+		// ✅ lookup por PATH
 		// =====================================================
 		if (bodyType != null && hasBody) {
 
-			Object bodyExample = requestExampleProvider.build(bodyType, schemaMap, exampleMap);
+			Object bodyExample = requestExampleProvider.build(endpointPath, bodyType, schemaMap, exampleMap);
 
 			requestExample.put(bodyFieldName, bodyExample);
 		}
@@ -99,17 +111,32 @@ public class RequestBuilder {
 		// =====================================================
 		// ✅ REQUEST JSON
 		// =====================================================
-		Map<String, Object> requestJson = Map.of("schema", Map.of("type", "object",
+		Map<String, Object> requestJson = Map.of(
 
-				"properties", requestProps),
+				"schema",
 
-				"examples", Map.of("default", Map.of("summary", "Ejemplo generado",
+				Map.of("type", "object",
 
-						"value", requestExample)));
+						"properties", requestProps),
 
-		return Map.of("required", true,
+				"examples",
 
-				"content", Map.of("application/json", requestJson));
+				Map.of("default",
+
+						Map.of("summary", "Ejemplo generado",
+
+								"value", requestExample)));
+
+		// =====================================================
+		// ✅ CONTENT
+		// =====================================================
+		return Map.of(
+
+				"required", true,
+
+				"content",
+
+				Map.of("application/json", requestJson));
 	}
 
 	// =========================================================
@@ -118,12 +145,14 @@ public class RequestBuilder {
 	private boolean hasProperties(String type, Map<String, Map<String, Object>> schemaMap) {
 
 		if (type == null) {
+
 			return false;
 		}
 
 		Map<String, Object> schema = schemaMap.get(type);
 
 		if (schema == null) {
+
 			return false;
 		}
 
@@ -133,7 +162,7 @@ public class RequestBuilder {
 	}
 
 	// =========================================================
-	// ✅ ENSURE SCHEMA
+	// ✅ ENSURE SCHEMA EXISTS
 	// =========================================================
 	private void ensureSchemaExists(String typeName, Map<String, Map<String, Object>> schemaMap) {
 
@@ -142,11 +171,14 @@ public class RequestBuilder {
 			return;
 		}
 
-		schemaMap.computeIfAbsent(typeName,
+		schemaMap.computeIfAbsent(
 
-				k -> Map.of("type", "object",
+				typeName,
+
+				k -> Map.of(
+
+						"type", "object",
 
 						"properties", new LinkedHashMap<>()));
 	}
-
 }

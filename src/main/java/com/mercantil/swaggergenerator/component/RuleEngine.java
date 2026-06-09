@@ -17,19 +17,21 @@ import org.w3c.dom.NodeList;
 public class RuleEngine {
 
     // =========================================================
-    // ✅ LEGACY (compatibilidad hacia atrás)
+    // ✅ LEGACY (compatibilidad)
     // =========================================================
     private final Map<String, Map<String, String>> apiRules =
             new LinkedHashMap<>();
 
     // =========================================================
-    // ✅ NUEVO REQUEST RULES
+    // ✅ REQUEST RULES
+    // ✅ key:
+    // ✅ /safe/consultar/saldo-cuenta
     // =========================================================
     private final Map<String, Map<String, String>> requestRules =
             new LinkedHashMap<>();
 
     // =========================================================
-    // ✅ NUEVO RESPONSE RULES
+    // ✅ RESPONSE RULES
     // =========================================================
     private final Map<String, Map<String, String>> responseRules =
             new LinkedHashMap<>();
@@ -47,12 +49,13 @@ public class RuleEngine {
 
             try {
 
-                // ✅ externo
                 String externalPath =
                         System.getProperty("user.dir")
                                 + "/rules.xml";
 
-                is = new java.io.FileInputStream(externalPath);
+                is =
+                        new java.io.FileInputStream(
+                                externalPath);
 
                 System.out.println(
                         "✅ Cargando rules.xml externo: "
@@ -63,14 +66,16 @@ public class RuleEngine {
                 System.out.println(
                         "⚠️ No se encontró rules.xml externo, usando interno...");
 
-                is = getClass()
-                        .getClassLoader()
-                        .getResourceAsStream("rules.xml");
+                is =
+                        getClass()
+                                .getClassLoader()
+                                .getResourceAsStream(
+                                        "rules.xml");
 
                 if (is == null) {
 
                     throw new RuntimeException(
-                            "❌ No se encontró rules.xml en ningún lado");
+                            "❌ No se encontró rules.xml");
                 }
             }
 
@@ -91,18 +96,53 @@ public class RuleEngine {
                 Element api =
                         (Element) apis.item(i);
 
-                String apiName =
-                        api.getAttribute("name");
+                // =================================================
+                // ✅ NUEVO
+                // ✅ PRIORIDAD path
+                // =================================================
+                String apiKey =
+                        api.getAttribute("path");
 
-                // ✅ legacy
+                // =================================================
+                // ✅ BACKWARD COMPATIBILITY
+                // =================================================
+                if (apiKey == null
+                        || apiKey.isBlank()) {
+
+                    apiKey =
+                            api.getAttribute("name");
+                }
+
+                if (apiKey == null
+                        || apiKey.isBlank()) {
+
+                    System.out.println(
+                            "⚠️ API ignorada sin name/path");
+
+                    continue;
+                }
+
+                // =================================================
+                // ✅ NORMALIZAR
+                // =================================================
+                apiKey =
+                        apiKey.trim();
+
+                // =================================================
+                // ✅ LEGACY
+                // =================================================
                 Map<String, String> legacyFields =
                         new LinkedHashMap<>();
 
-                // ✅ request
+                // =================================================
+                // ✅ REQUEST
+                // =================================================
                 Map<String, String> requestFields =
                         new LinkedHashMap<>();
 
-                // ✅ response
+                // =================================================
+                // ✅ RESPONSE
+                // =================================================
                 Map<String, String> responseFields =
                         new LinkedHashMap<>();
 
@@ -110,7 +150,8 @@ public class RuleEngine {
                 // ✅ REQUEST
                 // =================================================
                 NodeList requestNodes =
-                        api.getElementsByTagName("request");
+                        api.getElementsByTagName(
+                                "request");
 
                 if (requestNodes.getLength() > 0) {
 
@@ -118,15 +159,19 @@ public class RuleEngine {
                             (Element) requestNodes.item(0);
 
                     NodeList fieldNodes =
-                            request.getElementsByTagName("field");
+                            request.getElementsByTagName(
+                                    "field");
 
-                    for (int j = 0; j < fieldNodes.getLength(); j++) {
+                    for (int j = 0;
+                         j < fieldNodes.getLength();
+                         j++) {
 
                         Element field =
                                 (Element) fieldNodes.item(j);
 
                         requestFields.put(
                                 field.getAttribute("name"),
+
                                 field.getAttribute("value"));
                     }
                 }
@@ -135,7 +180,8 @@ public class RuleEngine {
                 // ✅ RESPONSE
                 // =================================================
                 NodeList responseNodes =
-                        api.getElementsByTagName("response");
+                        api.getElementsByTagName(
+                                "response");
 
                 if (responseNodes.getLength() > 0) {
 
@@ -143,88 +189,111 @@ public class RuleEngine {
                             (Element) responseNodes.item(0);
 
                     NodeList fieldNodes =
-                            response.getElementsByTagName("field");
+                            response.getElementsByTagName(
+                                    "field");
 
-                    for (int j = 0; j < fieldNodes.getLength(); j++) {
+                    for (int j = 0;
+                         j < fieldNodes.getLength();
+                         j++) {
 
                         Element field =
                                 (Element) fieldNodes.item(j);
 
                         responseFields.put(
                                 field.getAttribute("name"),
+
                                 field.getAttribute("value"));
                     }
                 }
 
                 // =================================================
-                // ✅ LEGACY SUPPORT
-                // ✅ <api><field .../></api>
+                // ✅ LEGACY DIRECT FIELD
                 // =================================================
                 NodeList directFields =
                         api.getChildNodes();
 
-                for (int j = 0; j < directFields.getLength(); j++) {
+                for (int j = 0;
+                     j < directFields.getLength();
+                     j++) {
 
-                    if (!(directFields.item(j) instanceof Element)) {
+                    if (!(directFields.item(j)
+                            instanceof Element)) {
+
                         continue;
                     }
 
                     Element el =
                             (Element) directFields.item(j);
 
-                    if (!"field".equals(el.getTagName())) {
+                    if (!"field".equals(
+                            el.getTagName())) {
+
                         continue;
                     }
 
                     legacyFields.put(
                             el.getAttribute("name"),
+
                             el.getAttribute("value"));
                 }
 
                 // =================================================
-                // ✅ SI EXISTEN LEGACY
-                // ✅ tratarlos como request
+                // ✅ LEGACY SUPPORT
                 // =================================================
                 if (!legacyFields.isEmpty()) {
 
-                    requestFields.putAll(legacyFields);
+                    requestFields.putAll(
+                            legacyFields);
 
-                    apiRules.put(apiName, legacyFields);
+                    apiRules.put(
+                            apiKey,
+                            legacyFields);
                 }
 
                 // =================================================
-                // ✅ guardar request
+                // ✅ REQUEST RULES
                 // =================================================
                 if (!requestFields.isEmpty()) {
 
                     requestRules.put(
-                            apiName,
+                            apiKey,
                             requestFields);
                 }
 
                 // =================================================
-                // ✅ guardar response
+                // ✅ RESPONSE RULES
                 // =================================================
                 if (!responseFields.isEmpty()) {
 
                     responseRules.put(
-                            apiName,
+                            apiKey,
                             responseFields);
                 }
             }
 
+            // =====================================================
+            // ✅ DEBUG
+            // =====================================================
             System.out.println(
-                    "✅ Request rules cargadas: "
-                            + requestRules.keySet());
+                    "✅ Request rules cargadas:");
+
+            requestRules.keySet()
+                    .forEach(k ->
+                            System.out.println(
+                                    "   ➜ " + k));
 
             System.out.println(
-                    "✅ Response rules cargadas: "
-                            + responseRules.keySet());
+                    "✅ Response rules cargadas:");
+
+            responseRules.keySet()
+                    .forEach(k ->
+                            System.out.println(
+                                    "   ➜ " + k));
 
         } catch (Exception e) {
 
             throw new RuntimeException(
-                    "Error cargando rules.xml",
+                    "❌ Error cargando rules.xml",
                     e);
         }
     }
@@ -233,22 +302,24 @@ public class RuleEngine {
     // ✅ LEGACY
     // =========================================================
     public String getValue(
-            String apiName,
+            String apiKey,
             String fieldName) {
 
-        return getRequestValue(apiName, fieldName);
+        return getRequestValue(
+                apiKey,
+                fieldName);
     }
 
     // =========================================================
     // ✅ REQUEST VALUE
     // =========================================================
     public String getRequestValue(
-            String apiName,
+            String apiKey,
             String fieldName) {
 
         return getFieldValue(
                 requestRules,
-                apiName,
+                apiKey,
                 fieldName);
     }
 
@@ -256,12 +327,12 @@ public class RuleEngine {
     // ✅ RESPONSE VALUE
     // =========================================================
     public String getResponseValue(
-            String apiName,
+            String apiKey,
             String fieldName) {
 
         return getFieldValue(
                 responseRules,
-                apiName,
+                apiKey,
                 fieldName);
     }
 
@@ -270,29 +341,29 @@ public class RuleEngine {
     // =========================================================
     private String getFieldValue(
             Map<String, Map<String, String>> source,
-            String apiName,
+            String apiKey,
             String fieldName) {
 
-        if (apiName == null
+        if (apiKey == null
                 || fieldName == null) {
 
             return null;
         }
 
-        if (!source.containsKey(apiName)) {
+        Map<String, String> fields =
+                source.get(apiKey);
+
+        if (fields == null) {
             return null;
         }
 
-        Map<String, String> fields =
-                source.get(apiName);
-
-        // ✅ exact match
+        // ✅ exact
         if (fields.containsKey(fieldName)) {
 
             return fields.get(fieldName);
         }
 
-        // ✅ case insensitive fallback
+        // ✅ case insensitive
         for (String key : fields.keySet()) {
 
             if (key.equalsIgnoreCase(fieldName)) {
@@ -308,14 +379,15 @@ public class RuleEngine {
     // ✅ REQUEST RULES
     // =========================================================
     public Map<String, String> getRequestRules(
-            String apiName) {
+            String apiKey) {
 
-        if (apiName == null) {
+        if (apiKey == null) {
+
             return Collections.emptyMap();
         }
 
         return requestRules.getOrDefault(
-                apiName,
+                apiKey,
                 Collections.emptyMap());
     }
 
@@ -323,14 +395,15 @@ public class RuleEngine {
     // ✅ RESPONSE RULES
     // =========================================================
     public Map<String, String> getResponseRules(
-            String apiName) {
+            String apiKey) {
 
-        if (apiName == null) {
+        if (apiKey == null) {
+
             return Collections.emptyMap();
         }
 
         return responseRules.getOrDefault(
-                apiName,
+                apiKey,
                 Collections.emptyMap());
     }
 
@@ -338,17 +411,19 @@ public class RuleEngine {
     // ✅ HAS REQUEST RULES
     // =========================================================
     public boolean hasRequestRules(
-            String apiName) {
+            String apiKey) {
 
-        return requestRules.containsKey(apiName);
+        return requestRules.containsKey(
+                apiKey);
     }
 
     // =========================================================
     // ✅ HAS RESPONSE RULES
     // =========================================================
     public boolean hasResponseRules(
-            String apiName) {
+            String apiKey) {
 
-        return responseRules.containsKey(apiName);
+        return responseRules.containsKey(
+                apiKey);
     }
 }

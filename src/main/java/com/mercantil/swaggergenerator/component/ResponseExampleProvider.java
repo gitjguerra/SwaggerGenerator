@@ -9,92 +9,102 @@ import org.springframework.stereotype.Component;
 @Component
 public class ResponseExampleProvider {
 
-	@Autowired
-	private RuleEngine ruleEngine;
+    @Autowired
+    private RuleEngine ruleEngine;
 
-	@Autowired
-	private ExampleGenerator exampleGenerator;
+    @Autowired
+    private ExampleGenerator exampleGenerator;
 
-	@Autowired
-	private ExamplePathResolver examplePathResolver;
+    @Autowired
+    private ExamplePathResolver examplePathResolver;
 
-	// =========================================================
-	// ✅ BUILD RESPONSE EXAMPLE
-	// =========================================================
-	public Map<String, Object> build(String bodyType, String operationName, Map<String, Map<String, Object>> schemaMap,
-			Map<String, Object> exampleMap) {
+    // =========================================================
+    // ✅ BUILD RESPONSE EXAMPLE
+    // ✅ lookup usando endpointPath
+    // =========================================================
+    public Map<String, Object> build(
+            String endpointPath,
+            String bodyType,
+            String operationName,
+            Map<String, Map<String, Object>> schemaMap,
+            Map<String, Object> exampleMap) {
 
-		Map<String, Object> response = new LinkedHashMap<>();
+        Map<String, Object> response =
+                new LinkedHashMap<>();
 
-		if (bodyType == null) {
-			return response;
-		}
+        // =====================================================
+        // ✅ VALIDAR BODY
+        // =====================================================
+        if (bodyType == null) {
 
-		// =====================================================
-		// ✅ PRIORIDAD 1
-		// ✅ RULES.XML RESPONSE
-		// =====================================================
-		String apiName = extractApiName(bodyType);
+            return response;
+        }
 
-		Map<String, String> rules = ruleEngine.getResponseRules(apiName);
+        // =====================================================
+        // ✅ PRIORIDAD 1
+        // ✅ RULES.XML
+        // ✅ path-based lookup
+        // =====================================================
+        Map<String, String> rules =
+                ruleEngine.getResponseRules(
+                        endpointPath);
 
-		if (!rules.isEmpty()) {
+        if (!rules.isEmpty()) {
 
-			buildFromRules(response, rules);
+            buildFromRules(
+                    response,
+                    rules);
 
-			return response;
-		}
+            return response;
+        }
 
-		// =====================================================
-		// ✅ PRIORIDAD 2
-		// ✅ FALLBACK AUTOMATICO
-		// =====================================================
-		Object generated = exampleMap.get(bodyType);
+        // =====================================================
+        // ✅ PRIORIDAD 2
+        // ✅ FALLBACK AUTOMÁTICO
+        // =====================================================
+        Object generated =
+                exampleMap.get(bodyType);
 
-		if (generated == null) {
+        if (generated == null) {
 
-			generated = exampleGenerator.buildExampleFromType(bodyType);
-		}
+            generated =
+                    exampleGenerator
+                            .buildExampleFromType(
+                                    bodyType);
+        }
 
-		response.put("bodySalida" + operationName, generated);
+        response.put(
+                "bodySalida" + operationName,
+                generated);
 
-		return response;
-	}
+        return response;
+    }
 
-	// =========================================================
-	// ✅ BUILD FROM RULES
-	// =========================================================
-	private void buildFromRules(Map<String, Object> response, Map<String, String> rules) {
+    // =========================================================
+    // ✅ BUILD FROM RULES
+    // =========================================================
+    private void buildFromRules(
+            Map<String, Object> response,
+            Map<String, String> rules) {
 
-		for (Map.Entry<String, String> entry : rules.entrySet()) {
+        for (Map.Entry<String, String> entry
+                : rules.entrySet()) {
 
-			String path = entry.getKey();
+            String path =
+                    entry.getKey();
 
-			String value = entry.getValue();
+            String value =
+                    entry.getValue();
 
-			examplePathResolver.setNestedValue(response, path, examplePathResolver.parseValue(path, value));
-		}
-	}
+            examplePathResolver.setNestedValue(
 
-	private String extractApiName(String type) {
+                    response,
 
-		if (type == null) {
-			return null;
-		}
+                    path,
 
-		String normalized = type.trim();
-
-		if (normalized.startsWith("BodyEntrada")) {
-
-			return normalized.substring("BodyEntrada".length()).trim();
-		}
-
-		if (normalized.startsWith("BodySalida")) {
-
-			return normalized.substring("BodySalida".length()).trim();
-		}
-
-		return normalized;
-	}
-
+                    examplePathResolver.parseValue(
+                            path,
+                            value));
+        }
+    }
 }

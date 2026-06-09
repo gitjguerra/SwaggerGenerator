@@ -1,505 +1,306 @@
 <rules>
 
-	<!-- ===================================================== -->
-	<!-- ✅ CONSULTAR DATOS BASICOS -->
-	<!-- ===================================================== -->
-	<api name="ConsultarDatosBasicos">
+    <!-- ===================================================== -->
+    <!-- ✅ CONSULTAR DATOS BASICOS -->
+    <!-- ===================================================== -->
+    <api path="/persona/consultar/datos-basicos">
 
-		<request>
+        <request>
 
-			<field name="nroPer" value="0" />
-			<field name="codPais" value="VEN" />
-			<field name="tipoId" value="V" />
-			<field name="nroId" value="15518542" />
+            <field name="nroPer" value="0"/>
+            <field name="codPais" value="VEN"/>
+            <field name="tipoId" value="V"/>
+            <field name="nroId" value="15518542"/>
 
-		</request>
+        </request>
 
-		<response>
+        <response>
 
-			<!-- ✅ body salida -->
-			<field name="bodySalidaConsultarDatosBasicos.segundoApell"
-				value="Gonzalez" />
+            <field name="bodySalidaConsultarDatosBasicos.segundoApell"
+                   value="Gonzalez"/>
 
-			<field name="bodySalidaConsultarDatosBasicos.primerNom"
-				value="Juan" />
+            <field name="bodySalidaConsultarDatosBasicos.primerNom"
+                   value="Juan"/>
 
-			<field name="bodySalidaConsultarDatosBasicos.tipoPer" value="1" />
+            <field name="bodySalidaConsultarDatosBasicos.tipoPer"
+                   value="1"/>
 
-			<field name="bodySalidaConsultarDatosBasicos.apellCasada"
-				value="de Perez" />
+            <field name="bodySalidaConsultarDatosBasicos.apellCasada"
+                   value="de Perez"/>
 
-			<field name="bodySalidaConsultarDatosBasicos.nomComerc"
-				value="Empresa XYZ" />
+            <field name="bodySalidaConsultarDatosBasicos.nomComerc"
+                   value="Empresa XYZ"/>
 
-			<field name="bodySalidaConsultarDatosBasicos.primerApell"
-				value="Perez" />
+            <field name="bodySalidaConsultarDatosBasicos.primerApell"
+                   value="Perez"/>
 
-			<field name="bodySalidaConsultarDatosBasicos.segundoNom"
-				value="Carlos" />
+            <field name="bodySalidaConsultarDatosBasicos.segundoNom"
+                   value="Carlos"/>
 
-			<!-- ✅ body entrada echo -->
-			<field name="bodyEntradaConsultarDatosBasicos.nroPer" value="0" />
+            <field name="bodyEntradaConsultarDatosBasicos.nroPer"
+                   value="0"/>
 
-			<field name="bodyEntradaConsultarDatosBasicos.codPais"
-				value="VEN" />
+            <field name="bodyEntradaConsultarDatosBasicos.codPais"
+                   value="VEN"/>
 
-			<field name="bodyEntradaConsultarDatosBasicos.tipoId" value="V" />
+            <field name="bodyEntradaConsultarDatosBasicos.tipoId"
+                   value="V"/>
 
-			<field name="bodyEntradaConsultarDatosBasicos.nroId"
-				value="15518542" />
+            <field name="bodyEntradaConsultarDatosBasicos.nroId"
+                   value="15518542"/>
 
-		</response>
+        </response>
 
-	</api>
+    </api>
 
-	<!-- ===================================================== -->
-	<!-- ✅ CONSULTAR SALDO -->
-	<!-- ===================================================== -->
-	<api name="ConsultarSaldo">
+    <!-- ===================================================== -->
+    <!-- ✅ CONSULTAR SALDO SAFE -->
+    <!-- ===================================================== -->
+    <api path="/safe/consultar/saldo-cuenta">
 
-		<request>
+        <request>
 
-			<field name="codTrans" value="1234" />
-			<field name="indicReverso" value="" />
-			<field name="codTerm" value="4484" />
-			<field name="nroTarj" value="00501878200077413252" />
-			<field name="fchVcto" value="0" />
-			<field name="tipoCta" value="" />
-			<field name="nroCta" value="00000000000140094857" />
-			<field name="indicCobro" value="N" />
-			<field name="nroCi" value="11428799" />
-			<field name="inicValCi" value="1" />
-			<field name="longValCi" value="10" />
-			<field name="codMoneda" value="VEB" />
-			<field name="codSubCanal" value="0" />
+            <field name="codTrans" value="1234"/>
+            <field name="indicReverso" value=""/>
+            <field name="codTerm" value="4484"/>
 
-		</request>
+            <field name="nroTarj"
+                   value="00501878200077413252"/>
 
-		<response>
+            <field name="fchVcto" value="0"/>
+            <field name="tipoCta" value=""/>
 
-			<field name="bodySalidaConsultarSaldo.saldoDisponible"
-				value="1500.25" />
+            <field name="nroCta"
+                   value="00000000000140094857"/>
 
-			<field name="bodySalidaConsultarSaldo.saldoContable"
-				value="2300.55" />
+            <field name="indicCobro" value="N"/>
+            <field name="nroCi" value="11428799"/>
+            <field name="inicValCi" value="1"/>
+            <field name="longValCi" value="10"/>
+            <field name="codMoneda" value="VEB"/>
+            <field name="codSubCanal" value="0"/>
 
-			<field name="bodySalidaConsultarSaldo.moneda" value="VES" />
+        </request>
 
-			<field name="bodySalidaConsultarSaldo.estatusCuenta"
-				value="ACTIVA" />
+        <response>
 
-		</response>
+            <field name="bodySalidaConsultarSaldo.saldoDisp"
+                   value="12629336.79"/>
 
-	</api>
+            <field name="bodySalidaConsultarSaldo.nroAprob"
+                   value="2349102"/>
 
-	<!-- ===================================================== -->
-	<!-- ✅ CONSULTAR CUENTAS COMPANY -->
-	<!-- ===================================================== -->
-	<api name="ConsultarCuentasCompanyGroup">
+            <field name="bodySalidaConsultarSaldo.saldoBloq"
+                   value="0.00"/>
 
-		<request>
+            <field name="bodySalidaConsultarSaldo.limCred"
+                   value="5621513.69"/>
 
-			<field name="subCanal" value="2" />
-			<field name="grupo" value="1500" />
-			<field name="nac" value="" />
-			<field name="nroRif" value="0" />
-			<field name="nroPer" value="0" />
-			<field name="categ" value="" />
-			<field name="tipoProd" value="" />
-			<field name="divisa" value="" />
-			<field name="produc" value="" />
-			<field name="comentarios" value="" />
-
-		</request>
-
-		<response>
-
-			<field
-				name="bodySalidaConsultarCuentasCompanyGroup.cuentas[0].numeroCuenta"
-				value="01050000012345678901" />
+            <field name="bodySalidaConsultarSaldo.saldoDiferido"
+                   value="0.00"/>
 
-			<field
-				name="bodySalidaConsultarCuentasCompanyGroup.cuentas[0].tipoProducto"
-				value="CC" />
+            <field name="bodySalidaConsultarSaldo.mtoComis"
+                   value="0.00"/>
 
-			<field
-				name="bodySalidaConsultarCuentasCompanyGroup.cuentas[0].moneda"
-				value="VES" />
+            <field name="bodySalidaConsultarSaldo.saldoReal"
+                   value="12629336.79"/>
 
-			<field
-				name="bodySalidaConsultarCuentasCompanyGroup.cuentas[0].saldoDisponible"
-				value="2500.75" />
-
-		</response>
-
-	</api>
-
-	<!-- ===================================================== -->
-	<!-- ✅ CONSULTAR MOVIMIENTO RESUMIDO -->
-	<!-- ===================================================== -->
-	<api name="ConsultarMovimientoResumido">
-
-		<field name="nroCta" value="00000000000191097802" />
-		<field name="fchInic" value="20250901" />
-		<field name="fchFin" value="20250930" />
-
-	</api>
-
-	<!-- ===================================================== -->
-	<!-- ✅ CONSULTAR SALDO BLOQUEADO -->
-	<!-- ===================================================== -->
-	<api name="ConsultarSaldoBloqueado">
-
-		<field name="numeroCuenta" value="01050750271750071525" />
-
-	</api>
-
-	<!-- ===================================================== -->
-	<!-- ✅ CONSULTAR SALDO DIFERIDO -->
-	<!-- ===================================================== -->
-	<api name="ConsultarSaldoDiferido">
+        </response>
 
-		<field name="numeroCuenta" value="5061024036" />
+    </api>
 
-	</api>
+    <!-- ===================================================== -->
+    <!-- ✅ CONSULTAR MOVIMIENTO RESUMIDO -->
+    <!-- ===================================================== -->
+    <api path="/safe/consultar/movimientos-resumido">
 
-	<!-- ===================================================== -->
-	<!-- ✅ CONSULTAR CUENTAS DISPONIBLES DEBITO -->
-	<!-- ===================================================== -->
-	<api name="ConsultarCuentasDisponiblesDebitoAmpliada">
+        <request>
 
-		<field name="tipoBusca" value="I" />
-		<field name="paisBusca" value="VEN" />
-		<field name="tipoIdBusca" value="V" />
-		<field name="nroIdentBusca" value="7994013" />
-		<field name="nroPerBusca" value="0" />
-		<field name="codGrupoBusca" value="0" />
-		<field name="codMoneda" value="VES" />
-		<field name="mto" value="2" />
-		<field name="term" value="2085" />
-		<field name="pref" value="900" />
+            <field name="nroCta"
+                   value="00000000000191097802"/>
 
-	</api>
+            <field name="fchInic"
+                   value="20250901"/>
 
-	<!-- ===================================================== -->
-	<!-- ✅ ACTUALIZAR MISCELANEOS -->
-	<!-- ===================================================== -->
-	<api name="ActualizarMiscelaneosCuentaDeposito">
+            <field name="fchFin"
+                   value="20250930"/>
 
-		<field name="sistOrigen" value="" />
-		<field name="accionRequer" value="0" />
-		<field name="nroCtaDepos" value="0" />
-		<field name="nroPer" value="0" />
-		<field name="idUsuaMplus" value="0" />
+        </request>
 
-	</api>
+        <response>
 
-	<!-- ===================================================== -->
-	<!-- ✅ ACTUALIZAR ESTATUS TARJETA -->
-	<!-- ===================================================== -->
-	<api name="ActualizarEstatusTarjetaDebito">
+            <field name="bodySalidaConsultarMovimientoResumido.saldoDisp"
+                   value="197.27"/>
 
-		<field name="sistOrigen" value="MPLUS" />
-		<field name="estatusAccionRequer" value="1" />
-		<field name="nroTarjDeb" value="501878270004776345" />
-		<field name="nroPer" value="1" />
-		<field name="idUsuMplus" value="585769" />
+            <field name="bodySalidaConsultarMovimientoResumido.nroAprob"
+                   value="1129625"/>
 
-	</api>
+            <field name="bodySalidaConsultarMovimientoResumido.saldoAct"
+                   value="197.27"/>
 
-	<!-- ===================================================== -->
-	<!-- ✅ ACTUALIZAR CLAVE TARJETA -->
-	<!-- ===================================================== -->
-	<api name="ActualizarClaveTarjeta">
+            <field name="bodySalidaConsultarMovimientoResumido.mtoComis"
+                   value="0.00"/>
 
-		<field name="nroTarj" value="501878200062873205" />
+            <field name="bodySalidaConsultarMovimientoResumido.movimientos[0].saldoFin"
+                   value="159.41"/>
 
-		<field name="clv" value="7894" />
+            <field name="bodySalidaConsultarMovimientoResumido.movimientos[0].codTerminal"
+                   value="0001"/>
 
-	</api>
+            <field name="bodySalidaConsultarMovimientoResumido.movimientos[0].tipoTrans"
+                   value="SF"/>
 
-	<!-- ===================================================== -->
-	<!-- ✅ AFILIAR SERVICIO -->
-	<!-- ===================================================== -->
-	<api name="AfiliarServicio">
+            <field name="bodySalidaConsultarMovimientoResumido.movimientos[0].descripTrans"
+                   value="SALDO FINAL"/>
 
-		<field name="montoTransaccion" value="" />
-		<field name="modoEjecucion" value="" />
-		<field name="numeroCuenta" value="" />
-		<field name="nombreCliente" value="" />
-		<field name="direccionEmail" value="" />
-		<field name="applid" value="" />
-		<field name="tipoClave" value="" />
-		<field name="nombreHd" value="" />
-		<field name="accion" value="" />
-		<field name="indicadorNacionalidad" value="" />
-		<field name="numeroIdentificacion" value="0" />
+        </response>
 
-	</api>
+    </api>
 
-	<!-- ===================================================== -->
-	<!-- ✅ AFILIAR SERVICIOS AMPLIADOS -->
-	<!-- ===================================================== -->
-	<api name="AfiliarServiciosAmpliados">
+    <!-- ===================================================== -->
+    <!-- ✅ CONSULTAR CLAVE CIFRADA -->
+    <!-- ===================================================== -->
+    <api path="/safe/consultar/clave-cifrada">
 
-		<field name="codTrans" value="27" />
-		<field name="codSubCanal" value="01" />
-		<field name="indicAccion" value="P" />
+        <request>
 
-		<field name="regAfili[0].idNac" value="V" />
-		<field name="regAfili[0].nroId" value="19546854" />
-		<field name="regAfili[0].codGrupo" value="0" />
-		<field name="regAfili[0].codServProduc" value="27" />
+            <field name="accion" value=""/>
+            <field name="formato" value=""/>
+            <field name="masterKeyUtilizar" value=""/>
+            <field name="claveTripleDes" value="1234"/>
+            <field name="disponibleE" value=""/>
 
-		<field name="regAfili[0].descripServProduc"
-			value="AFILIACION T PAGO" />
+        </request>
 
-		<field name="regAfili[0].nroServProduc" value="4121234778" />
+        <response>
 
-		<field name="regAfili[0].nomBenef" value="PRUEBAS QA CALIDAD QA" />
+            <field name="bodySalidaConsultarClaveCifrada.masterKey"
+                   value="1FFBA2B6D39D94918C45987FB507A2681FFBA2B6D39D9491"/>
 
-	</api>
+            <field name="bodySalidaConsultarClaveCifrada.versMasterKey"
+                   value="2"/>
 
-	<!-- ===================================================== -->
-	<!-- ✅ PARAMETRO SIMPLE AMPLIADO -->
-	<!-- ===================================================== -->
-	<api name="ParametroSimpleAmpliado">
+        </response>
 
-		<field name="parametros[0].clave.codTipoValor" value="3" />
+    </api>
 
-		<field name="parametros[0].clave.tipoPer" value="N" />
+    <!-- ===================================================== -->
+    <!-- ✅ PRODUCTOS CELULAR -->
+    <!-- ===================================================== -->
+    <api path="/safe/consultar/producto-celular">
 
-		<field name="parametros[0].clave.codTipoCondic" value="MTOLIMIT" />
+        <request>
 
-		<field name="parametros[0].clave.codCondic" value="MTOLIM01" />
+            <field name="codProduc" value="27"/>
 
-		<field name="parametros[1].clave.codTipoValor" value="3" />
+            <field name="nroServProduc"
+                   value="0000000000004127329735"/>
 
-		<field name="parametros[1].clave.tipoPer" value="N" />
+        </request>
 
-		<field name="parametros[1].clave.codTipoCondic" value="MTOLIMIT" />
+        <response>
 
-		<field name="parametros[1].clave.codCondic" value="MTOLIM02" />
+            <field name="bodySalidaProductosCelular.numeroPersona"
+                   value="330699"/>
 
-	</api>
+            <field name="bodySalidaProductosCelular.numeroTarjeta"
+                   value="501878200074934748"/>
 
-	<!-- ===================================================== -->
-	<!-- ✅ CONSULTAR CLAVE CIFRADA -->
-	<!-- ===================================================== -->
-	<api name="ConsultarClaveCifrada">
+            <field name="bodySalidaProductosCelular.estatusAfiliacion"
+                   value="0"/>
 
-		<request>
+            <field name="bodySalidaProductosCelular.emailBeneficiario"
+                   value="a_sanchez11@hotmail.com"/>
 
-			<field name="accion" value="" />
-			<field name="formato" value="" />
-			<field name="masterKeyUtilizar" value="" />
-			<field name="claveTripleDes" value="1234" />
-			<field name="disponibleE" value="" />
+            <field name="bodySalidaProductosCelular.productos.cuentaCorriente[0].tipoProducto"
+                   value="CTCTE"/>
 
-		</request>
+            <field name="bodySalidaProductosCelular.productos.cuentaCorriente[0].numeroCuenta"
+                   value="00000000001037369068"/>
 
-		<response>
+            <field name="bodySalidaProductosCelular.productos.tarjetaCredito[0].tipoProducto"
+                   value="T0018"/>
 
-			<field name="bodySalidaConsultarClaveCifrada.masterKey"
-				value="1FFBA2B6D39D94918C45987FB507A2681FFBA2B6D39D9491" />
+            <field name="bodySalidaProductosCelular.productos.tarjetaCredito[0].numeroCuenta"
+                   value="00005491904203295645"/>
 
-			<field name="bodySalidaConsultarClaveCifrada.versMasterKey"
-				value="2" />
+            <field name="bodySalidaProductosCelular.productos.tarjetaCredito[1].tipoProducto"
+                   value="T0024"/>
 
-		</response>
+            <field name="bodySalidaProductosCelular.productos.tarjetaCredito[1].numeroCuenta"
+                   value="00000036442110419696"/>
 
-	</api>
+        </response>
 
-	<!-- ===================================================== -->
-	<!-- ✅ PAGAR SERVICIOS -->
-	<!-- ===================================================== -->
-	<api name="PagarServicios">
+    </api>
 
-		<field name="codigoTransaccion" value="" />
-		<field name="indcReverso" value="" />
-		<field name="codTerm" value="" />
-		<field name="nroCta" value="" />
-		<field name="mtoTransac" value="0" />
+    <!-- ===================================================== -->
+    <!-- ✅ CONSULTAR SALDO TARJETA PREPAGO -->
+    <!-- ===================================================== -->
+    <api path="/tarjeta/consultar/saldo-tarjeta-prepago">
 
-		<field name="referencias[0].refServ" value="0" />
+        <request>
 
-	</api>
+            <field name="numeroTarjeta"
+                   value="501878200062873205"/>
 
-	<!-- ===================================================== -->
-	<!-- ✅ PAGAR SERVICIOS BOLP -->
-	<!-- ===================================================== -->
-	<api name="PagarServiciosBolp">
+        </request>
 
-		<field name="cvv" value="0" />
-		<field name="tipoServ" value="1" />
-		<field name="nroPer" value="1800056" />
-		<field name="serialOper" value="6706039920" />
+        <response>
 
-		<field name="nroCtaTarj" value="00000000001618034715" />
+            <field name="bodySalidaConsultarSaldoTarjetaPrepago.saldoDisponible"
+                   value="250.75"/>
 
-	</api>
+            <field name="bodySalidaConsultarSaldoTarjetaPrepago.moneda"
+                   value="VES"/>
 
-	<!-- ===================================================== -->
-	<!-- ✅ TRANSFERIR ENTRE CUENTAS -->
-	<!-- ===================================================== -->
-	<api name="TransferirEntreCuentas">
+        </response>
 
-		<field name="nroCtaOrigen" value="" />
-		<field name="nroCtaDestino" value="" />
-		<field name="mtoOrigen" value="0" />
-		<field name="mtoDestino" value="0" />
+    </api>
 
-	</api>
+    <!-- ===================================================== -->
+    <!-- ✅ CONSULTAR NOTA AMPLIADA -->
+    <!-- ===================================================== -->
+    <api path="/safe/consultar/nota-ampliada">
 
-	<!-- ===================================================== -->
-	<!-- ✅ TRANSFERIR FONDOS TERCEROS -->
-	<!-- ===================================================== -->
-	<api name="TransferirFondosTerceros">
+        <request>
 
-		<field name="entraDatos.entraDatosCuentaFrom.entraCuentaLx"
-			value="" />
+            <field name="numeroCuenta"
+                   value="00000000000140094857"/>
 
-		<field name="entraDatos.entraDatosCuentaTo.entraCuenta2Lx"
-			value="" />
+        </request>
 
-		<field name="entraMonto" value="" />
+        <response>
 
-		<field name="entraCodigoVerificacion.entraCodVeri1" value="0" />
+            <field name="bodySalidaConsultarNotaAmpliada.descripcion"
+                   value="NOTA AMPLIADA DE EJEMPLO"/>
 
-	</api>
+        </response>
 
-	<!-- ===================================================== -->
-	<!-- ✅ RECARGAR SALDO CELULAR -->
-	<!-- ===================================================== -->
-	<api name="RecargarSaldoCelular">
+    </api>
 
-		<field name="numeroservicio" value="04242074100" />
+    <!-- ===================================================== -->
+    <!-- ✅ CONSULTAR OFICINAS DISPONIBLES -->
+    <!-- ===================================================== -->
+    <api path="/safe/consultar/oficinas-disponibles">
 
-		<field name="montotransaccion" value="400" />
+        <request>
 
-		<field name="codigoterminal" value="4484" />
+            <field name="codigoRegion"
+                   value="01"/>
 
-		<field name="numerocedula" value="13138745" />
+        </request>
 
-	</api>
+        <response>
 
-	<!-- ===================================================== -->
-	<!-- ✅ DESAFILIAR SERVICIOS -->
-	<!-- ===================================================== -->
-	<api name="DesafiliarServicios">
+            <field name="bodySalidaConsultarOficinasDisponibles.oficinas[0].codigoOficina"
+                   value="0101"/>
 
-		<field name="gasRetri.codTransac" value="0" />
+            <field name="bodySalidaConsultarOficinasDisponibles.oficinas[0].nombreOficina"
+                   value="CARACAS PRINCIPAL"/>
 
-		<field name="gasRetri.codSubCanal" value="01" />
+        </response>
 
-		<field name="gasRetri.registroAfil[0].nroPer" value="1902223" />
+    </api>
 
-		<field name="gasRetri.registroAfil[0].codServProduc" value="27" />
-
-	</api>
-
-	<!-- ===================================================== -->
-	<!-- ✅ VALIDAR CLAVE ATM POS -->
-	<!-- ===================================================== -->
-	<api name="ValidarClaveATMPos">
-
-		<field name="tarjetaAbra24.numeroTarjeta"
-			value="501878200062873205" />
-
-		<field name="claveFull" value="131300" />
-
-	</api>
-
-	<!-- ===================================================== -->
-	<!-- ✅ VALIDAR CUENTA SAFE -->
-	<!-- ===================================================== -->
-	<api name="ValidarCuentaSafe">
-
-		<field name="nrocta" value="7031028817" />
-
-		<field name="terminal" value="0" />
-
-		<field name="montoTrans" value="0" />
-
-	</api>
-	
-	<!-- ===================================================== -->
-	<!-- ✅ PRODUCTOS CELULAR -->
-	<!-- ===================================================== -->
-	<api name="ProductosCelular">
-
-		<!-- ============================================= -->
-		<!-- ✅ REQUEST -->
-		<!-- ============================================= -->
-		<request>
-
-			<field name="codProduc" value="27" />
-
-			<field name="nroServProduc" value="0000000000004127329735" />
-
-		</request>
-
-		<!-- ============================================= -->
-		<!-- ✅ RESPONSE -->
-		<!-- ============================================= -->
-		<response>
-
-			<!-- ✅ DATOS PRINCIPALES -->
-			<field name="bodySalidaProductosCelular.numeroPersona"
-				value="330699" />
-
-			<field name="bodySalidaProductosCelular.numeroTarjeta"
-				value="501878200074934748" />
-
-			<field name="bodySalidaProductosCelular.estatusAfiliacion"
-				value="0" />
-
-			<field name="bodySalidaProductosCelular.emailBeneficiario"
-				value="a_sanchez11@hotmail.com" />
-
-			<!-- ✅ IDENTIFICACION -->
-			<field
-				name="bodySalidaProductosCelular.indentificacion.codPais" value="" />
-
-			<field
-				name="bodySalidaProductosCelular.indentificacion.tipoIdentificacion"
-				value="" />
-
-			<field
-				name="bodySalidaProductosCelular.indentificacion.numeroIdentificacion"
-				value="" />
-
-			<!-- ✅ CUENTA CORRIENTE -->
-			<field
-				name="bodySalidaProductosCelular.productos.cuentaCorriente[0].tipoProducto"
-				value="CTCTE" />
-
-			<field
-				name="bodySalidaProductosCelular.productos.cuentaCorriente[0].numeroCuenta"
-				value="00000000001037369068" />
-
-			<!-- ✅ CUENTA AHORRO (vacío intencional) -->
-			<!-- ✅ CUENTA ESPECIAL (vacío intencional) -->
-
-			<!-- ✅ TARJETAS DE CREDITO -->
-			<field
-				name="bodySalidaProductosCelular.productos.tarjetaCredito[0].tipoProducto"
-				value="T0018" />
-
-			<field
-				name="bodySalidaProductosCelular.productos.tarjetaCredito[0].numeroCuenta"
-				value="00005491904203295645" />
-
-			<field
-				name="bodySalidaProductosCelular.productos.tarjetaCredito[1].tipoProducto"
-				value="T0024" />
-
-			<field
-				name="bodySalidaProductosCelular.productos.tarjetaCredito[1].numeroCuenta"
-				value="00000036442110419696" />
-
-		</response>
-
-	</api>
-	
 </rules>

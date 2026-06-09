@@ -197,20 +197,28 @@ public class OpenApiGeneratorService {
 		}
 
 		String fullPath = ("/" + (basePath == null ? "" : basePath) + "/" + (path == null ? "" : path))
-				.replaceAll("//+", "/");
 
-		//System.out.println("🔹 Endpoint: " + httpMethod.toUpperCase() + " " + fullPath);
+				.replaceAll("//+", "/")
+
+				.trim();
+
+		if (fullPath.length() > 1 && fullPath.endsWith("/")) {
+
+			fullPath = fullPath.substring(0, fullPath.length() - 1);
+		}
 
 		Map<String, Object> op = new LinkedHashMap<>();
 		op.put("tags", List.of(tag));
 		op.put("summary", method.getNameAsString());
 		op.put("operationId", method.getNameAsString());
 
-		Object request = requestBuilder.build(method, schemaMap, exampleMap, IGNORED_TYPES);
+		Object request = requestBuilder.build(fullPath, method, schemaMap, exampleMap, IGNORED_TYPES);
+
 		if (request != null)
 			op.put("requestBody", request);
 
-		Object response = responseBuilder.build(method, schemaMap, exampleMap, IGNORED_TYPES);
+		Object response = responseBuilder.build(fullPath, method, schemaMap, exampleMap, IGNORED_TYPES);
+
 		if (response != null)
 			op.put("responses", response);
 
@@ -244,7 +252,7 @@ public class OpenApiGeneratorService {
 					return;
 				}
 
-				//System.out.println("✅ Bean detectado: " + className);
+				// System.out.println("✅ Bean detectado: " + className);
 
 				Map<String, Object> schema = schemaBuilder.build(clazz);
 

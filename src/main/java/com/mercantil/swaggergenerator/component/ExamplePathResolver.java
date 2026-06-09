@@ -13,10 +13,18 @@ public class ExamplePathResolver {
     // =========================================================
     // ✅ SET NESTED VALUE
     // =========================================================
+    @SuppressWarnings("unchecked")
     public void setNestedValue(
             Map<String, Object> root,
             String path,
             Object value) {
+
+        if (root == null
+                || path == null
+                || path.isBlank()) {
+
+            return;
+        }
 
         String[] parts =
                 path.split("\\.");
@@ -55,6 +63,7 @@ public class ExamplePathResolver {
                 Object listObj =
                         currentMap.get(field);
 
+                // ✅ crear lista si no existe
                 if (!(listObj instanceof List)) {
 
                     listObj =
@@ -68,20 +77,34 @@ public class ExamplePathResolver {
                 List<Object> list =
                         (List<Object>) listObj;
 
+                // ✅ expandir lista
                 while (list.size() <= index) {
 
                     list.add(
                             new LinkedHashMap<String, Object>());
                 }
 
+                // ✅ último nodo
                 if (last) {
 
                     list.set(index, value);
                     return;
                 }
 
-                current =
+                Object next =
                         list.get(index);
+
+                // ✅ asegurar map interno
+                if (!(next instanceof Map)) {
+
+                    next =
+                            new LinkedHashMap<String, Object>();
+
+                    list.set(index, next);
+                }
+
+                current =
+                        next;
 
                 continue;
             }
@@ -92,6 +115,7 @@ public class ExamplePathResolver {
             Map<String, Object> currentMap =
                     (Map<String, Object>) current;
 
+            // ✅ último nodo
             if (last) {
 
                 currentMap.put(
@@ -104,6 +128,7 @@ public class ExamplePathResolver {
             Object next =
                     currentMap.get(part);
 
+            // ✅ asegurar map interno
             if (!(next instanceof Map)) {
 
                 next =
@@ -126,6 +151,9 @@ public class ExamplePathResolver {
             String key,
             String value) {
 
+        // =====================================================
+        // ✅ NULL/VACÍO
+        // =====================================================
         if (value == null
                 || value.isEmpty()) {
 
@@ -133,9 +161,14 @@ public class ExamplePathResolver {
         }
 
         String lower =
-                key.toLowerCase();
+                key == null
+                        ? ""
+                        : key.toLowerCase();
 
-        // ✅ strings críticos
+        // =====================================================
+        // ✅ STRINGS CRÍTICOS
+        // ✅ preservar ceros a la izquierda
+        // =====================================================
         if (lower.contains("cuenta")
                 || lower.contains("cta")
                 || lower.contains("tarj")
@@ -145,12 +178,21 @@ public class ExamplePathResolver {
                 || lower.contains("identificador")
                 || lower.contains("rif")
                 || lower.contains("codpais")
+                || lower.contains("subcanal")
+                || lower.contains("codterm")
+                || lower.contains("codtrans")
+                || lower.contains("serial")
+                || lower.contains("terminal")
+                || lower.contains("referencia")
+                || lower.contains("nro")
                 || value.startsWith("0")) {
 
             return value;
         }
 
-        // ✅ integer
+        // =====================================================
+        // ✅ INTEGER / LONG
+        // =====================================================
         if (value.matches("-?\\d+")) {
 
             try {
@@ -159,23 +201,44 @@ public class ExamplePathResolver {
 
             } catch (Exception e) {
 
-                return Long.parseLong(value);
+                try {
+
+                    return Long.parseLong(value);
+
+                } catch (Exception ex) {
+
+                    return value;
+                }
             }
         }
 
-        // ✅ decimal
+        // =====================================================
+        // ✅ DECIMAL
+        // =====================================================
         if (value.matches("-?\\d+\\.\\d+")) {
 
-            return Double.parseDouble(value);
+            try {
+
+                return Double.parseDouble(value);
+
+            } catch (Exception e) {
+
+                return value;
+            }
         }
 
-        // ✅ boolean
+        // =====================================================
+        // ✅ BOOLEAN
+        // =====================================================
         if ("true".equalsIgnoreCase(value)
                 || "false".equalsIgnoreCase(value)) {
 
             return Boolean.parseBoolean(value);
         }
 
+        // =====================================================
+        // ✅ DEFAULT STRING
+        // =====================================================
         return value;
     }
 }

@@ -14,6 +14,7 @@ public class RequestResponseResolver {
     // =========================================================
     // ✅ RESOLVE REQUEST
     // =========================================================
+    @SuppressWarnings("unchecked")
     public Map<String, String> resolveRequestBodies(
             MethodDeclaration method,
             Map<String, Map<String, Object>> schemaMap) {
@@ -25,11 +26,17 @@ public class RequestResponseResolver {
         String bodyType = null;
         String bodyFieldName = null;
 
+        // =====================================================
+        // ✅ BUSCAR REQUEST<T>
+        // =====================================================
         Optional<String> requestOpt =
                 method.getParameters()
                         .stream()
+
                         .map(p -> p.getType().asString())
+
                         .filter(t -> t.startsWith("Request"))
+
                         .findFirst();
 
         if (requestOpt.isPresent()) {
@@ -40,6 +47,9 @@ public class RequestResponseResolver {
             Map<String, Object> reqSchema =
                     schemaMap.get(requestType);
 
+            // =================================================
+            // ✅ BUSCAR bodyEntrada*
+            // =================================================
             if (reqSchema != null) {
 
                 Object propsObj =
@@ -63,14 +73,17 @@ public class RequestResponseResolver {
                         }
 
                         Map<String, Object> refObj =
-                                (Map<String, Object>) entry.getValue();
+                                (Map<String, Object>)
+                                        entry.getValue();
 
                         if (!refObj.containsKey("$ref")) {
+
                             continue;
                         }
 
                         String ref =
-                                refObj.get("$ref").toString();
+                                refObj.get("$ref")
+                                        .toString();
 
                         bodyType =
                                 ref.substring(
@@ -85,7 +98,9 @@ public class RequestResponseResolver {
             }
         }
 
-        // ✅ fallback
+        // =====================================================
+        // ✅ FALLBACK REQUEST
+        // =====================================================
         if (bodyType == null
                 && requestType != null) {
 
@@ -95,12 +110,12 @@ public class RequestResponseResolver {
                             "BodyEntrada");
 
             bodyFieldName =
-                    "bodyEntrada"
-                            + bodyType.replace(
-                                    "BodyEntrada",
-                                    "");
+                    decapitalize(bodyType);
         }
 
+        // =====================================================
+        // ✅ RESULT
+        // =====================================================
         if (bodyFieldName != null
                 && bodyType != null) {
 
@@ -115,6 +130,7 @@ public class RequestResponseResolver {
     // =========================================================
     // ✅ RESOLVE RESPONSE
     // =========================================================
+    @SuppressWarnings("unchecked")
     public Map<String, String> resolveResponseBodies(
             String responseType,
             String operationName,
@@ -123,9 +139,15 @@ public class RequestResponseResolver {
         Map<String, String> bodies =
                 new LinkedHashMap<>();
 
+        // =====================================================
+        // ✅ RESPONSE SCHEMA
+        // =====================================================
         Map<String, Object> responseSchema =
                 schemaMap.get(responseType);
 
+        // =====================================================
+        // ✅ BUSCAR bodySalida*
+        // =====================================================
         if (responseSchema != null) {
 
             Object propsObj =
@@ -142,24 +164,39 @@ public class RequestResponseResolver {
                     String key =
                             entry.getKey();
 
-                    if (!key.toLowerCase().startsWith("body")) {
+                    // ✅ solo bodies
+                    if (!key.toLowerCase()
+                            .startsWith("body")) {
+
+                        continue;
+                    }
+
+                    Object value =
+                            entry.getValue();
+
+                    if (!(value instanceof Map)) {
+
                         continue;
                     }
 
                     Map<String, Object> refObj =
-                            (Map<String, Object>) entry.getValue();
+                            (Map<String, Object>) value;
 
                     if (!refObj.containsKey("$ref")) {
+
                         continue;
                     }
 
                     String ref =
-                            refObj.get("$ref").toString();
+                            refObj.get("$ref")
+                                    .toString();
 
                     String refType =
                             ref.substring(
                                     ref.lastIndexOf("/") + 1);
 
+                    // ✅ usar EXACTAMENTE lo definido
+                    // ✅ por el schema
                     bodies.put(
                             key,
                             refType);
@@ -167,20 +204,35 @@ public class RequestResponseResolver {
             }
         }
 
-        // ✅ fallback
+        // =====================================================
+        // ✅ FALLBACK
+        // ✅ SOLO si NO se encontró body real
+        // =====================================================
         if (bodies.isEmpty()) {
 
+            String cleanedOperation =
+                    capitalize(operationName);
+
             String bodyClass =
-                    "BodySalida" + operationName;
+                    "BodySalida"
+                            + cleanedOperation;
+
+            String bodyField =
+                    decapitalize(bodyClass);
 
             bodies.put(
-                    "bodySalida" + operationName,
+                    bodyField,
                     bodyClass);
 
+            // =================================================
+            // ✅ CREAR SCHEMA VACÍO SOLO SI NO EXISTE
+            // =================================================
             schemaMap.computeIfAbsent(
+
                     bodyClass,
 
                     k -> Map.of(
+
                             "type",
                             "object",
 
@@ -189,5 +241,39 @@ public class RequestResponseResolver {
         }
 
         return bodies;
+    }
+
+    // =========================================================
+    // ✅ CAPITALIZE
+    // =========================================================
+    private String capitalize(
+            String str) {
+
+        if (str == null
+                || str.isBlank()) {
+
+            return "";
+        }
+
+        return Character.toUpperCase(
+                str.charAt(0))
+                + str.substring(1);
+    }
+
+    // =========================================================
+    // ✅ DECAPITALIZE
+    // =========================================================
+    private String decapitalize(
+            String str) {
+
+        if (str == null
+                || str.isBlank()) {
+
+            return "";
+        }
+
+        return Character.toLowerCase(
+                str.charAt(0))
+                + str.substring(1);
     }
 }
