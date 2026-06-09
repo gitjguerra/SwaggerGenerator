@@ -54,8 +54,22 @@ public class SmartExampleUtil {
 		// =========================================================
 		// ✅ AUTH / TOKEN
 		// =========================================================
-		if (tokens.contains("token") || tokens.contains("auth")) {
+
+		// ✅ tipo token
+		if (lower.contains("tipotoken")) {
+			return "Bearer";
+		}
+
+		// ✅ bearer token completo
+		if (lower.contains("accesstoken") || lower.contains("authtoken") || lower.contains("bearertoken")) {
+
 			return "Bearer WjY3MjBEMDE6WjAxRDY3MjA=";
+		}
+
+		// ✅ token genérico
+		if (tokens.contains("token") || tokens.contains("auth")) {
+
+			return "WjY3MjBEMDE6WjAxRDY3MjA=";
 		}
 
 		// =========================================================
