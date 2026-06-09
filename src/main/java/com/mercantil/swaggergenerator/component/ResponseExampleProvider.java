@@ -1,8 +1,6 @@
 package com.mercantil.swaggergenerator.component;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,257 +9,92 @@ import org.springframework.stereotype.Component;
 @Component
 public class ResponseExampleProvider {
 
-    @Autowired
-    private RuleEngine ruleEngine;
-
-    @Autowired
-    private ExampleGenerator exampleGenerator;
-
-    // =========================================================
-    // ✅ BUILD RESPONSE EXAMPLE
-    // =========================================================
-    public Map<String, Object> build(
-            String bodyType,
-            String operationName,
-            Map<String, Map<String, Object>> schemaMap,
-            Map<String, Object> exampleMap) {
-
-        Map<String, Object> response =
-                new LinkedHashMap<>();
-
-        if (bodyType == null) {
-            return response;
-        }
-
-        // =====================================================
-        // ✅ PRIORIDAD 1
-        // ✅ RULES.XML RESPONSE
-        // =====================================================
-        Map<String, String> rules =
-                ruleEngine.getResponseRules(operationName);
-
-        if (!rules.isEmpty()) {
-
-            buildFromRules(
-                    response,
-                    rules);
-
-            return response;
-        }
-
-        // =====================================================
-        // ✅ PRIORIDAD 2
-        // ✅ FALLBACK AUTOMATICO
-        // =====================================================
-        Object generated =
-                exampleMap.get(bodyType);
-
-        if (generated == null) {
-
-            generated =
-                    exampleGenerator.buildExampleFromType(
-                            bodyType);
-        }
-
-        response.put(
-                "bodySalida" + operationName,
-                generated);
-
-        return response;
-    }
-
-    // =========================================================
-    // ✅ BUILD FROM RULES
-    // =========================================================
-    private void buildFromRules(
-            Map<String, Object> response,
-            Map<String, String> rules) {
-
-        for (Map.Entry<String, String> entry
-                : rules.entrySet()) {
-
-            String path =
-                    entry.getKey();
-
-            String value =
-                    entry.getValue();
-
-            setNestedValue(
-                    response,
-                    path,
-                    parseValue(path, value));
-        }
-    }
-
-    // =========================================================
-    // ✅ SET NESTED VALUE
-    // ✅ SOPORTA:
-    // ✅ cliente.nombre
-    // ✅ cuentas[0].saldo
-    // ✅ clientes[0].direccion.ciudad
-    // =========================================================
-    private void setNestedValue(
-            Map<String, Object> root,
-            String path,
-            Object value) {
-
-        String[] parts =
-                path.split("\\.");
+	@Autowired
+	private RuleEngine ruleEngine;
 
-        Object current =
-                root;
-
-        for (int i = 0; i < parts.length; i++) {
+	@Autowired
+	private ExampleGenerator exampleGenerator;
 
-            String part =
-                    parts[i];
+	@Autowired
+	private ExamplePathResolver examplePathResolver;
 
-            boolean last =
-                    i == parts.length - 1;
+	// =========================================================
+	// ✅ BUILD RESPONSE EXAMPLE
+	// =========================================================
+	public Map<String, Object> build(String bodyType, String operationName, Map<String, Map<String, Object>> schemaMap,
+			Map<String, Object> exampleMap) {
 
-            // ================================================
-            // ✅ ARRAY
-            // ================================================
-            if (part.contains("[")
-                    && part.contains("]")) {
+		Map<String, Object> response = new LinkedHashMap<>();
 
-                String field =
-                        part.substring(
-                                0,
-                                part.indexOf("["));
+		if (bodyType == null) {
+			return response;
+		}
 
-                int index =
-                        Integer.parseInt(
-                                part.substring(
-                                        part.indexOf("[") + 1,
-                                        part.indexOf("]")));
+		// =====================================================
+		// ✅ PRIORIDAD 1
+		// ✅ RULES.XML RESPONSE
+		// =====================================================
+		String apiName = extractApiName(bodyType);
 
-                Map<String, Object> currentMap =
-                        (Map<String, Object>) current;
+		Map<String, String> rules = ruleEngine.getResponseRules(apiName);
 
-                Object listObj =
-                        currentMap.get(field);
+		if (!rules.isEmpty()) {
 
-                if (!(listObj instanceof List)) {
+			buildFromRules(response, rules);
 
-                    listObj =
-                            new ArrayList<>();
+			return response;
+		}
 
-                    currentMap.put(
-                            field,
-                            listObj);
-                }
+		// =====================================================
+		// ✅ PRIORIDAD 2
+		// ✅ FALLBACK AUTOMATICO
+		// =====================================================
+		Object generated = exampleMap.get(bodyType);
 
-                List<Object> list =
-                        (List<Object>) listObj;
+		if (generated == null) {
 
-                while (list.size() <= index) {
+			generated = exampleGenerator.buildExampleFromType(bodyType);
+		}
 
-                    list.add(
-                            new LinkedHashMap<String, Object>());
-                }
+		response.put("bodySalida" + operationName, generated);
 
-                if (last) {
+		return response;
+	}
 
-                    list.set(index, value);
-                    return;
-                }
+	// =========================================================
+	// ✅ BUILD FROM RULES
+	// =========================================================
+	private void buildFromRules(Map<String, Object> response, Map<String, String> rules) {
 
-                current =
-                        list.get(index);
+		for (Map.Entry<String, String> entry : rules.entrySet()) {
 
-                continue;
-            }
+			String path = entry.getKey();
 
-            // ================================================
-            // ✅ NORMAL OBJECT
-            // ================================================
-            Map<String, Object> currentMap =
-                    (Map<String, Object>) current;
+			String value = entry.getValue();
 
-            if (last) {
+			examplePathResolver.setNestedValue(response, path, examplePathResolver.parseValue(path, value));
+		}
+	}
 
-                currentMap.put(
-                        part,
-                        value);
+	private String extractApiName(String type) {
 
-                return;
-            }
+		if (type == null) {
+			return null;
+		}
 
-            Object next =
-                    currentMap.get(part);
+		String normalized = type.trim();
 
-            if (!(next instanceof Map)) {
+		if (normalized.startsWith("BodyEntrada")) {
 
-                next =
-                        new LinkedHashMap<String, Object>();
+			return normalized.substring("BodyEntrada".length()).trim();
+		}
 
-                currentMap.put(
-                        part,
-                        next);
-            }
+		if (normalized.startsWith("BodySalida")) {
 
-            current =
-                    next;
-        }
-    }
+			return normalized.substring("BodySalida".length()).trim();
+		}
 
-    // =========================================================
-    // ✅ PARSE VALUE
-    // =========================================================
-    private Object parseValue(
-            String key,
-            String value) {
+		return normalized;
+	}
 
-        if (value == null
-                || value.isEmpty()) {
-
-            return "";
-        }
-
-        String lower =
-                key.toLowerCase();
-
-        // ✅ strings criticos
-        if (lower.contains("cuenta")
-                || lower.contains("cta")
-                || lower.contains("tarj")
-                || lower.contains("telefono")
-                || lower.contains("telf")
-                || lower.contains("cel")
-                || lower.contains("identificador")
-                || lower.contains("rif")
-                || value.startsWith("0")) {
-
-            return value;
-        }
-
-        // ✅ integer
-        if (value.matches("-?\\d+")) {
-
-            try {
-
-                return Integer.parseInt(value);
-
-            } catch (Exception e) {
-
-                return Long.parseLong(value);
-            }
-        }
-
-        // ✅ double
-        if (value.matches("-?\\d+\\.\\d+")) {
-
-            return Double.parseDouble(value);
-        }
-
-        // ✅ boolean
-        if ("true".equalsIgnoreCase(value)
-                || "false".equalsIgnoreCase(value)) {
-
-            return Boolean.parseBoolean(value);
-        }
-
-        return value;
-    }
 }

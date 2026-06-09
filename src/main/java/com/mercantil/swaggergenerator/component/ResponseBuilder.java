@@ -3,13 +3,11 @@ package com.mercantil.swaggergenerator.component;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.expr.CastExpr;
 import com.mercantil.swaggergenerator.util.ParserUtil;
 
 @Component
@@ -22,10 +20,10 @@ public class ResponseBuilder {
     private ParserUtil parserUtil;
 
     @Autowired
-    private ClassIndexer classIndexer;
+    private ResponseExampleProvider responseExampleProvider;
 
     @Autowired
-    private ResponseExampleProvider responseExampleProvider;
+    private RequestResponseResolver requestResponseResolver;
 
     // =========================================================
     // ✅ BUILD RESPONSE
@@ -43,101 +41,16 @@ public class ResponseBuilder {
                 parserUtil.extractGeneric(rawReturn);
 
         // =====================================================
-        // ✅ DETECTAR BODY*
+        // ✅ RESOLVE BODIES
         // =====================================================
+        String operationName =
+                capitalize(method.getNameAsString());
+
         Map<String, String> bodies =
-                new LinkedHashMap<>();
-
-        Map<String, Object> responseSchema =
-                schemaMap.get(responseType);
-
-        if (responseSchema != null) {
-
-            Object propsObj =
-                    responseSchema.get("properties");
-
-            if (propsObj instanceof Map) {
-
-                Map<String, Object> props =
-                        (Map<String, Object>) propsObj;
-
-                for (Map.Entry<String, Object> entry
-                        : props.entrySet()) {
-
-                    String key =
-                            entry.getKey();
-
-                    if (!key.toLowerCase().startsWith("body")) {
-                        continue;
-                    }
-
-                    Map<String, Object> refObj =
-                            (Map<String, Object>) entry.getValue();
-
-                    if (!refObj.containsKey("$ref")) {
-                        continue;
-                    }
-
-                    String ref =
-                            refObj.get("$ref").toString();
-
-                    String refType =
-                            ref.substring(
-                                    ref.lastIndexOf("/") + 1);
-
-                    bodies.put(
-                            key,
-                            refType);
-                }
-            }
-        }
-
-        // =====================================================
-        // ✅ FALLBACK LEGACY
-        // =====================================================
-        if (bodies.isEmpty()) {
-
-            Optional<String> inferred =
-                    inferBodyFromConstructor(responseType);
-
-            if (inferred.isPresent()) {
-
-                String bodyClass =
-                        inferred.get();
-
-                String bodyName =
-                        bodyClass.replace(
-                                "BodySalida",
-                                "");
-
-                bodies.put(
-                        "bodySalida" + bodyName,
-                        bodyClass);
-
-            } else {
-
-                String op =
-                        capitalize(
-                                method.getNameAsString());
-
-                String bodyClass =
-                        "BodySalida" + op;
-
-                bodies.put(
-                        "bodySalida" + op,
-                        bodyClass);
-
-                schemaMap.computeIfAbsent(
-                        bodyClass,
-
-                        k -> Map.of(
-                                "type",
-                                "object",
-
-                                "properties",
-                                new LinkedHashMap<>()));
-            }
-        }
+                requestResponseResolver.resolveResponseBodies(
+                        responseType,
+                        operationName,
+                        schemaMap);
 
         // =====================================================
         // ✅ SCHEMA RESPONSE
@@ -158,10 +71,6 @@ public class ResponseBuilder {
         responseExample.put(
                 "headerSalida",
                 headerProvider.buildHeaderSalida());
-
-        String operationName =
-                capitalize(
-                        method.getNameAsString());
 
         // =====================================================
         // ✅ BODY*
@@ -279,31 +188,6 @@ public class ResponseBuilder {
                         Map.of(
                                 "application/json",
                                 responseJson)));
-    }
-
-    // =========================================================
-    // ✅ INFER BODY
-    // =========================================================
-    private Optional<String> inferBodyFromConstructor(
-            String responseType) {
-
-        return classIndexer.findClass(responseType)
-
-                .flatMap(clazz -> clazz.getConstructors()
-                        .stream()
-
-                        .flatMap(c -> c.getBody()
-                                .getStatements()
-                                .stream())
-
-                        .flatMap(stmt -> stmt.findAll(CastExpr.class)
-                                .stream())
-
-                        .map(cast -> cast.getType().asString())
-
-                        .filter(t -> t.startsWith("BodySalida"))
-
-                        .findFirst());
     }
 
     // =========================================================
