@@ -13,198 +13,288 @@ import com.mercantil.swaggergenerator.util.ParserUtil;
 @Component
 public class ResponseBuilder {
 
-	@Autowired
-	private HeaderExampleProvider headerProvider;
+    @Autowired
+    private HeaderExampleProvider headerProvider;
+
+    @Autowired
+    private ParserUtil parserUtil;
+
+    @Autowired
+    private ResponseExampleProvider responseExampleProvider;
+
+    @Autowired
+    private RequestResponseResolver requestResponseResolver;
+
+    // =========================================================
+    // ✅ BUILD RESPONSE
+    // ✅ SOPORTA ENDPOINT PATH
+    // ✅ EVITA BODY VACÍOS
+    // =========================================================
+    public Map<String, Object> build(
+            String endpointPath,
+            MethodDeclaration method,
+            Map<String, Map<String, Object>> schemaMap,
+            Map<String, Object> exampleMap,
+            List<String> ignoredTypes) {
+
+        String rawReturn =
+                method.getType().asString();
+
+        String responseType =
+                parserUtil.extractGeneric(
+                        rawReturn);
+
+        // =====================================================
+        // ✅ OPERATION NAME
+        // =====================================================
+        String operationName =
+                capitalize(
+                        method.getNameAsString());
+
+        // =====================================================
+        // ✅ RESOLVE RESPONSE BODIES
+        // =====================================================
+        Map<String, String> bodies =
+                requestResponseResolver.resolveResponseBodies(
+                        responseType,
+                        operationName,
+                        schemaMap);
+
+        // =====================================================
+        // ✅ FINAL RESPONSE SCHEMA
+        // =====================================================
+        Map<String, Object> propsFinal =
+                new LinkedHashMap<>();
+
+        // =====================================================
+        // ✅ HEADER SALIDA
+        // =====================================================
+        propsFinal.put(
+
+                "headerSalida",
+
+                Map.of(
+                        "$ref",
+                        "#/components/schemas/HeaderSalida"));
+
+        // =====================================================
+        // ✅ RESPONSE EXAMPLE
+        // =====================================================
+        Map<String, Object> responseExample =
+                new LinkedHashMap<>();
+
+        responseExample.put(
+
+                "headerSalida",
+
+                headerProvider.buildHeaderSalida());
+
+        // =====================================================
+        // ✅ BODY RESPONSES
+        // =====================================================
+        for (Map.Entry<String, String> entry
+                : bodies.entrySet()) {
+
+            String bodyKey =
+                    entry.getKey();
+
+            String bodyType =
+                    entry.getValue();
+
+            // =================================================
+            // ✅ ASEGURAR SCHEMA
+            // =================================================
+            schemaMap.computeIfAbsent(
+
+                    bodyType,
+
+                    k -> Map.of(
+
+                            "type",
+                            "object",
+
+                            "properties",
+                            new LinkedHashMap<>()));
+
+            // =================================================
+            // ✅ VALIDAR BODY
+            // ✅ NO MOSTRAR BODY VACÍOS
+            // =================================================
+            boolean hasBody =
+                    hasProperties(
+                            bodyType,
+                            schemaMap);
 
-	@Autowired
-	private ParserUtil parserUtil;
+            // ✅ operaciones update/delete/etc
+            // ✅ normalmente no devuelven body
+            if (!hasBody) {
 
-	@Autowired
-	private ResponseExampleProvider responseExampleProvider;
+                continue;
+            }
 
-	@Autowired
-	private RequestResponseResolver requestResponseResolver;
+            // =================================================
+            // ✅ SCHEMA REF
+            // =================================================
+            propsFinal.put(
 
-	// =========================================================
-	// ✅ BUILD RESPONSE
-	// ✅ AHORA SOPORTA ENDPOINT PATH
-	// =========================================================
-	public Map<String, Object> build(String endpointPath, MethodDeclaration method,
-			Map<String, Map<String, Object>> schemaMap, Map<String, Object> exampleMap, List<String> ignoredTypes) {
+                    bodyKey,
 
-		String rawReturn = method.getType().asString();
+                    Map.of(
+                            "$ref",
+                            "#/components/schemas/" + bodyType));
 
-		String responseType = parserUtil.extractGeneric(rawReturn);
+            // =================================================
+            // ✅ RESPONSE EXAMPLE
+            // =================================================
+            Map<String, Object> generated =
+                    responseExampleProvider.build(
+                            endpointPath,
+                            bodyType,
+                            operationName,
+                            schemaMap,
+                            exampleMap);
 
-		// =====================================================
-		// ✅ OPERATION NAME
-		// =====================================================
-		String operationName = capitalize(method.getNameAsString());
+            // =================================================
+            // ✅ CASO SIMPLE
+            // ✅ bodySalida
+            // =================================================
+            if (generated.containsKey(
+                    "bodySalida")) {
 
-		// =====================================================
-		// ✅ RESOLVE RESPONSE BODIES
-		// =====================================================
-		Map<String, String> bodies = requestResponseResolver.resolveResponseBodies(responseType, operationName,
-				schemaMap);
+                responseExample.put(
 
-		// =====================================================
-		// ✅ FINAL RESPONSE SCHEMA
-		// =====================================================
-		Map<String, Object> propsFinal = new LinkedHashMap<>();
+                        bodyKey,
 
-		// =====================================================
-		// ✅ HEADER SALIDA
-		// =====================================================
-		propsFinal.put(
+                        generated.get(
+                                "bodySalida"));
 
-				"headerSalida",
+                continue;
+            }
 
-				Map.of("$ref", "#/components/schemas/HeaderSalida"));
+            // =================================================
+            // ✅ CASO MULTI BODY
+            // =================================================
+            if (generated.containsKey(
+                    bodyKey)) {
 
-		// =====================================================
-		// ✅ RESPONSE EXAMPLE
-		// =====================================================
-		Map<String, Object> responseExample = new LinkedHashMap<>();
+                responseExample.put(
 
-		responseExample.put(
+                        bodyKey,
 
-				"headerSalida",
+                        generated.get(
+                                bodyKey));
 
-				headerProvider.buildHeaderSalida());
+                continue;
+            }
 
-		// =====================================================
-		// ✅ BODY RESPONSES
-		// =====================================================
-		for (Map.Entry<String, String> entry : bodies.entrySet()) {
+            // =================================================
+            // ✅ FALLBACK
+            // =================================================
+            Object fallback =
+                    exampleMap.get(bodyType);
 
-			String bodyKey = entry.getKey();
+            if (fallback == null) {
 
-			String bodyType = entry.getValue();
+                fallback =
+                        new LinkedHashMap<>();
+            }
 
-			// =================================================
-			// ✅ ASEGURAR SCHEMA
-			// =================================================
-			schemaMap.computeIfAbsent(
+            responseExample.put(
+                    bodyKey,
+                    fallback);
+        }
 
-					bodyType,
+        // =====================================================
+        // ✅ RESPONSE JSON
+        // =====================================================
+        Map<String, Object> responseJson =
+                Map.of(
 
-					k -> Map.of(
+                        "schema",
 
-							"type", "object",
+                        Map.of(
 
-							"properties", new LinkedHashMap<>()));
+                                "type",
+                                "object",
 
-			// =================================================
-			// ✅ SCHEMA REF
-			// =================================================
-			propsFinal.put(
+                                "properties",
+                                propsFinal),
 
-					bodyKey,
+                        "examples",
 
-					Map.of("$ref", "#/components/schemas/" + bodyType));
+                        Map.of(
 
-			// =================================================
-			// ✅ RESPONSE EXAMPLE
-			// ✅ lookup por PATH
-			// =================================================
-			Map<String, Object> generated = responseExampleProvider.build(endpointPath, bodyType, operationName,
-					schemaMap, exampleMap);
+                                "default",
 
-			// =================================================
-			// ✅ CASO SIMPLE
-			// ✅ bodySalida
-			// =================================================
-			if (generated.containsKey("bodySalida")) {
+                                Map.of(
 
-				responseExample.put(
+                                        "summary",
+                                        "Ejemplo generado",
 
-						bodyKey,
+                                        "value",
+                                        responseExample)));
 
-						generated.get("bodySalida"));
+        // =====================================================
+        // ✅ HTTP 200
+        // =====================================================
+        return Map.of(
 
-				continue;
-			}
+                "200",
 
-			// =================================================
-			// ✅ CASO MULTI BODY
-			// =================================================
-			if (generated.containsKey(bodyKey)) {
+                Map.of(
 
-				responseExample.put(
+                        "description",
+                        "Operación exitosa",
 
-						bodyKey,
+                        "content",
 
-						generated.get(bodyKey));
+                        Map.of(
+                                "application/json",
+                                responseJson)));
+    }
 
-				continue;
-			}
+    // =========================================================
+    // ✅ VALIDAR SI EL SCHEMA TIENE PROPERTIES
+    // =========================================================
+    private boolean hasProperties(
+            String type,
+            Map<String, Map<String, Object>> schemaMap) {
 
-			// =================================================
-			// ✅ FALLBACK
-			// =================================================
-			Object fallback = exampleMap.get(bodyType);
+        if (type == null) {
 
-			if (fallback == null) {
+            return false;
+        }
 
-				fallback = new LinkedHashMap<>();
-			}
+        Map<String, Object> schema =
+                schemaMap.get(type);
 
-			responseExample.put(bodyKey, fallback);
-		}
+        if (schema == null) {
 
-		// =====================================================
-		// ✅ RESPONSE JSON
-		// =====================================================
-		Map<String, Object> responseJson = Map.of(
+            return false;
+        }
 
-				"schema",
+        Object props =
+                schema.get("properties");
 
-				Map.of(
+        return props instanceof Map
+                && !((Map<?, ?>) props).isEmpty();
+    }
 
-						"type", "object",
+    // =========================================================
+    // ✅ CAPITALIZE
+    // =========================================================
+    private String capitalize(
+            String str) {
 
-						"properties", propsFinal),
+        if (str == null
+                || str.isEmpty()) {
 
-				"examples",
+            return str;
+        }
 
-				Map.of(
+        return Character.toUpperCase(
+                str.charAt(0))
 
-						"default",
-
-						Map.of(
-
-								"summary", "Ejemplo generado",
-
-								"value", responseExample)));
-
-		// =====================================================
-		// ✅ HTTP 200
-		// =====================================================
-		return Map.of(
-
-				"200",
-
-				Map.of(
-
-						"description", "Operación exitosa",
-
-						"content",
-
-						Map.of("application/json", responseJson)));
-	}
-
-	// =========================================================
-	// ✅ CAPITALIZE
-	// =========================================================
-	private String capitalize(String str) {
-
-		if (str == null || str.isEmpty()) {
-
-			return str;
-		}
-
-		return Character.toUpperCase(str.charAt(0))
-
-				+ str.substring(1);
-	}
+                + str.substring(1);
+    }
 }

@@ -1,306 +1,323 @@
 <rules>
 
-    <!-- ===================================================== -->
-    <!-- ✅ CONSULTAR DATOS BASICOS -->
-    <!-- ===================================================== -->
-    <api path="/persona/consultar/datos-basicos">
+	<!-- ===================================================== -->
+	<!-- ✅ CONSULTAR DATOS BASICOS -->
+	<!-- ===================================================== -->
+	<api path="/persona/consultar/datos-basicos">
 
-        <request>
+		<request>
 
-            <field name="nroPer" value="0"/>
-            <field name="codPais" value="VEN"/>
-            <field name="tipoId" value="V"/>
-            <field name="nroId" value="15518542"/>
+			<field name="nroPer" value="0" />
+			<field name="codPais" value="VEN" />
+			<field name="tipoId" value="V" />
+			<field name="nroId" value="15518542" />
 
-        </request>
+		</request>
 
-        <response>
+		<response>
 
-            <field name="bodySalidaConsultarDatosBasicos.segundoApell"
-                   value="Gonzalez"/>
+			<field name="bodySalidaConsultarDatosBasicos.segundoApell"
+				value="Gonzalez" />
 
-            <field name="bodySalidaConsultarDatosBasicos.primerNom"
-                   value="Juan"/>
+			<field name="bodySalidaConsultarDatosBasicos.primerNom"
+				value="Juan" />
 
-            <field name="bodySalidaConsultarDatosBasicos.tipoPer"
-                   value="1"/>
+			<field name="bodySalidaConsultarDatosBasicos.tipoPer" value="1" />
 
-            <field name="bodySalidaConsultarDatosBasicos.apellCasada"
-                   value="de Perez"/>
+			<field name="bodySalidaConsultarDatosBasicos.apellCasada"
+				value="de Perez" />
 
-            <field name="bodySalidaConsultarDatosBasicos.nomComerc"
-                   value="Empresa XYZ"/>
+			<field name="bodySalidaConsultarDatosBasicos.nomComerc"
+				value="Empresa XYZ" />
 
-            <field name="bodySalidaConsultarDatosBasicos.primerApell"
-                   value="Perez"/>
+			<field name="bodySalidaConsultarDatosBasicos.primerApell"
+				value="Perez" />
 
-            <field name="bodySalidaConsultarDatosBasicos.segundoNom"
-                   value="Carlos"/>
+			<field name="bodySalidaConsultarDatosBasicos.segundoNom"
+				value="Carlos" />
 
-            <field name="bodyEntradaConsultarDatosBasicos.nroPer"
-                   value="0"/>
+			<field name="bodyEntradaConsultarDatosBasicos.nroPer" value="0" />
 
-            <field name="bodyEntradaConsultarDatosBasicos.codPais"
-                   value="VEN"/>
+			<field name="bodyEntradaConsultarDatosBasicos.codPais"
+				value="VEN" />
 
-            <field name="bodyEntradaConsultarDatosBasicos.tipoId"
-                   value="V"/>
+			<field name="bodyEntradaConsultarDatosBasicos.tipoId" value="V" />
 
-            <field name="bodyEntradaConsultarDatosBasicos.nroId"
-                   value="15518542"/>
+			<field name="bodyEntradaConsultarDatosBasicos.nroId"
+				value="15518542" />
 
-        </response>
+		</response>
 
-    </api>
+	</api>
 
-    <!-- ===================================================== -->
-    <!-- ✅ CONSULTAR SALDO SAFE -->
-    <!-- ===================================================== -->
-    <api path="/safe/consultar/saldo-cuenta">
+	<!-- ===================================================== -->
+	<!-- ✅ CONSULTAR SALDO SAFE -->
+	<!-- ===================================================== -->
+	<api path="/safe/consultar/saldo-cuenta">
 
-        <request>
+		<request>
 
-            <field name="codTrans" value="1234"/>
-            <field name="indicReverso" value=""/>
-            <field name="codTerm" value="4484"/>
+			<field name="codTrans" value="1234" />
+			<field name="indicReverso" value="" />
+			<field name="codTerm" value="4484" />
 
-            <field name="nroTarj"
-                   value="00501878200077413252"/>
+			<field name="nroTarj" value="00501878200077413252" />
 
-            <field name="fchVcto" value="0"/>
-            <field name="tipoCta" value=""/>
+			<field name="fchVcto" value="0" />
+			<field name="tipoCta" value="" />
 
-            <field name="nroCta"
-                   value="00000000000140094857"/>
+			<field name="nroCta" value="00000000000140094857" />
 
-            <field name="indicCobro" value="N"/>
-            <field name="nroCi" value="11428799"/>
-            <field name="inicValCi" value="1"/>
-            <field name="longValCi" value="10"/>
-            <field name="codMoneda" value="VEB"/>
-            <field name="codSubCanal" value="0"/>
+			<field name="indicCobro" value="N" />
+			<field name="nroCi" value="11428799" />
+			<field name="inicValCi" value="1" />
+			<field name="longValCi" value="10" />
+			<field name="codMoneda" value="VEB" />
+			<field name="codSubCanal" value="0" />
 
-        </request>
+		</request>
 
-        <response>
+		<response>
 
-            <field name="bodySalidaConsultarSaldo.saldoDisp"
-                   value="12629336.79"/>
+			<field name="bodySalidaConsultarSaldo.saldoDisp"
+				value="12629336.79" />
 
-            <field name="bodySalidaConsultarSaldo.nroAprob"
-                   value="2349102"/>
+			<field name="bodySalidaConsultarSaldo.nroAprob" value="2349102" />
 
-            <field name="bodySalidaConsultarSaldo.saldoBloq"
-                   value="0.00"/>
+			<field name="bodySalidaConsultarSaldo.saldoBloq" value="0.00" />
 
-            <field name="bodySalidaConsultarSaldo.limCred"
-                   value="5621513.69"/>
+			<field name="bodySalidaConsultarSaldo.limCred"
+				value="5621513.69" />
 
-            <field name="bodySalidaConsultarSaldo.saldoDiferido"
-                   value="0.00"/>
+			<field name="bodySalidaConsultarSaldo.saldoDiferido"
+				value="0.00" />
 
-            <field name="bodySalidaConsultarSaldo.mtoComis"
-                   value="0.00"/>
+			<field name="bodySalidaConsultarSaldo.mtoComis" value="0.00" />
 
-            <field name="bodySalidaConsultarSaldo.saldoReal"
-                   value="12629336.79"/>
+			<field name="bodySalidaConsultarSaldo.saldoReal"
+				value="12629336.79" />
 
-        </response>
+		</response>
 
-    </api>
+	</api>
 
-    <!-- ===================================================== -->
-    <!-- ✅ CONSULTAR MOVIMIENTO RESUMIDO -->
-    <!-- ===================================================== -->
-    <api path="/safe/consultar/movimientos-resumido">
+	<!-- ===================================================== -->
+	<!-- ✅ CONSULTAR MOVIMIENTO RESUMIDO -->
+	<!-- ===================================================== -->
+	<api path="/safe/consultar/movimientos-resumido">
 
-        <request>
+		<request>
 
-            <field name="nroCta"
-                   value="00000000000191097802"/>
+			<field name="nroCta" value="00000000000191097802" />
 
-            <field name="fchInic"
-                   value="20250901"/>
+			<field name="fchInic" value="20250901" />
 
-            <field name="fchFin"
-                   value="20250930"/>
+			<field name="fchFin" value="20250930" />
 
-        </request>
+		</request>
 
-        <response>
+		<response>
 
-            <field name="bodySalidaConsultarMovimientoResumido.saldoDisp"
-                   value="197.27"/>
+			<field name="bodySalidaConsultarMovimientoResumido.saldoDisp"
+				value="197.27" />
 
-            <field name="bodySalidaConsultarMovimientoResumido.nroAprob"
-                   value="1129625"/>
+			<field name="bodySalidaConsultarMovimientoResumido.nroAprob"
+				value="1129625" />
 
-            <field name="bodySalidaConsultarMovimientoResumido.saldoAct"
-                   value="197.27"/>
+			<field name="bodySalidaConsultarMovimientoResumido.saldoAct"
+				value="197.27" />
 
-            <field name="bodySalidaConsultarMovimientoResumido.mtoComis"
-                   value="0.00"/>
+			<field name="bodySalidaConsultarMovimientoResumido.mtoComis"
+				value="0.00" />
 
-            <field name="bodySalidaConsultarMovimientoResumido.movimientos[0].saldoFin"
-                   value="159.41"/>
+			<field
+				name="bodySalidaConsultarMovimientoResumido.movimientos[0].saldoFin"
+				value="159.41" />
 
-            <field name="bodySalidaConsultarMovimientoResumido.movimientos[0].codTerminal"
-                   value="0001"/>
+			<field
+				name="bodySalidaConsultarMovimientoResumido.movimientos[0].codTerminal"
+				value="0001" />
 
-            <field name="bodySalidaConsultarMovimientoResumido.movimientos[0].tipoTrans"
-                   value="SF"/>
+			<field
+				name="bodySalidaConsultarMovimientoResumido.movimientos[0].tipoTrans"
+				value="SF" />
 
-            <field name="bodySalidaConsultarMovimientoResumido.movimientos[0].descripTrans"
-                   value="SALDO FINAL"/>
+			<field
+				name="bodySalidaConsultarMovimientoResumido.movimientos[0].descripTrans"
+				value="SALDO FINAL" />
 
-        </response>
+		</response>
 
-    </api>
+	</api>
 
-    <!-- ===================================================== -->
-    <!-- ✅ CONSULTAR CLAVE CIFRADA -->
-    <!-- ===================================================== -->
-    <api path="/safe/consultar/clave-cifrada">
+	<!-- ===================================================== -->
+	<!-- ✅ CONSULTAR CLAVE CIFRADA -->
+	<!-- ===================================================== -->
+	<api path="/safe/consultar/clave-cifrada">
 
-        <request>
+		<request>
 
-            <field name="accion" value=""/>
-            <field name="formato" value=""/>
-            <field name="masterKeyUtilizar" value=""/>
-            <field name="claveTripleDes" value="1234"/>
-            <field name="disponibleE" value=""/>
+			<field name="accion" value="" />
+			<field name="formato" value="" />
+			<field name="masterKeyUtilizar" value="" />
+			<field name="claveTripleDes" value="1234" />
+			<field name="disponibleE" value="" />
 
-        </request>
+		</request>
 
-        <response>
+		<response>
 
-            <field name="bodySalidaConsultarClaveCifrada.masterKey"
-                   value="1FFBA2B6D39D94918C45987FB507A2681FFBA2B6D39D9491"/>
+			<field name="bodySalidaConsultarClaveCifrada.masterKey"
+				value="1FFBA2B6D39D94918C45987FB507A2681FFBA2B6D39D9491" />
 
-            <field name="bodySalidaConsultarClaveCifrada.versMasterKey"
-                   value="2"/>
+			<field name="bodySalidaConsultarClaveCifrada.versMasterKey"
+				value="2" />
 
-        </response>
+		</response>
 
-    </api>
+	</api>
 
-    <!-- ===================================================== -->
-    <!-- ✅ PRODUCTOS CELULAR -->
-    <!-- ===================================================== -->
-    <api path="/safe/consultar/producto-celular">
+	<!-- ===================================================== -->
+	<!-- ✅ PRODUCTOS CELULAR -->
+	<!-- ===================================================== -->
+	<api path="/safe/consultar/producto-celular">
 
-        <request>
+		<request>
 
-            <field name="codProduc" value="27"/>
+			<field name="codProduc" value="27" />
 
-            <field name="nroServProduc"
-                   value="0000000000004127329735"/>
+			<field name="nroServProduc" value="0000000000004127329735" />
 
-        </request>
+		</request>
 
-        <response>
+		<response>
 
-            <field name="bodySalidaProductosCelular.numeroPersona"
-                   value="330699"/>
+			<field name="bodySalidaProductosCelular.numeroPersona"
+				value="330699" />
 
-            <field name="bodySalidaProductosCelular.numeroTarjeta"
-                   value="501878200074934748"/>
+			<field name="bodySalidaProductosCelular.numeroTarjeta"
+				value="501878200074934748" />
 
-            <field name="bodySalidaProductosCelular.estatusAfiliacion"
-                   value="0"/>
+			<field name="bodySalidaProductosCelular.estatusAfiliacion"
+				value="0" />
 
-            <field name="bodySalidaProductosCelular.emailBeneficiario"
-                   value="a_sanchez11@hotmail.com"/>
+			<field name="bodySalidaProductosCelular.emailBeneficiario"
+				value="a_sanchez11@hotmail.com" />
 
-            <field name="bodySalidaProductosCelular.productos.cuentaCorriente[0].tipoProducto"
-                   value="CTCTE"/>
+			<field
+				name="bodySalidaProductosCelular.productos.cuentaCorriente[0].tipoProducto"
+				value="CTCTE" />
 
-            <field name="bodySalidaProductosCelular.productos.cuentaCorriente[0].numeroCuenta"
-                   value="00000000001037369068"/>
+			<field
+				name="bodySalidaProductosCelular.productos.cuentaCorriente[0].numeroCuenta"
+				value="00000000001037369068" />
 
-            <field name="bodySalidaProductosCelular.productos.tarjetaCredito[0].tipoProducto"
-                   value="T0018"/>
+			<field
+				name="bodySalidaProductosCelular.productos.tarjetaCredito[0].tipoProducto"
+				value="T0018" />
 
-            <field name="bodySalidaProductosCelular.productos.tarjetaCredito[0].numeroCuenta"
-                   value="00005491904203295645"/>
+			<field
+				name="bodySalidaProductosCelular.productos.tarjetaCredito[0].numeroCuenta"
+				value="00005491904203295645" />
 
-            <field name="bodySalidaProductosCelular.productos.tarjetaCredito[1].tipoProducto"
-                   value="T0024"/>
+			<field
+				name="bodySalidaProductosCelular.productos.tarjetaCredito[1].tipoProducto"
+				value="T0024" />
 
-            <field name="bodySalidaProductosCelular.productos.tarjetaCredito[1].numeroCuenta"
-                   value="00000036442110419696"/>
+			<field
+				name="bodySalidaProductosCelular.productos.tarjetaCredito[1].numeroCuenta"
+				value="00000036442110419696" />
 
-        </response>
+		</response>
 
-    </api>
+	</api>
 
-    <!-- ===================================================== -->
-    <!-- ✅ CONSULTAR SALDO TARJETA PREPAGO -->
-    <!-- ===================================================== -->
-    <api path="/tarjeta/consultar/saldo-tarjeta-prepago">
+	<!-- ===================================================== -->
+	<!-- ✅ CONSULTAR SALDO TARJETA PREPAGO -->
+	<!-- ===================================================== -->
+	<api path="/tarjeta/consultar/saldo-tarjeta-prepago">
 
-        <request>
+		<request>
 
-            <field name="numeroTarjeta"
-                   value="501878200062873205"/>
+			<field name="numeroTarjeta" value="501878200062873205" />
 
-        </request>
+		</request>
 
-        <response>
+		<response>
 
-            <field name="bodySalidaConsultarSaldoTarjetaPrepago.saldoDisponible"
-                   value="250.75"/>
+			<field
+				name="bodySalidaConsultarSaldoTarjetaPrepago.saldoDisponible"
+				value="250.75" />
 
-            <field name="bodySalidaConsultarSaldoTarjetaPrepago.moneda"
-                   value="VES"/>
+			<field name="bodySalidaConsultarSaldoTarjetaPrepago.moneda"
+				value="VES" />
 
-        </response>
+		</response>
 
-    </api>
+	</api>
 
-    <!-- ===================================================== -->
-    <!-- ✅ CONSULTAR NOTA AMPLIADA -->
-    <!-- ===================================================== -->
-    <api path="/safe/consultar/nota-ampliada">
+	<!-- ===================================================== -->
+	<!-- ✅ CONSULTAR NOTA AMPLIADA -->
+	<!-- ===================================================== -->
+	<api path="/safe/consultar/nota-ampliada">
 
-        <request>
+		<request>
 
-            <field name="numeroCuenta"
-                   value="00000000000140094857"/>
+			<field name="numeroCuenta" value="00000000000140094857" />
 
-        </request>
+		</request>
 
-        <response>
+		<response>
 
-            <field name="bodySalidaConsultarNotaAmpliada.descripcion"
-                   value="NOTA AMPLIADA DE EJEMPLO"/>
+			<field name="bodySalidaConsultarNotaAmpliada.descripcion"
+				value="NOTA AMPLIADA DE EJEMPLO" />
 
-        </response>
+		</response>
 
-    </api>
+	</api>
 
-    <!-- ===================================================== -->
-    <!-- ✅ CONSULTAR OFICINAS DISPONIBLES -->
-    <!-- ===================================================== -->
-    <api path="/safe/consultar/oficinas-disponibles">
+	<!-- ===================================================== -->
+	<!-- ✅ CONSULTAR OFICINAS DISPONIBLES -->
+	<!-- ===================================================== -->
+	<api path="/safe/consultar/oficinas-disponibles">
 
-        <request>
+		<request>
 
-            <field name="codigoRegion"
-                   value="01"/>
+			<field name="codigoRegion" value="01" />
 
-        </request>
+		</request>
 
-        <response>
+		<response>
 
-            <field name="bodySalidaConsultarOficinasDisponibles.oficinas[0].codigoOficina"
-                   value="0101"/>
+			<field
+				name="bodySalidaConsultarOficinasDisponibles.oficinas[0].codigoOficina"
+				value="0101" />
 
-            <field name="bodySalidaConsultarOficinasDisponibles.oficinas[0].nombreOficina"
-                   value="CARACAS PRINCIPAL"/>
+			<field
+				name="bodySalidaConsultarOficinasDisponibles.oficinas[0].nombreOficina"
+				value="CARACAS PRINCIPAL" />
 
-        </response>
+		</response>
 
-    </api>
+	</api>
+	
+	<!-- ========================================================= -->
+	<!-- ✅ SAFE - CONSULTAR CLAVE CIFRADA -->
+	<!-- ========================================================= -->
+	<api path="/safe/consultar/clave-cifrada">
 
+		<request>
+		</request>
+
+		<response>
+
+			<field name="bodySalidaConsultarClaveCifrada.masterKey"
+				value="1FFBA2B6D39D94918C45987FB507A2681FFBA2B6D39D9491" />
+
+			<field name="bodySalidaConsultarClaveCifrada.versMasterKey"
+				value="2" />
+
+		</response>
+
+	</api>
 </rules>
