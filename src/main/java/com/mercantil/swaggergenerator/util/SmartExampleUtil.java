@@ -125,6 +125,10 @@ public class SmartExampleUtil {
 		if (lower.contains("origen"))
 			return "MPLUS";
 
+		if (lower.contains("indicaccion")) {
+			return "P";
+		}
+
 		// =========================================================
 		// ✅ ACCIÓN
 		// =========================================================
@@ -139,6 +143,10 @@ public class SmartExampleUtil {
 
 		if (lower.contains("tipoid"))
 			return "V";
+
+		if (lower.contains("idnac")) {
+			return "V";
+		}
 
 		if (tokens.contains("id"))
 			return 123456;
@@ -193,7 +201,7 @@ public class SmartExampleUtil {
 		// ✅ FRECUENCIA
 		// =========================================================
 		if (lower.equals("frec"))
-			return 7;
+			return "7";
 
 		// =========================================================
 		// ✅ STATUS AFILIACION
@@ -321,6 +329,10 @@ public class SmartExampleUtil {
 		// =========================================================
 		if (lower.equals("aplic") || tokens.contains("aplicacion")) {
 			return "01";
+		}
+
+		if (lower.contains("codtipoproducrecept")) {
+			return "TE";
 		}
 
 		// =========================================================

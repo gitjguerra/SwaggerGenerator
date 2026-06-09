@@ -99,7 +99,7 @@
     </api>
 
     <api name="AfiliarServiciosAmpliados">
-        <field name="codTrans" value=""/>
+        <field name="codTrans" value="27"/>
         <field name="codSubCanal" value="01"/>
         <field name="indicAccion" value="P"/>
 

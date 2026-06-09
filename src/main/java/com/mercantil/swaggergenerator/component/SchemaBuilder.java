@@ -91,14 +91,14 @@ public class SchemaBuilder {
 
 				String name = parserUtil.resolveJsonName(field, var.getNameAsString());
 
-				//System.out.println("SCHEMA FIELD: " + var.getNameAsString() + " -> " + name);
+				// System.out.println("SCHEMA FIELD: " + var.getNameAsString() + " -> " + name);
 
 				Map<String, Object> prop = new LinkedHashMap<>();
 
-				var typeNode = field.getElementType();
+				var typeNode = var.getType();
 				String rawType = typeNode.asString();
-
 				boolean isArray = typeNode.isArrayType();
+
 				boolean isOptional = rawType.startsWith("Optional<");
 
 				String cleanType = isOptional ? parserUtil.extractGeneric(rawType) : rawType;
@@ -112,12 +112,13 @@ public class SchemaBuilder {
 				String resolved = extractSimpleName(resolveFullType(simpleType, clazz));
 
 				// =========================================================
-				// ✅ ARRAY
+				// ✅ ARRAY JAVA (Bean[])
 				// =========================================================
 				if (isArray) {
 
 					String elementType = typeNode.asArrayType().getComponentType().asString();
 
+					// ✅ byte[]
 					if ("byte".equalsIgnoreCase(elementType)) {
 
 						prop.put("type", "string");
