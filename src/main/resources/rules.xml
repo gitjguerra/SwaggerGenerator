@@ -304,7 +304,7 @@
 	<!-- ========================================================= -->
 	<!-- ✅ SAFE - CONSULTAR CLAVE CIFRADA -->
 	<!-- ========================================================= -->
-	<api path="/safe/consultar/clave-cifrada">
+	<api path="/consultar/clave-cifrada">
 
 		<request>
 		</request>
@@ -320,4 +320,190 @@
 		</response>
 
 	</api>
+
+	<!-- ========================================================= -->
+	<!-- ✅ INVERSIONES - BUSCAR INVENTARIOS -->
+	<!-- ========================================================= -->
+	<api path="/buscar/inventarios">
+
+		<!-- ===================================================== -->
+		<!-- ✅ REQUEST -->
+		<!-- ===================================================== -->
+		<request>
+
+			<field
+				name="bodyEntradaBuscarInventarios.tipoIdentificacion"
+				value="V"/>
+
+			<field
+				name="bodyEntradaBuscarInventarios.cedulaRif"
+				value="124332657"/>
+
+			<field
+				name="bodyEntradaBuscarInventarios.numeroPersona"
+				value="11844825"/>
+
+			<field
+				name="bodyEntradaBuscarInventarios.tipoOperacion"
+				value="1"/>
+
+			<field
+				name="bodyEntradaBuscarInventarios.codigoMoneda"
+				value="27"/>
+
+			<field
+				name="bodyEntradaBuscarInventarios.montoPacto"
+				value="1500.75"/>
+
+			<field
+				name="bodyEntradaBuscarInventarios.subCanal"
+				value="6"/>
+
+			<field
+				name="bodyEntradaBuscarInventarios.tasaSubastaUsd"
+				value="0.16"/>
+
+		</request>
+
+		<!-- ===================================================== -->
+		<!-- ✅ RESPONSE -->
+		<!-- ===================================================== -->
+		<response>
+
+			<field
+				name="bodySalidaBuscarInventarios.cantDiasCtaMercantil"
+				value="900"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.tasaCambio"
+				value=""/>
+
+			<field
+				name="bodySalidaBuscarInventarios.tasaComisionCompra"
+				value="120.0000"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.montoTransferencia"
+				value="0.00"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.tasaSwift"
+				value="0.00"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.tasaCompraUsd"
+				value=""/>
+
+			<field
+				name="bodySalidaBuscarInventarios.tasaCompraEur"
+				value=""/>
+
+			<field
+				name="bodySalidaBuscarInventarios.horaCierre"
+				value="0"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.indCierreMelp"
+				value="9"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.indCierreCanal"
+				value="3"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.horaApertura"
+				value="0"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.tasaTransferencia"
+				value="0.00"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.nroTlfnCliente"
+				value=""/>
+
+			<field
+				name="bodySalidaBuscarInventarios.nombreCliente"
+				value=""/>
+
+			<field
+				name="bodySalidaBuscarInventarios.montoComision"
+				value="0.00"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.codigoProducto"
+				value="02606"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.montoMultiploSolicitud"
+				value="100000000000.04"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.tasaVentaEur"
+				value=""/>
+
+			<field
+				name="bodySalidaBuscarInventarios.emailCliente"
+				value="0000000000"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.tasaComisionVenta"
+				value="0.0000"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.tasaCompraUsdEur"
+				value=""/>
+
+			<field
+				name="bodySalidaBuscarInventarios.montoMinPacto"
+				value="500000000053.00"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.tasaVentaUsd"
+				value=""/>
+
+			<field
+				name="bodySalidaBuscarInventarios.tasaVentaUsdEur"
+				value="840978 S0"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.codMonedaIsoUsd"
+				value="900"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.montoSwift"
+				value="0.00"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.codMonedaIsoEur"
+				value="2"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.codigoEmpresa"
+				value="00002"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.montoOperacionNeto"
+				value="0.00"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.montoMaxPacto"
+				value="0.00"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.montoOperacionBs"
+				value="0.00"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.fechaCtaMercantil"
+				value="5000000"/>
+
+			<field
+				name="bodySalidaBuscarInventarios.indCierreMele"
+				value="5"/>
+
+		</response>
+
+	</api>
+
 </rules>
