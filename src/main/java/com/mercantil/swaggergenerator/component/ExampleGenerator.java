@@ -197,7 +197,7 @@ public class ExampleGenerator {
 
 			String apiName = extractApiName(type);
 
-			String ruleValue = ruleEngine.getValue(apiName, jsonKey);
+			String ruleValue = ruleEngine.getRequestValue(apiName,jsonKey);
 
 			Object value;
 
