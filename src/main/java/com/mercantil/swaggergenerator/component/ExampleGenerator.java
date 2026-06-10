@@ -8,6 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.ConstructorDeclaration;
+import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.mercantil.swaggergenerator.util.ParserUtil;
 import com.mercantil.swaggergenerator.util.SmartExampleUtil;
 import com.mercantil.swaggergenerator.util.TypeUtil;
@@ -369,7 +372,7 @@ public class ExampleGenerator {
 
 			field.getVariables().forEach(var -> {
 
-				String name = parserUtil.resolveJsonName(field, var.getNameAsString());
+				String name = resolveJsonNameFromClass(clazz.getNameAsString(), var.getNameAsString());
 
 				String rawType = field.getElementType().asString();
 
@@ -454,31 +457,55 @@ public class ExampleGenerator {
 
 		return classIndexer.findClass(className)
 
-				.map(clazz ->
+				.map(clazz -> {
 
-				clazz.getFields()
+					// =============================================
+					// ✅ 1. BUSCAR FIELD
+					// =============================================
+					return clazz.getFields()
 
-						.stream()
+							.stream()
 
-						.flatMap(f ->
+							.flatMap(f ->
 
-						f.getVariables()
+							f.getVariables()
 
-								.stream()
+									.stream()
 
-								.filter(v ->
+									.filter(v ->
 
-								v.getNameAsString().equals(fieldName))
+									v.getNameAsString().equals(fieldName))
 
-								.map(v -> f))
+									.map(v -> f))
 
-						.findFirst()
+							.findFirst()
 
-						.map(f ->
+							.map(f -> {
 
-						parserUtil.resolveJsonName(f, fieldName))
+								// =====================================
+								// ✅ 2. PRIORIDAD:
+								// constructor @JsonProperty
+								// =====================================
+								String ctorJsonName =
 
-						.orElse(fieldName))
+										parserUtil.resolveJsonNameFromConstructor(clazz, fieldName);
+
+								if (ctorJsonName != null && !ctorJsonName.isBlank()
+										&& !ctorJsonName.equals(fieldName)) {
+
+									return ctorJsonName;
+								}
+
+								// =====================================
+								// ✅ 3. FALLBACK:
+								// annotations field
+								// =====================================
+								return parserUtil.resolveJsonName(f, fieldName);
+
+							})
+
+							.orElse(fieldName);
+				})
 
 				.orElse(fieldName);
 	}
@@ -700,4 +727,78 @@ public class ExampleGenerator {
 
 		return parseValue(field, val);
 	}
+
+	// =========================================================
+	// ✅ RESOLVE JSON NAME FROM CTOR
+	// =========================================================
+	public String resolveJsonNameFromConstructor(ClassOrInterfaceDeclaration clazz, String fieldName) {
+
+		if (clazz == null || fieldName == null) {
+
+			return fieldName;
+		}
+
+		for (ConstructorDeclaration ctor : clazz.getConstructors()) {
+
+			for (Parameter param : ctor.getParameters()) {
+
+				String paramName = param.getNameAsString();
+
+				// ✅ Match flexible
+				if (!fieldName.equals(paramName)) {
+
+					continue;
+				}
+
+				for (AnnotationExpr ann : param.getAnnotations()) {
+
+					if (!"JsonProperty".equals(ann.getNameAsString())) {
+
+						continue;
+					}
+
+					// ✅ @JsonProperty("abc")
+					if (ann.isSingleMemberAnnotationExpr()) {
+
+						return ann
+
+								.asSingleMemberAnnotationExpr()
+
+								.getMemberValue()
+
+								.toString()
+
+								.replace("\"", "");
+					}
+
+					// ✅ @JsonProperty(value="abc")
+					if (ann.isNormalAnnotationExpr()) {
+
+						return ann
+
+								.asNormalAnnotationExpr()
+
+								.getPairs()
+
+								.stream()
+
+								.filter(p ->
+
+								"value".equals(p.getNameAsString()))
+
+								.map(p ->
+
+								p.getValue().toString().replace("\"", ""))
+
+								.findFirst()
+
+								.orElse(fieldName);
+					}
+				}
+			}
+		}
+
+		return fieldName;
+	}
+
 }

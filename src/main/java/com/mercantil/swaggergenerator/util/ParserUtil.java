@@ -5,409 +5,383 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 
 @Component
 public class ParserUtil {
 
-    // =========================================================
-    // ✅ JSON PROPERTY
-    // =========================================================
-    public String resolveJsonName(
-            FieldDeclaration field,
-            String defaultName) {
+	// =========================================================
+	// ✅ JSON PROPERTY
+	// =========================================================
+	public String resolveJsonName(FieldDeclaration field, String defaultName) {
 
-        // ✅ 1. FIELD DIRECTO
-        Optional<AnnotationExpr> annOpt =
-                field.getAnnotationByName(
-                        "JsonProperty");
+		// ✅ 1. FIELD DIRECTO
+		Optional<AnnotationExpr> annOpt = field.getAnnotationByName("JsonProperty");
 
-        if (annOpt.isPresent()) {
+		if (annOpt.isPresent()) {
 
-            String val =
-                    extractJsonValue(
-                            annOpt.get());
+			String val = extractJsonValue(annOpt.get());
 
-            if (val != null) {
+			if (val != null) {
 
-                return val;
-            }
-        }
+				return val;
+			}
+		}
 
-        // ✅ 2. GETTER
-        Optional<String> getterValue =
+		// ✅ 2. GETTER
+		Optional<String> getterValue =
 
-                field.findCompilationUnit()
+				field.findCompilationUnit()
 
-                        .flatMap(cu ->
+						.flatMap(cu ->
 
-                                cu.findAll(
-                                        MethodDeclaration.class)
+						cu.findAll(MethodDeclaration.class)
 
-                                        .stream()
+								.stream()
 
-                                        .filter(m ->
+								.filter(m ->
 
-                                                isGetterForField(
-                                                        m,
-                                                        defaultName))
+								isGetterForField(m, defaultName))
 
-                                        .map(m ->
+								.map(m ->
 
-                                                m.getAnnotationByName(
-                                                        "JsonProperty"))
+								m.getAnnotationByName("JsonProperty"))
 
-                                        .filter(Optional::isPresent)
+								.filter(Optional::isPresent)
 
-                                        .map(Optional::get)
+								.map(Optional::get)
 
-                                        .map(this::extractJsonValue)
+								.map(this::extractJsonValue)
 
-                                        .filter(Objects::nonNull)
+								.filter(Objects::nonNull)
 
-                                        .findFirst());
+								.findFirst());
 
-        if (getterValue.isPresent()) {
+		if (getterValue.isPresent()) {
 
-            return getterValue.get();
-        }
+			return getterValue.get();
+		}
 
-        // ✅ 3. CONSTRUCTOR (@JsonCreator)
-        Optional<String> constructorValue =
+		// ✅ 3. CONSTRUCTOR (@JsonCreator)
+		Optional<String> constructorValue =
 
-                field.findCompilationUnit()
+				field.findCompilationUnit()
 
-                        .flatMap(cu ->
+						.flatMap(cu ->
 
-                                cu.findAll(
-                                        ConstructorDeclaration.class)
+						cu.findAll(ConstructorDeclaration.class)
 
-                                        .stream()
+								.stream()
 
-                                        .filter(c ->
+								.filter(c ->
 
-                                                c.getAnnotationByName(
-                                                        "JsonCreator")
+								c.getAnnotationByName("JsonCreator")
 
-                                                        .isPresent())
+										.isPresent())
 
-                                        .flatMap(c ->
+								.flatMap(c ->
 
-                                                c.getParameters()
+								c.getParameters()
 
-                                                        .stream())
+										.stream())
 
-                                        .filter(p ->
+								.filter(p ->
 
-                                                p.getNameAsString()
-                                                        .equals(defaultName))
+								p.getNameAsString().equals(defaultName))
 
-                                        .map(p ->
+								.map(p ->
 
-                                                p.getAnnotationByName(
-                                                        "JsonProperty"))
+								p.getAnnotationByName("JsonProperty"))
 
-                                        .filter(Optional::isPresent)
+								.filter(Optional::isPresent)
 
-                                        .map(Optional::get)
+								.map(Optional::get)
 
-                                        .map(this::extractJsonValue)
+								.map(this::extractJsonValue)
 
-                                        .filter(Objects::nonNull)
+								.filter(Objects::nonNull)
 
-                                        .findFirst());
+								.findFirst());
 
-        return constructorValue.orElse(defaultName);
-    }
+		return constructorValue.orElse(defaultName);
+	}
 
-    // =========================================================
-    // ✅ EXTRAER JSON VALUE
-    // =========================================================
-    private String extractJsonValue(
-            AnnotationExpr ann) {
+	// =========================================================
+	// ✅ EXTRAER JSON VALUE
+	// =========================================================
+	private String extractJsonValue(AnnotationExpr ann) {
 
-        // ✅ @JsonProperty("campo")
-        if (ann.isSingleMemberAnnotationExpr()) {
+		// ✅ @JsonProperty("campo")
+		if (ann.isSingleMemberAnnotationExpr()) {
 
-            return ann.asSingleMemberAnnotationExpr()
+			return ann.asSingleMemberAnnotationExpr()
 
-                    .getMemberValue()
+					.getMemberValue()
 
-                    .toString()
+					.toString()
 
-                    .replace("\"", "");
-        }
+					.replace("\"", "");
+		}
 
-        // ✅ @JsonProperty(value = "campo")
-        if (ann.isNormalAnnotationExpr()) {
+		// ✅ @JsonProperty(value = "campo")
+		if (ann.isNormalAnnotationExpr()) {
 
-            return ann.asNormalAnnotationExpr()
+			return ann.asNormalAnnotationExpr()
 
-                    .getPairs()
+					.getPairs()
 
-                    .stream()
+					.stream()
 
-                    .filter(p ->
+					.filter(p ->
 
-                            p.getNameAsString()
-                                    .equals("value"))
+					p.getNameAsString().equals("value"))
 
-                    .findFirst()
+					.findFirst()
 
-                    .map(p ->
+					.map(p ->
 
-                            p.getValue()
+					p.getValue()
 
-                                    .toString()
+							.toString()
 
-                                    .replace("\"", ""))
+							.replace("\"", ""))
 
-                    .orElse(null);
-        }
+					.orElse(null);
+		}
 
-        // ✅ @JsonProperty sin value
-        return null;
-    }
+		// ✅ @JsonProperty sin value
+		return null;
+	}
 
-    // =========================================================
-    // ✅ EXTRACT GENERIC
-    // =========================================================
-    public String extractGeneric(
-            String input) {
+	// =========================================================
+	// ✅ EXTRACT GENERIC
+	// =========================================================
+	public String extractGeneric(String input) {
 
-        if (input == null
-                || input.isBlank()) {
+		if (input == null || input.isBlank()) {
 
-            return null;
-        }
+			return null;
+		}
 
-        int start =
-                input.indexOf("<");
+		int start = input.indexOf("<");
 
-        int end =
-                input.lastIndexOf(">");
+		int end = input.lastIndexOf(">");
 
-        if (start == -1
-                || end == -1
-                || end <= start) {
+		if (start == -1 || end == -1 || end <= start) {
 
-            return input.trim();
-        }
+			return input.trim();
+		}
 
-        String inner =
-                input.substring(
-                        start + 1,
-                        end);
+		String inner = input.substring(start + 1, end);
 
-        // ✅ SOPORTA GENERICS ANIDADOS
-        if (inner.contains("<")) {
+		// ✅ SOPORTA GENERICS ANIDADOS
+		if (inner.contains("<")) {
 
-            return extractGeneric(inner);
-        }
+			return extractGeneric(inner);
+		}
 
-        return inner.trim();
-    }
+		return inner.trim();
+	}
 
-    // =========================================================
-    // ✅ EXTRAER VALUE MAP<K,V>
-    // =========================================================
-    public String extractMapValue(
-            String input) {
+	// =========================================================
+	// ✅ EXTRAER VALUE MAP<K,V>
+	// =========================================================
+	public String extractMapValue(String input) {
 
-        if (input == null
-                || !input.contains(",")) {
+		if (input == null || !input.contains(",")) {
 
-            return "Object";
-        }
+			return "Object";
+		}
 
-        int start =
-                input.indexOf("<");
+		int start = input.indexOf("<");
 
-        int end =
-                input.lastIndexOf(">");
+		int end = input.lastIndexOf(">");
 
-        if (start == -1
-                || end == -1) {
+		if (start == -1 || end == -1) {
 
-            return "Object";
-        }
+			return "Object";
+		}
 
-        String inside =
-                input.substring(
-                        start + 1,
-                        end);
+		String inside = input.substring(start + 1, end);
 
-        String[] parts =
-                inside.split(",");
+		String[] parts = inside.split(",");
 
-        if (parts.length < 2) {
+		if (parts.length < 2) {
 
-            return "Object";
-        }
+			return "Object";
+		}
 
-        return resolveFinalType(
-                parts[1].trim());
-    }
+		return resolveFinalType(parts[1].trim());
+	}
 
-    // =========================================================
-    // ✅ LIMPIAR TIPO FINAL
-    // =========================================================
-    public String resolveFinalType(
-            String type) {
+	// =========================================================
+	// ✅ LIMPIAR TIPO FINAL
+	// =========================================================
+	public String resolveFinalType(String type) {
 
-        if (type == null
-                || type.isBlank()) {
+		if (type == null || type.isBlank()) {
 
-            return null;
-        }
+			return null;
+		}
 
-        String clean =
-                type.trim();
+		String clean = type.trim();
 
-        // =====================================================
-        // ✅ OPTIONAL
-        // =====================================================
-        if (clean.startsWith("Optional<")) {
+		// =====================================================
+		// ✅ OPTIONAL
+		// =====================================================
+		if (clean.startsWith("Optional<")) {
 
-            clean =
-                    extractGeneric(clean);
-        }
+			clean = extractGeneric(clean);
+		}
 
-        // =====================================================
-        // ✅ QUITAR PACKAGES
-        // =====================================================
-        if (clean.contains(".")) {
+		// =====================================================
+		// ✅ QUITAR PACKAGES
+		// =====================================================
+		if (clean.contains(".")) {
 
-            clean =
-                    clean.substring(
-                            clean.lastIndexOf(".") + 1);
-        }
+			clean = clean.substring(clean.lastIndexOf(".") + 1);
+		}
 
-        // =====================================================
-        // ✅ LIST / SET
-        // =====================================================
-        if (clean.startsWith("List<")
-                || clean.startsWith("Set<")) {
+		// =====================================================
+		// ✅ LIST / SET
+		// =====================================================
+		if (clean.startsWith("List<") || clean.startsWith("Set<")) {
 
-            return extractGeneric(clean);
-        }
+			return extractGeneric(clean);
+		}
 
-        // =====================================================
-        // ✅ MAP<K,V>
-        // =====================================================
-        if (clean.startsWith("Map<")) {
+		// =====================================================
+		// ✅ MAP<K,V>
+		// =====================================================
+		if (clean.startsWith("Map<")) {
 
-            return extractMapValue(clean);
-        }
+			return extractMapValue(clean);
+		}
 
-        // =====================================================
-        // ✅ GENERICS RESTANTES
-        // =====================================================
-        if (clean.contains("<")) {
+		// =====================================================
+		// ✅ GENERICS RESTANTES
+		// =====================================================
+		if (clean.contains("<")) {
 
-            clean =
-                    extractGeneric(clean);
-        }
+			clean = extractGeneric(clean);
+		}
 
-        clean =
-                clean.trim();
+		clean = clean.trim();
 
-        // =====================================================
-        // ✅ FALLBACK
-        // =====================================================
-        if (clean.isBlank()) {
+		// =====================================================
+		// ✅ FALLBACK
+		// =====================================================
+		if (clean.isBlank()) {
 
-            return type;
-        }
+			return type;
+		}
 
-        // ✅ NUNCA degradar beans reales
-        return clean;
-    }
+		// ✅ NUNCA degradar beans reales
+		return clean;
+	}
 
-    // =========================================================
-    // ✅ HELPERS
-    // =========================================================
-    public boolean isList(
-            String type) {
+	// =========================================================
+	// ✅ HELPERS
+	// =========================================================
+	public boolean isList(String type) {
 
-        return type != null
+		return type != null
 
-                && (type.startsWith("List<")
-                        || type.startsWith("Set<"));
-    }
+				&& (type.startsWith("List<") || type.startsWith("Set<"));
+	}
 
-    public boolean isMap(
-            String type) {
+	public boolean isMap(String type) {
 
-        return type != null
-                && type.startsWith("Map<");
-    }
+		return type != null && type.startsWith("Map<");
+	}
 
-    public boolean isOptional(
-            String type) {
+	public boolean isOptional(String type) {
 
-        return type != null
-                && type.startsWith("Optional<");
-    }
+		return type != null && type.startsWith("Optional<");
+	}
 
-    public String unwrapOptional(
-            String type) {
+	public String unwrapOptional(String type) {
 
-        if (isOptional(type)) {
+		if (isOptional(type)) {
 
-            return extractGeneric(type);
-        }
+			return extractGeneric(type);
+		}
 
-        return type;
-    }
+		return type;
+	}
 
-    // =========================================================
-    // ✅ GENERIC COMPLEJO
-    // =========================================================
-    public String extractDeepestType(
-            String type) {
+	// =========================================================
+	// ✅ GENERIC COMPLEJO
+	// =========================================================
+	public String extractDeepestType(String type) {
 
-        if (type == null
-                || type.isBlank()) {
+		if (type == null || type.isBlank()) {
 
-            return null;
-        }
+			return null;
+		}
 
-        // ✅ EJEMPLOS:
-        // List<Map<String, User>> -> User
-        // Optional<List<Account>> -> Account
+		// ✅ EJEMPLOS:
+		// List<Map<String, User>> -> User
+		// Optional<List<Account>> -> Account
 
-        while (type.contains("<")) {
+		while (type.contains("<")) {
 
-            type =
-                    extractGeneric(type);
-        }
+			type = extractGeneric(type);
+		}
 
-        return resolveFinalType(type);
-    }
+		return resolveFinalType(type);
+	}
 
-    // =========================================================
-    // ✅ VALIDAR GETTER
-    // =========================================================
-    private boolean isGetterForField(
-            MethodDeclaration m,
-            String fieldName) {
+	// =========================================================
+	// ✅ VALIDAR GETTER
+	// =========================================================
+	private boolean isGetterForField(MethodDeclaration m, String fieldName) {
 
-        String methodName =
-                m.getNameAsString();
+		String methodName = m.getNameAsString();
 
-        String expected =
+		String expected =
 
-                "get"
+				"get"
 
-                        + Character.toUpperCase(
-                                fieldName.charAt(0))
+						+ Character.toUpperCase(fieldName.charAt(0))
 
-                        + fieldName.substring(1);
+						+ fieldName.substring(1);
 
-        return methodName.equals(expected);
-    }
+		return methodName.equals(expected);
+	}
+
+	public String resolveJsonNameFromConstructor(ClassOrInterfaceDeclaration clazz, String fieldName) {
+
+		for (ConstructorDeclaration ctor : clazz.getConstructors()) {
+
+			for (Parameter param : ctor.getParameters()) {
+
+				String paramName = param.getNameAsString();
+
+				// ✅ Match field semántico
+				if (fieldName.equalsIgnoreCase(paramName) || fieldName.contains(paramName)
+						|| paramName.contains(fieldName)) {
+
+					for (AnnotationExpr ann : param.getAnnotations()) {
+
+						if ("JsonProperty".equals(ann.getNameAsString())) {
+
+							if (ann.isSingleMemberAnnotationExpr()) {
+
+								return ann.asSingleMemberAnnotationExpr().getMemberValue().toString().replace("\"", "");
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return fieldName;
+	}
+
 }
