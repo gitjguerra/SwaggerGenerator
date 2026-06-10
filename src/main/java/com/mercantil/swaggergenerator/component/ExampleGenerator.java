@@ -513,37 +513,32 @@ public class ExampleGenerator {
 	// =========================================================
 	// ✅ API PATH NORMALIZATION
 	// =========================================================
+
 	private String extractApiName(String type) {
 
 		if (type == null || type.isBlank()) {
-
 			return null;
 		}
 
 		String normalized = type.trim();
 
-		// ✅ Strip prefixes
 		if (normalized.startsWith("BodyEntrada")) {
-
 			normalized = normalized.substring("BodyEntrada".length());
-		}
-
-		else if (normalized.startsWith("BodySalida")) {
-
+		} else if (normalized.startsWith("BodySalida")) {
 			normalized = normalized.substring("BodySalida".length());
 		}
 
-		// ✅ CamelCase -> kebab-case
-		normalized =
+		// TransferirOtrosBancosNacionales
+		String kebab = normalized.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase();
 
-				normalized
+		// ✅ dividir en 2 niveles
+		String[] parts = kebab.split("-", 2);
 
-						.replaceAll("([a-z])([A-Z])", "$1-$2")
+		if (parts.length == 2) {
+			return "/" + parts[0] + "/" + parts[1];
+		}
 
-						.toLowerCase();
-
-		// ✅ prepend slash
-		return "/" + normalized;
+		return "/" + kebab;
 	}
 
 	// =========================================================
@@ -729,70 +724,60 @@ public class ExampleGenerator {
 	}
 
 	// =========================================================
-	// ✅ RESOLVE JSON NAME FROM CTOR
+	// ✅ RESOLVE JSON NAME FROM CTOR (FIX FINAL)
 	// =========================================================
 	public String resolveJsonNameFromConstructor(ClassOrInterfaceDeclaration clazz, String fieldName) {
 
 		if (clazz == null || fieldName == null) {
-
 			return fieldName;
 		}
+
+		String f = fieldName.toLowerCase();
 
 		for (ConstructorDeclaration ctor : clazz.getConstructors()) {
 
 			for (Parameter param : ctor.getParameters()) {
 
 				String paramName = param.getNameAsString();
+				String p = paramName.toLowerCase();
 
-				// ✅ Match flexible
-				if (!fieldName.equals(paramName)) {
+				// =====================================================
+				// ✅ MATCH FLEXIBLE (CRÍTICO)
+				// =====================================================
+				String normalizedF = f.replace("cod", "").replace("nro", "").replace("num", "").replace("id", "")
+						.replace("tipo", "").trim();
 
+				String normalizedP = p.replace("codigo", "").replace("numero", "").replace("identificador", "")
+						.replace("tipo", "").trim();
+
+				boolean match = normalizedF.equals(normalizedP) || normalizedF.contains(normalizedP)
+						|| normalizedP.contains(normalizedF) || f.equals(p); // fallback exacto
+
+				if (!match) {
 					continue;
 				}
 
+				// =====================================================
+				// ✅ EXTRAER JsonProperty
+				// =====================================================
 				for (AnnotationExpr ann : param.getAnnotations()) {
 
 					if (!"JsonProperty".equals(ann.getNameAsString())) {
-
 						continue;
 					}
 
 					// ✅ @JsonProperty("abc")
 					if (ann.isSingleMemberAnnotationExpr()) {
 
-						return ann
-
-								.asSingleMemberAnnotationExpr()
-
-								.getMemberValue()
-
-								.toString()
-
-								.replace("\"", "");
+						return ann.asSingleMemberAnnotationExpr().getMemberValue().toString().replace("\"", "");
 					}
 
 					// ✅ @JsonProperty(value="abc")
 					if (ann.isNormalAnnotationExpr()) {
 
-						return ann
-
-								.asNormalAnnotationExpr()
-
-								.getPairs()
-
-								.stream()
-
-								.filter(p ->
-
-								"value".equals(p.getNameAsString()))
-
-								.map(p ->
-
-								p.getValue().toString().replace("\"", ""))
-
-								.findFirst()
-
-								.orElse(fieldName);
+						return ann.asNormalAnnotationExpr().getPairs().stream()
+								.filter(pv -> "value".equals(pv.getNameAsString()))
+								.map(pv -> pv.getValue().toString().replace("\"", "")).findFirst().orElse(fieldName);
 					}
 				}
 			}
