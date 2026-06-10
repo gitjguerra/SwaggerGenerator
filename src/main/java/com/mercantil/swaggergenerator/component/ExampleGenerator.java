@@ -1,4 +1,3 @@
-
 package com.mercantil.swaggergenerator.component;
 
 import java.util.LinkedHashMap;
@@ -16,670 +15,855 @@ import com.mercantil.swaggergenerator.util.TypeUtil;
 @Component
 public class ExampleGenerator {
 
-	@Autowired
-	private TypeUtil typeUtil;
+    @Autowired
+    private TypeUtil typeUtil;
+
+    @Autowired
+    private ParserUtil parserUtil;
+
+    @Autowired
+    private HeaderExampleProvider headerProvider;
+
+    @Autowired
+    private ClassIndexer classIndexer;
+
+    @Autowired
+    private RuleEngine ruleEngine;
+
+    // =========================================================
+    // ✅ CONTEXTO CONSISTENTE
+    // =========================================================
+    private Map<String, Object> dataContext =
+            new LinkedHashMap<>();
+
+    // =========================================================
+    // ✅ CACHE
+    // =========================================================
+    private Map<String, Object> exampleMap =
+            new LinkedHashMap<>();
+
+    // =========================================================
+    // ✅ SCHEMAS
+    // =========================================================
+    private Map<String, Map<String, Object>> schemaMap =
+            new LinkedHashMap<>();
 
-	@Autowired
-	private ParserUtil parserUtil;
+    public void setSchemaMap(
+            Map<String, Map<String, Object>> schemaMap) {
+
+        this.schemaMap = schemaMap;
+
+        this.exampleMap = new LinkedHashMap<>();
+    }
 
-	@Autowired
-	private HeaderExampleProvider headerProvider;
+    // =========================================================
+    // ✅ BUILD PRINCIPAL
+    // =========================================================
+    public Object buildExampleFromType(
+            String type) {
+
+        return buildExampleFromType(
+                type,
+                "");
+    }
 
-	@Autowired
-	private ClassIndexer classIndexer;
+    // =========================================================
+    // ✅ BUILD RECURSIVO
+    // =========================================================
+    @SuppressWarnings("unchecked")
+    private Object buildExampleFromType(
+            String type,
+            String currentPath) {
 
-	@Autowired
-	private RuleEngine ruleEngine;
+        // =====================================================
+        // ✅ HEADERS
+        // =====================================================
+        if ("HeaderEntrada".equals(type)) {
 
-	// =========================================================
-	// ✅ CONTEXTO CONSISTENTE
-	// =========================================================
-	private Map<String, Object> dataContext = new LinkedHashMap<>();
+            return headerProvider.buildHeaderEntrada();
+        }
 
-	// =========================================================
-	// ✅ CACHE
-	// =========================================================
-	private Map<String, Object> exampleMap = new LinkedHashMap<>();
+        if ("HeaderSalida".equals(type)) {
 
-	// =========================================================
-	// ✅ SCHEMAS
-	// =========================================================
-	private Map<String, Map<String, Object>> schemaMap = new LinkedHashMap<>();
+            return headerProvider.buildHeaderSalida();
+        }
 
-	public void setSchemaMap(Map<String, Map<String, Object>> schemaMap) {
+        // =====================================================
+        // ✅ NULL
+        // =====================================================
+        if (type == null) {
 
-		this.schemaMap = schemaMap;
+            return null;
+        }
 
-		this.exampleMap = new LinkedHashMap<>();
-	}
+        // =====================================================
+        // ✅ BYTE[]
+        // =====================================================
+        if ("byte".equals(type)
+                || "byte[]".equals(type)) {
 
-	// =========================================================
-	// ✅ BUILD EXAMPLE PRINCIPAL
-	// =========================================================
-	@SuppressWarnings("unchecked")
-	public Object buildExampleFromType(String type) {
+            return "base64-string";
+        }
 
-		// =====================================================
-		// ✅ HEADERS
-		// =====================================================
-		if ("HeaderEntrada".equals(type)) {
+        // =====================================================
+        // ✅ CACHE
+        // =====================================================
+        String cacheKey =
 
-			return headerProvider.buildHeaderEntrada();
-		}
+                type
+                        + "_PATH_"
+                        + currentPath
+                        + "_CTX_"
+                        + System.identityHashCode(dataContext);
 
-		if ("HeaderSalida".equals(type)) {
+        if (exampleMap.containsKey(cacheKey)) {
 
-			return headerProvider.buildHeaderSalida();
-		}
+            return exampleMap.get(cacheKey);
+        }
 
-		// =====================================================
-		// ✅ NULL
-		// =====================================================
-		if (type == null) {
+        // =====================================================
+        // ✅ SCHEMA
+        // =====================================================
+        Map<String, Object> schema =
+                schemaMap.get(type);
 
-			return null;
-		}
+        if (schema == null) {
 
-		// =====================================================
-		// ✅ BYTE[]
-		// =====================================================
-		if ("byte".equals(type) || "byte[]".equals(type)) {
+            return new LinkedHashMap<>();
+        }
 
-			return "base64-string";
-		}
+        // =====================================================
+        // ✅ ENUM
+        // =====================================================
+        if (schema.containsKey("enum")) {
 
-		// =====================================================
-		// ✅ CACHE
-		// =====================================================
-		String cacheKey = type + "_CTX_" + System.identityHashCode(dataContext);
+            List<?> values =
+                    (List<?>) schema.get("enum");
 
-		if (exampleMap.containsKey(cacheKey)) {
+            if (!values.isEmpty()) {
 
-			return exampleMap.get(cacheKey);
-		}
+                return values.get(0);
+            }
+        }
 
-		// =====================================================
-		// ✅ SCHEMA
-		// =====================================================
-		Map<String, Object> schema = schemaMap.get(type);
+        // =====================================================
+        // ✅ ROOT REF
+        // =====================================================
+        if (schema.containsKey("$ref")) {
 
-		if (schema == null) {
+            String ref =
+                    schema.get("$ref").toString();
 
-			// ✅ SILENCIOSO
-			return new LinkedHashMap<>();
-		}
+            String refType =
+                    ref.substring(
+                            ref.lastIndexOf("/") + 1);
 
-		// =====================================================
-		// ✅ ENUM
-		// =====================================================
-		if (schema.containsKey("enum")) {
+            return buildExampleFromType(
+                    refType,
+                    currentPath);
+        }
 
-			List<?> values = (List<?>) schema.get("enum");
+        Map<String, Object> example =
+                new LinkedHashMap<>();
 
-			if (!values.isEmpty()) {
+        Object propsObj =
+                schema.get("properties");
 
-				return values.get(0);
-			}
-		}
+        // =====================================================
+        // ✅ allOf
+        // =====================================================
+        if (!(propsObj instanceof Map)) {
 
-		// =====================================================
-		// ✅ REF ROOT
-		// =====================================================
-		if (schema.containsKey("$ref")) {
+            if ("string".equals(schema.get("type"))) {
 
-			String ref = schema.get("$ref").toString();
+                return "";
+            }
 
-			String refType = ref.substring(ref.lastIndexOf("/") + 1);
+            if ("integer".equals(schema.get("type"))) {
 
-			return buildExampleFromType(refType);
-		}
+                return 0;
+            }
 
-		Map<String, Object> example = new LinkedHashMap<>();
+            if ("number".equals(schema.get("type"))) {
 
-		Object propsObj = schema.get("properties");
+                return 0.0;
+            }
 
-		// =====================================================
-		// ✅ SOPORTE allOf
-		// =====================================================
-		if (!(propsObj instanceof Map)) {
+            if ("boolean".equals(schema.get("type"))) {
 
-			if ("string".equals(schema.get("type"))) {
+                return false;
+            }
 
-				return "";
-			}
+            Map<String, Object> fallback =
+                    new LinkedHashMap<>();
 
-			if ("integer".equals(schema.get("type"))) {
+            if (schema.containsKey("allOf")) {
 
-				return 0;
-			}
+                List<?> allOf =
+                        (List<?>) schema.get("allOf");
 
-			if ("number".equals(schema.get("type"))) {
+                for (Object obj : allOf) {
 
-				return 0.0;
-			}
+                    if (!(obj instanceof Map)) {
 
-			if ("boolean".equals(schema.get("type"))) {
+                        continue;
+                    }
 
-				return false;
-			}
+                    Map<String, Object> sub =
+                            (Map<String, Object>) obj;
 
-			Map<String, Object> fallback = new LinkedHashMap<>();
+                    // ✅ REF
+                    if (sub.containsKey("$ref")) {
 
-			if (schema.containsKey("allOf")) {
+                        String ref =
+                                sub.get("$ref").toString();
 
-				List<?> allOf = (List<?>) schema.get("allOf");
+                        String refType =
+                                ref.substring(
+                                        ref.lastIndexOf("/") + 1);
 
-				for (Object obj : allOf) {
+                        Object nested =
+                                buildExampleFromType(
+                                        refType,
+                                        currentPath);
 
-					if (!(obj instanceof Map)) {
+                        if (nested instanceof Map) {
 
-						continue;
-					}
+                            fallback.putAll(
+                                    (Map<String, Object>) nested);
+                        }
+                    }
 
-					Map<String, Object> sub = (Map<String, Object>) obj;
+                    // ✅ INLINE PROPERTIES
+                    if (sub.containsKey("properties")) {
 
-					// ✅ REF
-					if (sub.containsKey("$ref")) {
+                        Map<String, Object> inlineProps =
 
-						String ref = sub.get("$ref").toString();
+                                (Map<String, Object>) sub.get("properties");
 
-						String refType = ref.substring(ref.lastIndexOf("/") + 1);
+                        inlineProps.forEach((k, v) -> {
 
-						Object nested = buildExampleFromType(refType);
+                            Object value =
 
-						if (nested instanceof Map) {
+                                    SmartExampleUtil.generate(
+                                            k,
+                                            null,
+                                            dataContext);
 
-							fallback.putAll((Map<String, Object>) nested);
-						}
-					}
+                            fallback.put(
+                                    k,
+                                    value != null
+                                            ? value
+                                            : "");
+                        });
+                    }
+                }
+            }
 
-					// ✅ INLINE PROPERTIES
-					if (sub.containsKey("properties")) {
+            return fallback;
+        }
 
-						Map<String, Object> inlineProps = (Map<String, Object>) sub.get("properties");
+        // =====================================================
+        // ✅ PROPERTIES
+        // =====================================================
+        Map<String, Object> props =
+                (Map<String, Object>) propsObj;
 
-						inlineProps.forEach((k, v) -> {
+        props.forEach((key, val) -> {
 
-							Object value = SmartExampleUtil.generate(k, null, dataContext);
+            if (!(val instanceof Map)) {
 
-							fallback.put(k, value != null ? value : "");
-						});
-					}
-				}
-			}
+                return;
+            }
 
-			return fallback;
-		}
+            Map<String, Object> prop =
+                    (Map<String, Object>) val;
 
-		// =====================================================
-		// ✅ PROPERTIES
-		// =====================================================
-		Map<String, Object> props = (Map<String, Object>) propsObj;
+            String jsonKey =
+                    resolveJsonNameFromClass(
+                            type,
+                            key);
 
-		props.forEach((key, val) -> {
+            // =================================================
+            // ✅ FULL PATH
+            // =================================================
+            String fullPath =
 
-			if (!(val instanceof Map)) {
+                    currentPath == null
+                            || currentPath.isBlank()
 
-				return;
-			}
+                                    ? jsonKey
 
-			Map<String, Object> prop = (Map<String, Object>) val;
+                                    : currentPath
+                                            + "."
+                                            + jsonKey;
 
-			String jsonKey = resolveJsonNameFromClass(type, key);
+            // =================================================
+            // ✅ OBJETO NESTED
+            // =================================================
+            if (prop.containsKey("$ref")) {
 
-			// =================================================
-			// ✅ OBJETO NESTED
-			// =================================================
-			if (prop.containsKey("$ref")) {
+                String ref =
+                        prop.get("$ref").toString();
 
-				String ref = prop.get("$ref").toString();
+                String refType =
+                        ref.substring(
+                                ref.lastIndexOf("/") + 1);
 
-				String refType = ref.substring(ref.lastIndexOf("/") + 1);
+                Object nested =
+                        buildExampleFromType(
+                                refType,
+                                fullPath);
 
-				Object nested = buildExampleFromType(refType);
+                if (nested == null) {
 
-				if (nested == null) {
+                    nested =
+                            new LinkedHashMap<>();
+                }
 
-					nested = new LinkedHashMap<>();
-				}
+                example.put(
+                        jsonKey,
+                        nested);
 
-				// ✅ PRESERVAR ESTRUCTURA
-				example.put(jsonKey, nested);
+                return;
+            }
 
-				return;
-			}
+            // =================================================
+            // ✅ ARRAYS
+            // =================================================
+            if ("array".equals(prop.get("type"))) {
 
-			// =================================================
-			// ✅ ARRAYS
-			// =================================================
-			if ("array".equals(prop.get("type"))) {
+                Object items =
+                        prop.get("items");
 
-				Object items = prop.get("items");
+                if (items instanceof Map) {
 
-				if (items instanceof Map) {
+                    Map<?, ?> itemMap =
+                            (Map<?, ?>) items;
 
-					Map<?, ?> itemMap = (Map<?, ?>) items;
+                    // ✅ ARRAY OBJETO
+                    if (itemMap.containsKey("$ref")) {
 
-					// ✅ ARRAY OBJETO
-					if (itemMap.containsKey("$ref")) {
+                        String ref =
+                                itemMap.get("$ref").toString();
 
-						String ref = itemMap.get("$ref").toString();
+                        String refType =
+                                ref.substring(
+                                        ref.lastIndexOf("/") + 1);
 
-						String refType = ref.substring(ref.lastIndexOf("/") + 1);
+                        Object nested =
+                                buildExampleFromType(
+                                        refType,
+                                        fullPath);
 
-						Object nested = buildExampleFromType(refType);
+                        if (nested == null) {
 
-						if (nested == null) {
+                            nested =
+                                    new LinkedHashMap<>();
+                        }
 
-							nested = new LinkedHashMap<>();
-						}
+                        example.put(
+                                jsonKey,
+                                List.of(nested));
+                    }
 
-						example.put(jsonKey, List.of(nested));
-					}
+                    // ✅ ARRAY PRIMITIVO
+                    else {
 
-					// ✅ ARRAY PRIMITIVO
-					else {
+                        example.put(
+                                jsonKey,
+                                List.of(""));
+                    }
+                }
 
-						example.put(jsonKey, List.of(""));
-					}
-				}
+                return;
+            }
 
-				return;
-			}
+            // =================================================
+            // ✅ RULES.XML
+            // =================================================
+            String apiName =
+                    extractApiName(type);
 
-			// =================================================
-			// ✅ RULES.XML
-			// =================================================
-			String apiName = extractApiName(type);
+            String ruleValue =
+                    ruleEngine.getRequestValue(
+                            apiName,
+                            fullPath);
 
-			String fullPath = buildFieldPath(type, jsonKey);
+            // ✅ fallback simple
+            if (ruleValue == null) {
 
-			String ruleValue = ruleEngine.getRequestValue(apiName, fullPath);
+                ruleValue =
+                        ruleEngine.getRequestValue(
+                                apiName,
+                                jsonKey);
+            }
 
-			// ✅ FALLBACK SIMPLE
-			if (ruleValue == null) {
+            Object value;
 
-				ruleValue = ruleEngine.getRequestValue(apiName, jsonKey);
-			}
+            // =================================================
+            // ✅ RULE VALUE
+            // =================================================
+            if (ruleValue != null) {
 
-			Object value;
+                value =
+                        parseValueWithSchema(
+                                type,
+                                key,
+                                ruleValue);
+            }
 
-			// =================================================
-			// ✅ RULE VALUE
-			// =================================================
-			if (ruleValue != null) {
+            // =================================================
+            // ✅ SMART VALUE
+            // =================================================
+            else {
 
-				value = parseValueWithSchema(type, key, ruleValue);
-			}
+                String schemaType =
+                        (String) prop.get("type");
 
-			// =================================================
-			// ✅ SMART VALUE
-			// =================================================
-			else {
+                Object smartValue =
 
-				String schemaType = (String) prop.get("type");
+                        SmartExampleUtil.generate(
+                                key,
+                                schemaType,
+                                dataContext);
 
-				Object smartValue = SmartExampleUtil.generate(key, schemaType, dataContext);
+                value =
+                        normalizeSmartValue(
+                                type,
+                                key,
+                                smartValue);
+            }
 
-				value = normalizeSmartValue(type, key, smartValue);
-			}
+            example.put(
+                    jsonKey,
+                    value != null ? value : "");
+        });
 
-			example.put(jsonKey, value != null ? value : "");
-		});
+        // =====================================================
+        // ✅ CACHE
+        // =====================================================
+        exampleMap.put(
+                cacheKey,
+                example);
 
-		// =====================================================
-		// ✅ CACHE
-		// =====================================================
-		exampleMap.put(cacheKey, example);
+        return example;
+    }
 
-		return example;
-	}
+    // =========================================================
+    // ✅ BUILD FROM CLASS
+    // =========================================================
+    @SuppressWarnings("unchecked")
+    public Object buildExampleFromClass(
+            ClassOrInterfaceDeclaration clazz) {
 
-	// =========================================================
-	// ✅ BUILD FROM CLASS
-	// =========================================================
-	@SuppressWarnings("unchecked")
-	public Object buildExampleFromClass(ClassOrInterfaceDeclaration clazz) {
+        exampleMap =
+                new LinkedHashMap<>();
 
-		exampleMap = new LinkedHashMap<>();
+        dataContext =
+                new LinkedHashMap<>();
 
-		dataContext = new LinkedHashMap<>();
+        Map<String, Object> example =
+                new LinkedHashMap<>();
 
-		Map<String, Object> example = new LinkedHashMap<>();
+        clazz.getFields().forEach(field -> {
 
-		clazz.getFields().forEach(field -> {
+            field.getVariables().forEach(var -> {
 
-			field.getVariables().forEach(var -> {
+                String name =
 
-				String name = parserUtil.resolveJsonName(field, var.getNameAsString());
+                        parserUtil.resolveJsonName(
+                                field,
+                                var.getNameAsString());
 
-				String rawType = field.getElementType().asString();
+                String rawType =
+                        field.getElementType().asString();
 
-				boolean isOptional = rawType.startsWith("Optional<");
+                boolean isOptional =
+                        rawType.startsWith("Optional<");
 
-				String cleanType = isOptional ? parserUtil.extractGeneric(rawType) : rawType;
+                String cleanType =
 
-				String type = parserUtil.resolveFinalType(cleanType);
+                        isOptional
 
-				// ✅ fallback seguridad
-				if (type == null || type.isBlank()) {
+                                ? parserUtil.extractGeneric(rawType)
 
-					type = cleanType;
-				}
+                                : rawType;
 
-				// ✅ LIST<T>
-				if (cleanType.contains("List<")) {
+                String type =
 
-					String generic = parserUtil.extractGeneric(cleanType);
+                        parserUtil.resolveFinalType(
+                                cleanType);
 
-					Object nested = buildExampleFromType(generic);
+                if (type == null
+                        || type.isBlank()) {
 
-					if (nested == null) {
+                    type = cleanType;
+                }
 
-						nested = new LinkedHashMap<>();
-					}
+                // ✅ LIST<T>
+                if (cleanType.contains("List<")) {
 
-					example.put(name, List.of(nested));
+                    String generic =
 
-					return;
-				}
+                            parserUtil.extractGeneric(
+                                    cleanType);
 
-				// =====================================================
-				// ✅ OBJETO COMPLEJO
-				// =====================================================
-				boolean primitive = typeUtil.isPrimitive(type);
+                    Object nested =
+                            buildExampleFromType(
+                                    generic,
+                                    name);
 
-				// ✅ si existe schema registrado NO puede ser primitive
-				if (schemaMap.containsKey(type)) {
+                    if (nested == null) {
 
-					primitive = false;
-				}
+                        nested =
+                                new LinkedHashMap<>();
+                    }
 
-				// ✅ fallback adicional
-				if (type != null && type.startsWith("Bean")) {
+                    example.put(
+                            name,
+                            List.of(nested));
 
-					primitive = false;
-				}
+                    return;
+                }
 
-				if (!primitive) {
+                // ✅ COMPLEJO
+                boolean primitive =
+                        typeUtil.isPrimitive(type);
 
-					Object nested = buildExampleFromType(type);
+                if (schemaMap.containsKey(type)) {
 
-					if (nested == null) {
+                    primitive = false;
+                }
 
-						nested = new LinkedHashMap<>();
-					}
+                if (type != null
+                        && type.startsWith("Bean")) {
 
-					// ✅ PRESERVAR ESTRUCTURA NESTED
-					example.put(name, nested);
+                    primitive = false;
+                }
 
-					return;
-				}
+                if (!primitive) {
 
-				// ✅ PRIMITIVO
-				Object value = SmartExampleUtil.generate(name, null, dataContext);
+                    Object nested =
+                            buildExampleFromType(
+                                    type,
+                                    name);
 
-				example.put(name, value != null ? value : "");
-			});
-		});
+                    if (nested == null) {
 
-		return example;
-	}
+                        nested =
+                                new LinkedHashMap<>();
+                    }
 
-	// =========================================================
-	// ✅ RESOLVE JSON NAME
-	// =========================================================
-	private String resolveJsonNameFromClass(String className, String fieldName) {
+                    example.put(
+                            name,
+                            nested);
 
-		return classIndexer.findClass(className)
+                    return;
+                }
 
-				.map(clazz ->
+                // ✅ PRIMITIVO
+                Object value =
 
-				clazz.getFields()
+                        SmartExampleUtil.generate(
+                                name,
+                                null,
+                                dataContext);
 
-						.stream()
+                example.put(
+                        name,
+                        value != null
+                                ? value
+                                : "");
+            });
+        });
 
-						.flatMap(f ->
+        return example;
+    }
 
-						f.getVariables()
+    // =========================================================
+    // ✅ RESOLVE JSON NAME
+    // =========================================================
+    private String resolveJsonNameFromClass(
+            String className,
+            String fieldName) {
 
-								.stream()
+        return classIndexer.findClass(className)
 
-								.filter(v ->
+                .map(clazz ->
 
-								v.getNameAsString().equals(fieldName))
+                        clazz.getFields()
 
-								.map(v -> f))
+                                .stream()
 
-						.findFirst()
+                                .flatMap(f ->
 
-						.map(f ->
+                                        f.getVariables()
 
-						parserUtil.resolveJsonName(f, fieldName))
+                                                .stream()
 
-						.orElse(fieldName))
+                                                .filter(v ->
 
-				.orElse(fieldName);
-	}
+                                                        v.getNameAsString()
 
-	// =========================================================
-	// ✅ EXTRAER API NAME
-	// =========================================================
-	private String extractApiName(String type) {
+                                                                .equals(fieldName))
 
-		if (type == null) {
+                                                .map(v -> f))
 
-			return null;
-		}
+                                .findFirst()
 
-		String normalized = type.trim();
+                                .map(f ->
 
-		if (normalized.startsWith("BodyEntrada")) {
+                                        parserUtil.resolveJsonName(
+                                                f,
+                                                fieldName))
 
-			return normalized.substring("BodyEntrada".length()).trim();
-		}
+                                .orElse(fieldName))
 
-		if (normalized.startsWith("BodySalida")) {
+                .orElse(fieldName);
+    }
 
-			return normalized.substring("BodySalida".length()).trim();
-		}
+    // =========================================================
+    // ✅ API NAME
+    // =========================================================
+    private String extractApiName(
+            String type) {
 
-		return normalized;
-	}
+        if (type == null) {
 
-	// =========================================================
-	// ✅ BUILD FIELD PATH
-	// =========================================================
-	private String buildFieldPath(String type, String field) {
+            return null;
+        }
 
-		if (type == null || field == null) {
+        String normalized =
+                type.trim();
 
-			return field;
-		}
+        if (normalized.startsWith("BodyEntrada")) {
 
-		return type + "." + field;
-	}
+            return normalized.substring(
+                    "BodyEntrada".length()).trim();
+        }
 
-	// =========================================================
-	// ✅ PARSE VALUE
-	// =========================================================
-	private Object parseValue(String key, String value) {
+        if (normalized.startsWith("BodySalida")) {
 
-		if (value == null || value.isEmpty()) {
+            return normalized.substring(
+                    "BodySalida".length()).trim();
+        }
 
-			return "";
-		}
+        return normalized;
+    }
 
-		String lower = key.toLowerCase();
+    // =========================================================
+    // ✅ PARSE VALUE
+    // =========================================================
+    private Object parseValue(
+            String key,
+            String value) {
 
-		// ✅ SIEMPRE STRING
-		if (lower.contains("cuenta") || lower.contains("cta") || lower.contains("tarj") || lower.contains("card")
-				|| lower.contains("identificador") || lower.contains("telf") || lower.contains("telefono")
-				|| lower.contains("cel") || value.startsWith("0")) {
+        if (value == null
+                || value.isEmpty()) {
 
-			return value;
-		}
+            return "";
+        }
 
-		// ✅ INTEGER
-		if (value.matches("-?\\d+")) {
+        String lower =
+                key.toLowerCase();
 
-			try {
+        if (lower.contains("cuenta")
+                || lower.contains("cta")
+                || lower.contains("tarj")
+                || lower.contains("card")
+                || lower.contains("identificador")
+                || lower.contains("telf")
+                || lower.contains("telefono")
+                || lower.contains("cel")
+                || value.startsWith("0")) {
 
-				return Integer.parseInt(value);
+            return value;
+        }
 
-			} catch (Exception e) {
+        if (value.matches("-?\\d+")) {
 
-				return Long.parseLong(value);
-			}
-		}
+            try {
 
-		// ✅ DECIMAL
-		if (value.matches("-?\\d+\\.\\d+")) {
+                return Integer.parseInt(value);
 
-			return Double.parseDouble(value);
-		}
+            } catch (Exception e) {
 
-		// ✅ BOOLEAN
-		if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value)) {
+                return Long.parseLong(value);
+            }
+        }
 
-			return Boolean.parseBoolean(value);
-		}
+        if (value.matches("-?\\d+\\.\\d+")) {
 
-		return value;
-	}
+            return Double.parseDouble(value);
+        }
 
-	// =========================================================
-	// ✅ PARSE VALUE WITH SCHEMA
-	// =========================================================
-	@SuppressWarnings("unchecked")
-	private Object parseValueWithSchema(String type, String field, String value) {
+        if ("true".equalsIgnoreCase(value)
+                || "false".equalsIgnoreCase(value)) {
 
-		if (value == null || value.isEmpty()) {
+            return Boolean.parseBoolean(value);
+        }
 
-			return "";
-		}
+        return value;
+    }
 
-		Map<String, Object> schema = schemaMap.get(type);
+    // =========================================================
+    // ✅ PARSE VALUE WITH SCHEMA
+    // =========================================================
+    @SuppressWarnings("unchecked")
+    private Object parseValueWithSchema(
+            String type,
+            String field,
+            String value) {
 
-		if (schema != null && schema.containsKey("properties")) {
+        if (value == null
+                || value.isEmpty()) {
 
-			Map<String, Object> props = (Map<String, Object>) schema.get("properties");
+            return "";
+        }
 
-			if (props.containsKey(field)) {
+        Map<String, Object> schema =
+                schemaMap.get(type);
 
-				Map<String, Object> prop = (Map<String, Object>) props.get(field);
+        if (schema != null
+                && schema.containsKey("properties")) {
 
-				String schemaType = (String) prop.get("type");
+            Map<String, Object> props =
 
-				// ✅ RESPETAR STRING
-				if ("string".equals(schemaType)) {
+                    (Map<String, Object>) schema.get("properties");
 
-					return value;
-				}
+            if (props.containsKey(field)) {
 
-				try {
+                Map<String, Object> prop =
 
-					if ("integer".equals(schemaType)) {
+                        (Map<String, Object>) props.get(field);
 
-						return Integer.parseInt(value);
-					}
+                String schemaType =
+                        (String) prop.get("type");
 
-					if ("number".equals(schemaType)) {
+                if ("string".equals(schemaType)) {
 
-						return Double.parseDouble(value.replace(",", "."));
-					}
+                    return value;
+                }
 
-					if ("boolean".equals(schemaType)) {
+                try {
 
-						return Boolean.parseBoolean(value);
-					}
+                    if ("integer".equals(schemaType)) {
 
-				} catch (Exception e) {
+                        return Integer.parseInt(value);
+                    }
 
-					return parseValue(field, value);
-				}
-			}
-		}
+                    if ("number".equals(schemaType)) {
 
-		return parseValue(field, value);
-	}
+                        return Double.parseDouble(
+                                value.replace(",", "."));
+                    }
 
-	// =========================================================
-	// ✅ SMART NORMALIZATION
-	// =========================================================
-	@SuppressWarnings("unchecked")
-	private Object normalizeSmartValue(String type, String field, Object value) {
+                    if ("boolean".equals(schemaType)) {
 
-		if (value == null) {
+                        return Boolean.parseBoolean(value);
+                    }
 
-			return null;
-		}
+                } catch (Exception e) {
 
-		String lower = field.toLowerCase();
+                    return parseValue(field, value);
+                }
+            }
+        }
 
-		// ✅ SIEMPRE STRING
-		if (lower.contains("telf") || lower.contains("telefono") || lower.contains("cel") || lower.contains("tarj")
-				|| lower.contains("card") || lower.contains("cta") || lower.contains("cuenta")
-				|| lower.contains("identificador") || lower.contains("rif") || lower.contains("codarea")
-				|| lower.contains("codpais")) {
+        return parseValue(field, value);
+    }
 
-			return value.toString();
-		}
+    // =========================================================
+    // ✅ SMART NORMALIZATION
+    // =========================================================
+    @SuppressWarnings("unchecked")
+    private Object normalizeSmartValue(
+            String type,
+            String field,
+            Object value) {
 
-		// ✅ YA NUMERICOS
-		if (value instanceof Number || value instanceof Boolean) {
+        if (value == null) {
 
-			return value;
-		}
+            return null;
+        }
 
-		String val = value.toString();
+        String lower =
+                field.toLowerCase();
 
-		Map<String, Object> schema = schemaMap.get(type);
+        if (lower.contains("telf")
+                || lower.contains("telefono")
+                || lower.contains("cel")
+                || lower.contains("tarj")
+                || lower.contains("card")
+                || lower.contains("cta")
+                || lower.contains("cuenta")
+                || lower.contains("identificador")
+                || lower.contains("rif")
+                || lower.contains("codarea")
+                || lower.contains("codpais")) {
 
-		if (schema != null && schema.containsKey("properties")) {
+            return value.toString();
+        }
 
-			Map<String, Object> props = (Map<String, Object>) schema.get("properties");
+        if (value instanceof Number
+                || value instanceof Boolean) {
 
-			if (props.containsKey(field)) {
+            return value;
+        }
 
-				Map<String, Object> prop = (Map<String, Object>) props.get(field);
+        String val =
+                value.toString();
 
-				String schemaType = (String) prop.get("type");
+        Map<String, Object> schema =
+                schemaMap.get(type);
 
-				try {
+        if (schema != null
+                && schema.containsKey("properties")) {
 
-					// ✅ STRING
-					if ("string".equals(schemaType)) {
+            Map<String, Object> props =
 
-						return val;
-					}
+                    (Map<String, Object>) schema.get("properties");
 
-					// ✅ INTEGER
-					if ("integer".equals(schemaType)) {
+            if (props.containsKey(field)) {
 
-						return Integer.parseInt(val);
-					}
+                Map<String, Object> prop =
 
-					// ✅ NUMBER
-					if ("number".equals(schemaType)) {
+                        (Map<String, Object>) props.get(field);
 
-						return Double.parseDouble(val.replace(",", "."));
-					}
+                String schemaType =
+                        (String) prop.get("type");
 
-					// ✅ BOOLEAN
-					if ("boolean".equals(schemaType)) {
+                try {
 
-						return Boolean.parseBoolean(val);
-					}
+                    if ("string".equals(schemaType)) {
 
-				} catch (Exception e) {
+                        return val;
+                    }
 
-					// ✅ FALLBACK SILENCIOSO
-					return parseValue(field, val);
-				}
-			}
-		}
+                    if ("integer".equals(schemaType)) {
 
-		return parseValue(field, val);
-	}
+                        return Integer.parseInt(val);
+                    }
+
+                    if ("number".equals(schemaType)) {
+
+                        return Double.parseDouble(
+                                val.replace(",", "."));
+                    }
+
+                    if ("boolean".equals(schemaType)) {
+
+                        return Boolean.parseBoolean(val);
+                    }
+
+                } catch (Exception e) {
+
+                    return parseValue(field, val);
+                }
+            }
+        }
+
+        return parseValue(field, val);
+    }
 }

@@ -461,6 +461,7 @@
 
 	</api>
 
+
 	<!-- ===================================================== -->
 	<!-- ✅ TRANSFERIR OTROS BANCOS NACIONALES -->
 	<!-- ===================================================== -->
@@ -472,18 +473,23 @@
 			<field name="flagDna" value="" />
 			<field name="fechHh" value="" />
 
-			<field name="tipoCta" value="" />
-			<field name="codBco" value="108" />
-			<field name="nroCta" value="0001080571610100098127" />
+			<!-- ✅ DATOS BENEFICIARIO -->
+			<field name="datosBeneficiario.tipoCta" value="" />
+			<field name="datosBeneficiario.codBco" value="108" />
+			<field name="datosBeneficiario.nroCta"
+				value="0001080571610100098127" />
 
-			<field name="nroTelf" value="" />
-			<field name="correoBenef" value="" />
-			<field name="nroId" value="18881376" />
+			<field name="datosBeneficiario.nroTelf" value="" />
 
-			<field name="nomBenef" value="Cliente OB" />
+			<field name="datosBeneficiario.correoBenef" value="" />
 
-			<field name="alias" value="" />
-			<field name="tipoId" value="V" />
+			<field name="datosBeneficiario.nroId" value="18881376" />
+
+			<field name="datosBeneficiario.nomBenef" value="Cliente OB" />
+
+			<field name="datosBeneficiario.alias" value="" />
+
+			<field name="datosBeneficiario.tipoId" value="V" />
 
 			<field name="separadorEntrada" value="" />
 
@@ -491,20 +497,80 @@
 			<field name="nroTarj" value="" />
 			<field name="digSegu" value="" />
 
-			<field name="concept" value="pago" />
+			<!-- ✅ DATOS TRANSFERENCIA -->
+			<field name="datosTransferencia.concept" value="pago" />
 
-			<field name="codMoneda2" value="" />
+			<field name="datosTransferencia.codMoneda2" value="" />
 
-			<field name="mto1" value="277005.06" />
+			<field name="datosTransferencia.mto1" value="277005.06" />
 
-			<field name="codMoneda1" value="VES" />
+			<field name="datosTransferencia.codMoneda1" value="VES" />
 
-			<field name="mto2" value="" />
+			<field name="datosTransferencia.mto2" value="" />
 
-			<field name="mtoTasaDolares" value="" />
+			<field name="datosTransferencia.mtoTasaDolares" value="" />
+
+			<!-- ✅ NOTA LARGA -->
+			<field name="notaLarga.notaLargaDbto" value="" />
+
+			<field name="notaLarga.separadorNotaDbto" value="" />
+
+			<field name="notaLarga.separadorNotaCdto" value="" />
+
+			<field name="notaLarga.notaLargaCdto" value="" />
+
+			<field name="notaLarga.datosAdicionalesNota" value="" />
+
+			<!-- ✅ DATOS ORDENANTE -->
+			<field name="datosOrdenante.tipoCtaOr" value="" />
+
+			<field name="datosOrdenante.codBcoOr" value="105" />
+
+			<field name="datosOrdenante.nroCtaOr" value="001606000721" />
+
+			<field name="datosOrdenante.nroTlfOr" value="" />
+
+			<field name="datosOrdenante.nroIdOr" value="6876427" />
+
+			<field name="datosOrdenante.correoOrigenOr" value="" />
+
+			<field name="datosOrdenante.aliasOr" value="" />
+
+			<field name="datosOrdenante.tipoIdOr" value="V" />
+
+			<!-- ✅ DATOS AGENDAMIENTO -->
+			<field name="datosAgendamiento.flagAgendamiento" value="" />
+
+			<field name="datosAgendamiento.idTrans" value="" />
+
+			<field name="datosAgendamiento.fchAgendamiento" value="" />
+
+			<field name="datosAgendamiento.codBcoAg" value="0" />
+
+			<!-- ✅ DATOS ADICIONALES -->
+			<field name="datosAdicionales.idAplic" value="" />
+
+			<field name="datosAdicionales.viaTransfer" value="" />
+
+			<field name="datosAdicionales.nroPagina" value="0" />
+
+			<field name="datosAdicionales.nomTransaccion" value="" />
+
+			<field name="datosAdicionales.tipoClv" value="" />
+
+			<field name="datosAdicionales.fchValor" value="20251112" />
+
+			<field name="datosAdicionales.tipoPago" value="" />
+
+			<field name="datosAdicionales.indicInstrum" value="" />
+
+			<field name="datosAdicionales.modo" value="" />
+
+			<field name="datosAdicionales.nombCabecera" value="" />
+
+			<field name="datosAdicEntrada" value="" />
 
 		</request>
-
 
 		<response>
 
@@ -545,7 +611,6 @@
 			<field name="bodySalidaTransferirOtrosBancosNacionales.codBco"
 				value="0" />
 
-
 			<field name="bodySalidaTransferirOtrosBancosNacionales.msje"
 				value="" />
 
@@ -563,5 +628,6 @@
 		</response>
 
 	</api>
+
 
 </rules>
