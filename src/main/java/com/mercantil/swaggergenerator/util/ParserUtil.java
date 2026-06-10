@@ -13,183 +13,401 @@ import com.github.javaparser.ast.expr.AnnotationExpr;
 @Component
 public class ParserUtil {
 
-	// =========================================================
-	// ✅ JSON PROPERTY
-	// =========================================================
-	public String resolveJsonName(FieldDeclaration field, String defaultName) {
+    // =========================================================
+    // ✅ JSON PROPERTY
+    // =========================================================
+    public String resolveJsonName(
+            FieldDeclaration field,
+            String defaultName) {
 
-		// ✅ 1. Field directo
-		Optional<AnnotationExpr> annOpt = field.getAnnotationByName("JsonProperty");
+        // ✅ 1. FIELD DIRECTO
+        Optional<AnnotationExpr> annOpt =
+                field.getAnnotationByName(
+                        "JsonProperty");
 
-		if (annOpt.isPresent()) {
-			String val = extractJsonValue(annOpt.get());
-			if (val != null)
-				return val;
-		}
+        if (annOpt.isPresent()) {
 
-		// ✅ 2. Getter
-		Optional<String> getterValue = field.findCompilationUnit().flatMap(
-				cu -> cu.findAll(MethodDeclaration.class).stream().filter(m -> isGetterForField(m, defaultName))
-						.map(m -> m.getAnnotationByName("JsonProperty")).filter(Optional::isPresent).map(Optional::get)
-						.map(this::extractJsonValue).filter(Objects::nonNull).findFirst());
+            String val =
+                    extractJsonValue(
+                            annOpt.get());
 
-		if (getterValue.isPresent())
-			return getterValue.get();
+            if (val != null) {
 
-		// ✅ 3. Constructor (@JsonCreator)
-		Optional<String> constructorValue = field.findCompilationUnit()
-				.flatMap(cu -> cu.findAll(ConstructorDeclaration.class).stream()
-						.filter(c -> c.getAnnotationByName("JsonCreator").isPresent())
-						.flatMap(c -> c.getParameters().stream()).filter(p -> p.getNameAsString().equals(defaultName))
-						.map(p -> p.getAnnotationByName("JsonProperty")).filter(Optional::isPresent).map(Optional::get)
-						.map(this::extractJsonValue).filter(Objects::nonNull).findFirst());
+                return val;
+            }
+        }
 
-		return constructorValue.orElse(defaultName);
-	}
+        // ✅ 2. GETTER
+        Optional<String> getterValue =
 
-	private String extractJsonValue(AnnotationExpr ann) {
+                field.findCompilationUnit()
 
-		// ✅ CASO 1: @JsonProperty("nroPer")
-		if (ann.isSingleMemberAnnotationExpr()) {
+                        .flatMap(cu ->
 
-			return ann.asSingleMemberAnnotationExpr().getMemberValue().toString().replace("\"", "");
-		}
+                                cu.findAll(
+                                        MethodDeclaration.class)
 
-		// ✅ CASO 2: @JsonProperty(value = "nroPer")
-		if (ann.isNormalAnnotationExpr()) {
+                                        .stream()
 
-			return ann.asNormalAnnotationExpr().getPairs().stream().filter(p -> p.getNameAsString().equals("value"))
-					.findFirst().map(p -> p.getValue().toString().replace("\"", "")).orElse(null);
-		}
+                                        .filter(m ->
 
-		// ✅ CASO 3: @JsonProperty (sin valor explícito)
-		// (raro, pero evitamos NPE)
-		return null;
-	}
+                                                isGetterForField(
+                                                        m,
+                                                        defaultName))
 
-	// =========================================================
-	// ✅ GENERIC SIMPLE
-	// =========================================================
-	public String extractGeneric(String input) {
+                                        .map(m ->
 
-		if (input == null)
-			return null;
+                                                m.getAnnotationByName(
+                                                        "JsonProperty"))
 
-		int start = input.indexOf("<");
-		int end = input.lastIndexOf(">");
+                                        .filter(Optional::isPresent)
 
-		if (start == -1 || end == -1 || end <= start) {
-			return input;
-		}
+                                        .map(Optional::get)
 
-		String inner = input.substring(start + 1, end);
+                                        .map(this::extractJsonValue)
 
-		// 🔥 soporta generics anidados
-		if (inner.contains("<")) {
-			return extractGeneric(inner);
-		}
+                                        .filter(Objects::nonNull)
 
-		return inner.trim();
-	}
+                                        .findFirst());
 
-	// =========================================================
-	// ✅ EXTRAER VALOR DE MAP<K,V>
-	// =========================================================
-	public String extractMapValue(String input) {
+        if (getterValue.isPresent()) {
 
-		if (input == null || !input.contains(","))
-			return "Object";
+            return getterValue.get();
+        }
 
-		int start = input.indexOf("<");
-		int end = input.lastIndexOf(">");
+        // ✅ 3. CONSTRUCTOR (@JsonCreator)
+        Optional<String> constructorValue =
 
-		if (start == -1 || end == -1)
-			return "Object";
+                field.findCompilationUnit()
 
-		String inside = input.substring(start + 1, end);
+                        .flatMap(cu ->
 
-		String[] parts = inside.split(",");
+                                cu.findAll(
+                                        ConstructorDeclaration.class)
 
-		if (parts.length < 2)
-			return "Object";
+                                        .stream()
 
-		return resolveFinalType(parts[1].trim());
-	}
+                                        .filter(c ->
 
-	// =========================================================
-	// ✅ LIMPIAR TIPO FINAL
-	// =========================================================
-	public String resolveFinalType(String type) {
+                                                c.getAnnotationByName(
+                                                        "JsonCreator")
 
-		if (type == null)
-			return null;
+                                                        .isPresent())
 
-		// 🔥 quitar Optional
-		if (type.startsWith("Optional<")) {
-			type = extractGeneric(type);
-		}
+                                        .flatMap(c ->
 
-		// 🔥 quitar paquetes
-		if (type.contains(".")) {
-			type = type.substring(type.lastIndexOf(".") + 1);
-		}
+                                                c.getParameters()
 
-		// 🔥 quitar generics restantes
-		if (type.contains("<")) {
-			type = extractGeneric(type);
-		}
+                                                        .stream())
 
-		return type.trim();
-	}
+                                        .filter(p ->
 
-	// =========================================================
-	// ✅ HELPERS PRO
-	// =========================================================
-	public boolean isList(String type) {
-		return type != null && (type.contains("List<") || type.contains("Set<"));
-	}
+                                                p.getNameAsString()
+                                                        .equals(defaultName))
 
-	public boolean isMap(String type) {
-		return type != null && type.startsWith("Map<");
-	}
+                                        .map(p ->
 
-	public boolean isOptional(String type) {
-		return type != null && type.startsWith("Optional<");
-	}
+                                                p.getAnnotationByName(
+                                                        "JsonProperty"))
 
-	public String unwrapOptional(String type) {
-		if (isOptional(type)) {
-			return extractGeneric(type);
-		}
-		return type;
-	}
+                                        .filter(Optional::isPresent)
 
-	// =========================================================
-	// 🔥 GENERIC COMPLEJO (NIVEL ENTERPRISE)
-	// =========================================================
-	public String extractDeepestType(String type) {
+                                        .map(Optional::get)
 
-		if (type == null)
-			return null;
+                                        .map(this::extractJsonValue)
 
-		// ejemplos:
-		// List<Map<String, User>> -> User
-		// Optional<List<Account>> -> Account
+                                        .filter(Objects::nonNull)
 
-		while (type.contains("<")) {
-			type = extractGeneric(type);
-		}
+                                        .findFirst());
 
-		return resolveFinalType(type);
-	}
+        return constructorValue.orElse(defaultName);
+    }
 
-	private boolean isGetterForField(MethodDeclaration m, String fieldName) {
+    // =========================================================
+    // ✅ EXTRAER JSON VALUE
+    // =========================================================
+    private String extractJsonValue(
+            AnnotationExpr ann) {
 
-		String methodName = m.getNameAsString();
+        // ✅ @JsonProperty("campo")
+        if (ann.isSingleMemberAnnotationExpr()) {
 
-		String expected = "get" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
+            return ann.asSingleMemberAnnotationExpr()
 
-		return methodName.equals(expected);
-	}
+                    .getMemberValue()
 
+                    .toString()
+
+                    .replace("\"", "");
+        }
+
+        // ✅ @JsonProperty(value = "campo")
+        if (ann.isNormalAnnotationExpr()) {
+
+            return ann.asNormalAnnotationExpr()
+
+                    .getPairs()
+
+                    .stream()
+
+                    .filter(p ->
+
+                            p.getNameAsString()
+                                    .equals("value"))
+
+                    .findFirst()
+
+                    .map(p ->
+
+                            p.getValue()
+
+                                    .toString()
+
+                                    .replace("\"", ""))
+
+                    .orElse(null);
+        }
+
+        // ✅ @JsonProperty sin value
+        return null;
+    }
+
+    // =========================================================
+    // ✅ EXTRACT GENERIC
+    // =========================================================
+    public String extractGeneric(
+            String input) {
+
+        if (input == null
+                || input.isBlank()) {
+
+            return null;
+        }
+
+        int start =
+                input.indexOf("<");
+
+        int end =
+                input.lastIndexOf(">");
+
+        if (start == -1
+                || end == -1
+                || end <= start) {
+
+            return input.trim();
+        }
+
+        String inner =
+                input.substring(
+                        start + 1,
+                        end);
+
+        // ✅ SOPORTA GENERICS ANIDADOS
+        if (inner.contains("<")) {
+
+            return extractGeneric(inner);
+        }
+
+        return inner.trim();
+    }
+
+    // =========================================================
+    // ✅ EXTRAER VALUE MAP<K,V>
+    // =========================================================
+    public String extractMapValue(
+            String input) {
+
+        if (input == null
+                || !input.contains(",")) {
+
+            return "Object";
+        }
+
+        int start =
+                input.indexOf("<");
+
+        int end =
+                input.lastIndexOf(">");
+
+        if (start == -1
+                || end == -1) {
+
+            return "Object";
+        }
+
+        String inside =
+                input.substring(
+                        start + 1,
+                        end);
+
+        String[] parts =
+                inside.split(",");
+
+        if (parts.length < 2) {
+
+            return "Object";
+        }
+
+        return resolveFinalType(
+                parts[1].trim());
+    }
+
+    // =========================================================
+    // ✅ LIMPIAR TIPO FINAL
+    // =========================================================
+    public String resolveFinalType(
+            String type) {
+
+        if (type == null
+                || type.isBlank()) {
+
+            return null;
+        }
+
+        String clean =
+                type.trim();
+
+        // =====================================================
+        // ✅ OPTIONAL
+        // =====================================================
+        if (clean.startsWith("Optional<")) {
+
+            clean =
+                    extractGeneric(clean);
+        }
+
+        // =====================================================
+        // ✅ QUITAR PACKAGES
+        // =====================================================
+        if (clean.contains(".")) {
+
+            clean =
+                    clean.substring(
+                            clean.lastIndexOf(".") + 1);
+        }
+
+        // =====================================================
+        // ✅ LIST / SET
+        // =====================================================
+        if (clean.startsWith("List<")
+                || clean.startsWith("Set<")) {
+
+            return extractGeneric(clean);
+        }
+
+        // =====================================================
+        // ✅ MAP<K,V>
+        // =====================================================
+        if (clean.startsWith("Map<")) {
+
+            return extractMapValue(clean);
+        }
+
+        // =====================================================
+        // ✅ GENERICS RESTANTES
+        // =====================================================
+        if (clean.contains("<")) {
+
+            clean =
+                    extractGeneric(clean);
+        }
+
+        clean =
+                clean.trim();
+
+        // =====================================================
+        // ✅ FALLBACK
+        // =====================================================
+        if (clean.isBlank()) {
+
+            return type;
+        }
+
+        // ✅ NUNCA degradar beans reales
+        return clean;
+    }
+
+    // =========================================================
+    // ✅ HELPERS
+    // =========================================================
+    public boolean isList(
+            String type) {
+
+        return type != null
+
+                && (type.startsWith("List<")
+                        || type.startsWith("Set<"));
+    }
+
+    public boolean isMap(
+            String type) {
+
+        return type != null
+                && type.startsWith("Map<");
+    }
+
+    public boolean isOptional(
+            String type) {
+
+        return type != null
+                && type.startsWith("Optional<");
+    }
+
+    public String unwrapOptional(
+            String type) {
+
+        if (isOptional(type)) {
+
+            return extractGeneric(type);
+        }
+
+        return type;
+    }
+
+    // =========================================================
+    // ✅ GENERIC COMPLEJO
+    // =========================================================
+    public String extractDeepestType(
+            String type) {
+
+        if (type == null
+                || type.isBlank()) {
+
+            return null;
+        }
+
+        // ✅ EJEMPLOS:
+        // List<Map<String, User>> -> User
+        // Optional<List<Account>> -> Account
+
+        while (type.contains("<")) {
+
+            type =
+                    extractGeneric(type);
+        }
+
+        return resolveFinalType(type);
+    }
+
+    // =========================================================
+    // ✅ VALIDAR GETTER
+    // =========================================================
+    private boolean isGetterForField(
+            MethodDeclaration m,
+            String fieldName) {
+
+        String methodName =
+                m.getNameAsString();
+
+        String expected =
+
+                "get"
+
+                        + Character.toUpperCase(
+                                fieldName.charAt(0))
+
+                        + fieldName.substring(1);
+
+        return methodName.equals(expected);
+    }
 }

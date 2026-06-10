@@ -22,1215 +22,885 @@ import com.mercantil.swaggergenerator.util.TypeUtil;
 @Component
 public class SchemaBuilder {
 
-    @Autowired
-    private TypeUtil typeUtil;
+	@Autowired
+	private TypeUtil typeUtil;
 
-    @Autowired
-    private ParserUtil parserUtil;
+	@Autowired
+	private ParserUtil parserUtil;
 
-    @Autowired
-    private ClassIndexer classIndexer;
+	@Autowired
+	private ClassIndexer classIndexer;
 
-    private Map<String, Map<String, Object>> schemaMap;
+	private Map<String, Map<String, Object>> schemaMap;
 
-    private Map<String, EnumDeclaration> enumMap;
+	private Map<String, EnumDeclaration> enumMap;
 
-    // ✅ evita recursion infinita
-    private final Set<String> processing =
-            new HashSet<>();
+	// ✅ evita recursion infinita
+	private final Set<String> processing = new HashSet<>();
 
-    // ✅ clases ignoradas
-    private static final Set<String> IGNORED_TYPES =
-            Set.of(
-                    "ConstructorRequired",
-                    "BeansZOS",
-                    "SendRequestRest");
+	// ✅ clases ignoradas
+	private static final Set<String> IGNORED_TYPES = Set.of("ConstructorRequired", "BeansZOS", "SendRequestRest");
 
-    // =========================================================
-    // ✅ SETTERS
-    // =========================================================
-    public void setSchemaMap(
-            Map<String, Map<String, Object>> schemaMap) {
+	// =========================================================
+	// ✅ SETTERS
+	// =========================================================
+	public void setSchemaMap(Map<String, Map<String, Object>> schemaMap) {
 
-        this.schemaMap = schemaMap;
-    }
+		this.schemaMap = schemaMap;
+	}
 
-    public void setEnumMap(
-            Map<String, EnumDeclaration> enumMap) {
+	public void setEnumMap(Map<String, EnumDeclaration> enumMap) {
 
-        this.enumMap = enumMap;
-    }
+		this.enumMap = enumMap;
+	}
 
-    // =========================================================
-    // ✅ BUILD PRINCIPAL
-    // =========================================================
-    @SuppressWarnings("unchecked")
-    public Map<String, Object> build(
-            ClassOrInterfaceDeclaration clazz) {
+	// =========================================================
+	// ✅ BUILD PRINCIPAL
+	// =========================================================
+	@SuppressWarnings("unchecked")
+	public Map<String, Object> build(ClassOrInterfaceDeclaration clazz) {
 
-        String className =
-                clazz.getNameAsString();
+		String className = clazz.getNameAsString();
 
-        // =====================================================
-        // ✅ recursion protection
-        // =====================================================
-        if (processing.contains(className)) {
+		// =====================================================
+		// ✅ recursion protection
+		// =====================================================
+		if (processing.contains(className)) {
 
-            return schemaMap.getOrDefault(
+			return schemaMap.getOrDefault(
 
-                    className,
+					className,
 
-                    Map.of(
-                            "type",
-                            "object",
+					Map.of("type", "object",
 
-                            "properties",
-                            new LinkedHashMap<>()));
-        }
+							"properties", new LinkedHashMap<>()));
+		}
 
-        processing.add(className);
+		processing.add(className);
 
-        try {
+		try {
 
-            Map<String, Object> properties =
-                    new LinkedHashMap<>();
+			Map<String, Object> properties = new LinkedHashMap<>();
 
-            List<String> required =
-                    new ArrayList<>();
+			List<String> required = new ArrayList<>();
 
-            // =================================================
-            // ✅ EARLY REGISTRATION
-            // =================================================
-            Map<String, Object> schema =
-                    new LinkedHashMap<>();
+			// =================================================
+			// ✅ EARLY REGISTRATION
+			// =================================================
+			Map<String, Object> schema = new LinkedHashMap<>();
 
-            schema.put(
-                    "type",
-                    "object");
+			schema.put("type", "object");
 
-            schema.put(
-                    "properties",
-                    properties);
+			schema.put("properties", properties);
 
-            schemaMap.put(
-                    className,
-                    schema);
+			schemaMap.put(className, schema);
 
-            // =================================================
-            // ✅ ENUMS
-            // =================================================
-            if (clazz.isEnumDeclaration()) {
+			// =================================================
+			// ✅ ENUMS
+			// =================================================
+			if (clazz.isEnumDeclaration()) {
 
-                List<String> values =
-                        clazz
-                                .asEnumDeclaration()
-                                .getEntries()
-                                .stream()
+				List<String> values = clazz.asEnumDeclaration().getEntries().stream()
 
-                                .map(e ->
-                                        e.getNameAsString())
+						.map(e -> e.getNameAsString())
 
-                                .collect(Collectors.toList());
+						.collect(Collectors.toList());
 
-                Map<String, Object> enumSchema =
-                        Map.of(
+				Map<String, Object> enumSchema = Map.of(
 
-                                "type",
-                                "string",
+						"type", "string",
 
-                                "enum",
-                                values);
+						"enum", values);
 
-                schemaMap.put(
-                        className,
-                        enumSchema);
+				schemaMap.put(className, enumSchema);
 
-                return enumSchema;
-            }
+				return enumSchema;
+			}
 
-            // =================================================
-            // ✅ HERENCIA
-            // =================================================
-            clazz.getExtendedTypes().forEach(ext -> {
+			// =================================================
+			// ✅ HERENCIA
+			// =================================================
+			clazz.getExtendedTypes().forEach(ext -> {
 
-                classIndexer.findClass(
-                        ext.getNameAsString())
+				classIndexer.findClass(ext.getNameAsString())
 
-                        .ifPresent(parent -> {
+						.ifPresent(parent -> {
 
-                            Map<String, Object> parentSchema =
-                                    build(parent);
+							Map<String, Object> parentSchema = build(parent);
 
-                            Object props =
-                                    parentSchema.get(
-                                            "properties");
+							Object props = parentSchema.get("properties");
 
-                            if (props instanceof Map) {
+							if (props instanceof Map) {
 
-                                properties.putAll(
-                                        (Map<String, Object>) props);
-                            }
-                        });
-            });
+								properties.putAll((Map<String, Object>) props);
+							}
+						});
+			});
 
-            // =================================================
-            // ✅ CAMPOS
-            // =================================================
-            clazz.getFields()
+			// =================================================
+			// ✅ CAMPOS
+			// =================================================
+			clazz.getFields()
 
-                    .stream()
+					.stream()
 
-                    .filter(field ->
-                            !field.isStatic())
+					.filter(field -> !field.isStatic())
 
-                    .filter(field ->
-                            !field.isTransient())
+					.filter(field -> !field.isTransient())
 
-                    .forEach(field -> {
+					.forEach(field -> {
 
-                        field.getVariables()
+						field.getVariables()
 
-                                .stream()
+								.stream()
 
-                                .filter(var ->
+								.filter(var ->
 
-                                !"serialVersionUID"
-                                        .equalsIgnoreCase(
-                                                var.getNameAsString()))
+								!"serialVersionUID".equalsIgnoreCase(var.getNameAsString()))
 
-                                .forEach(var -> {
+								.forEach(var -> {
 
-                                    String name =
-                                            parserUtil.resolveJsonName(
-                                                    field,
-                                                    var.getNameAsString());
+									String name = parserUtil.resolveJsonName(field, var.getNameAsString());
 
-                                    // ✅ evitar propiedades inválidas
-                                    if (name == null
-                                            || name.isBlank()) {
+									// ✅ evitar propiedades inválidas
+									if (name == null || name.isBlank()) {
 
-                                        return;
-                                    }
+										return;
+									}
 
-                                    Map<String, Object> prop =
-                                            new LinkedHashMap<>();
+									Map<String, Object> prop = new LinkedHashMap<>();
 
-                                    var typeNode =
-                                            var.getType();
+									var typeNode = var.getType();
 
-                                    String rawType =
-                                            typeNode.asString();
+									String rawType = typeNode.asString();
 
-                                    boolean isArray =
-                                            typeNode.isArrayType();
+									boolean isArray = typeNode.isArrayType();
 
-                                    boolean isOptional =
-                                            rawType.startsWith(
-                                                    "Optional<");
+									boolean isOptional = rawType.startsWith("Optional<");
 
-                                    String cleanType =
-                                            isOptional
-                                                    ? parserUtil.extractGeneric(rawType)
-                                                    : rawType;
+									String cleanType = isOptional ? parserUtil.extractGeneric(rawType) : rawType;
 
-                                    String simpleType =
-                                            parserUtil.resolveFinalType(cleanType);
+									String simpleType = parserUtil.resolveFinalType(cleanType);
 
-                                    // ✅ validar type
-                                    if (simpleType == null
-                                            || simpleType.isBlank()
-                                            || simpleType.contains(",")) {
+									// ✅ validar type
+									if (simpleType == null || simpleType.isBlank() || simpleType.contains(",")) {
 
-                                        return;
-                                    }
+										return;
+									}
 
-                                    String resolved =
-                                            extractSimpleName(
+									String resolved = extractSimpleName(
 
-                                                    resolveFullType(
-                                                            simpleType,
-                                                            clazz));
+											resolveFullType(simpleType, clazz));
 
-                                    // =================================================
-                                    // ✅ ARRAY
-                                    // =================================================
-                                    if (isArray) {
+									// =================================================
+									// ✅ ARRAY
+									// =================================================
+									if (isArray) {
 
-                                        String elementType =
-                                                typeNode
-                                                        .asArrayType()
-                                                        .getComponentType()
-                                                        .asString();
+										String elementType = typeNode.asArrayType().getComponentType().asString();
 
-                                        // ✅ byte[]
-                                        if ("byte".equalsIgnoreCase(
-                                                elementType)) {
+										// ✅ byte[]
+										if ("byte".equalsIgnoreCase(elementType)) {
 
-                                            prop.put(
-                                                    "type",
-                                                    "string");
+											prop.put("type", "string");
 
-                                            prop.put(
-                                                    "format",
-                                                    "byte");
-                                        }
+											prop.put("format", "byte");
+										}
 
-                                        // ✅ arrays normales
-                                        else {
+										// ✅ arrays normales
+										else {
 
-                                            prop.put(
-                                                    "type",
-                                                    "array");
+											prop.put("type", "array");
 
-                                            String res =
-                                                    extractSimpleName(
+											String res = extractSimpleName(
 
-                                                            resolveFullType(
-                                                                    elementType,
-                                                                    clazz));
+													resolveFullType(elementType, clazz));
 
-                                            // ✅ primitivo
-                                            if (typeUtil.isPrimitive(res)) {
+											// ✅ primitivo
+											if (typeUtil.isPrimitive(res)) {
 
-                                                prop.put(
+												prop.put(
 
-                                                        "items",
+														"items",
 
-                                                        Map.of(
-                                                                "type",
-                                                                typeUtil.mapType(res)));
-                                            }
+														Map.of("type", typeUtil.mapType(res)));
+											}
 
-                                            // ✅ objeto
-                                            else {
+											// ✅ objeto
+											else {
 
-                                                prop.put(
+												prop.put(
 
-                                                        "items",
+														"items",
 
-                                                        buildSafeSchemaReference(
-                                                                res,
-                                                                clazz));
-                                            }
-                                        }
-                                    }
+														buildSafeSchemaReference(res, clazz));
+											}
+										}
+									}
 
-                                    // =================================================
-                                    // ✅ LIST<T>
-                                    // =================================================
-                                    else if (rawType.contains("List<")) {
+									// =================================================
+									// ✅ LIST<T>
+									// =================================================
+									else if (rawType.contains("List<")) {
 
-                                        String generic =
-                                                parserUtil.extractGeneric(
-                                                        rawType);
+										String generic = parserUtil.extractGeneric(rawType);
 
-                                        if (generic.contains(",")) {
+										if (generic.contains(",")) {
 
-                                            return;
-                                        }
+											return;
+										}
 
-                                        String res =
-                                                extractSimpleName(
+										String res = extractSimpleName(
 
-                                                        resolveFullType(
-                                                                generic,
-                                                                clazz));
+												resolveFullType(generic, clazz));
 
-                                        prop.put(
-                                                "type",
-                                                "array");
+										prop.put("type", "array");
 
-                                        // ✅ primitivo
-                                        if (typeUtil.isPrimitive(res)) {
+										// ✅ primitivo
+										if (typeUtil.isPrimitive(res)) {
 
-                                            prop.put(
+											prop.put(
 
-                                                    "items",
+													"items",
 
-                                                    Map.of(
-                                                            "type",
-                                                            typeUtil.mapType(res)));
-                                        }
+													Map.of("type", typeUtil.mapType(res)));
+										}
 
-                                        // ✅ objeto
-                                        else {
+										// ✅ objeto
+										else {
 
-                                            prop.put(
+											prop.put(
 
-                                                    "items",
+													"items",
 
-                                                    buildSafeSchemaReference(
-                                                            res,
-                                                            clazz));
-                                        }
-                                    }
+													buildSafeSchemaReference(res, clazz));
+										}
+									}
 
-                                    // =================================================
-                                    // ✅ MAP<K,V>
-                                    // =================================================
-                                    else if (rawType.contains("Map<")) {
+									// =================================================
+									// ✅ MAP<K,V>
+									// =================================================
+									else if (rawType.contains("Map<")) {
 
-                                        prop.put(
-                                                "type",
-                                                "object");
+										prop.put("type", "object");
 
-                                        String valueType =
-                                                parserUtil.extractMapValue(
-                                                        rawType);
+										String valueType = parserUtil.extractMapValue(rawType);
 
-                                        if (valueType != null
-                                                && !valueType.contains(",")) {
+										if (valueType != null && !valueType.contains(",")) {
 
-                                            String res =
-                                                    extractSimpleName(
+											String res = extractSimpleName(
 
-                                                            resolveFullType(
-                                                                    valueType,
-                                                                    clazz));
+													resolveFullType(valueType, clazz));
 
-                                            // ✅ primitivo
-                                            if (typeUtil.isPrimitive(res)) {
+											// ✅ primitivo
+											if (typeUtil.isPrimitive(res)) {
 
-                                                prop.put(
+												prop.put(
 
-                                                        "additionalProperties",
+														"additionalProperties",
 
-                                                        Map.of(
-                                                                "type",
-                                                                typeUtil.mapType(res)));
-                                            }
+														Map.of("type", typeUtil.mapType(res)));
+											}
 
-                                            // ✅ objeto
-                                            else {
+											// ✅ objeto
+											else {
 
-                                                prop.put(
+												prop.put(
 
-                                                        "additionalProperties",
+														"additionalProperties",
 
-                                                        buildSafeSchemaReference(
-                                                                res,
-                                                                clazz));
-                                            }
-                                        }
-                                    }
+														buildSafeSchemaReference(res, clazz));
+											}
+										}
+									}
 
-                                    // =================================================
-                                    // ✅ PRIMITIVO
-                                    // =================================================
-                                    else if (typeUtil.isPrimitive(resolved)) {
+									// =================================================
+									// ✅ PRIMITIVO
+									// =================================================
+									else if (typeUtil.isPrimitive(resolved)) {
 
-                                        prop.put(
-                                                "type",
-                                                typeUtil.mapType(resolved));
+										prop.put("type", typeUtil.mapType(resolved));
 
-                                        applyFormat(
-                                                prop,
-                                                resolved);
-                                    }
+										applyFormat(prop, resolved);
+									}
 
-                                    // =================================================
-                                    // ✅ OBJETO
-                                    // =================================================
-                                    else {
+									// =================================================
+									// ✅ OBJETO
+									// =================================================
+									else {
 
-                                        boolean flattened =
-                                                false;
+										boolean flattened = false;
 
-                                        // ✅ String especial
-                                        if ("String".equals(resolved)
-                                                || "byte".equalsIgnoreCase(resolved)) {
+										// ✅ String especial
+										if ("String".equals(resolved) || "byte".equalsIgnoreCase(resolved)) {
 
-                                            prop.put(
-                                                    "type",
-                                                    "string");
-                                        }
+											prop.put("type", "string");
+										}
 
-                                        // ✅ flatten wrappers
-                                        else if (shouldFlatten(resolved)) {
+										// ✅ flatten SOLO wrappers especiales
+										else if (shouldFlatten(resolved)) {
 
-                                            flattenSchemaProperties(
-                                                    resolved,
-                                                    properties);
+											flattenSchemaProperties(resolved, properties);
 
-                                            flattened =
-                                                    true;
-                                        }
+											flattened = true;
+										}
 
-                                        // ✅ enum
-                                        else if (enumMap != null
-                                                && enumMap.containsKey(resolved)) {
+										// ✅ enum
+										else if (enumMap != null && enumMap.containsKey(resolved)) {
 
-                                            ensureEnumSchema(resolved);
+											ensureEnumSchema(resolved);
 
-                                            prop.put(
-                                                    "$ref",
-                                                    "#/components/schemas/" + resolved);
-                                        }
+											prop.put("$ref", "#/components/schemas/" + resolved);
+										}
 
-                                        // ✅ objeto normal
-                                        else {
+										// ✅ objeto normal
+										else {
 
-                                            if (IGNORED_TYPES.contains(resolved)) {
+											if (IGNORED_TYPES.contains(resolved)) {
 
-                                                prop.put(
-                                                        "type",
-                                                        "object");
-                                            }
+												prop.put("type", "object");
+											}
 
-                                            else {
+								else {
 
-                                                prop.putAll(
+												prop.putAll(
 
-                                                        buildSafeSchemaReference(
-                                                                resolved,
-                                                                clazz));
-                                            }
-                                        }
+														buildSafeSchemaReference(resolved, clazz));
+											}
+										}
 
-                                        // ✅ wrapper flatten
-                                        if (flattened) {
+										// ✅ wrapper flatten
+										if (flattened) {
 
-                                            return;
-                                        }
-                                    }
+											return;
+										}
+									}
 
-                                    // =================================================
-                                    // ✅ OPTIONAL
-                                    // =================================================
-                                    if (isOptional) {
+									// =================================================
+									// ✅ OPTIONAL
+									// =================================================
+									if (isOptional) {
 
-                                        prop.put(
-                                                "nullable",
-                                                true);
-                                    }
+										prop.put("nullable", true);
+									}
 
-                                    // ✅ annotations
-                                    applyAnnotations(
-                                            field,
-                                            prop);
+									// ✅ annotations
+									applyAnnotations(field, prop);
 
-                                    // ✅ required
-                                    if (isRequired(field)) {
+									// ✅ required
+									if (isRequired(field)) {
 
-                                        required.add(name);
-                                    }
+										required.add(name);
+									}
 
-                                    // ✅ agregar propiedad
-                                    properties.put(
-                                            name,
-                                            prop);
-                                });
-                    });
+									// ✅ agregar propiedad
+									properties.put(name, prop);
+								});
+					});
 
-            // =================================================
-            // ✅ REQUIRED
-            // =================================================
-            if (!required.isEmpty()) {
+			// =================================================
+			// ✅ REQUIRED
+			// =================================================
+			if (!required.isEmpty()) {
 
-                schema.put(
-                        "required",
-                        required);
-            }
+				schema.put("required", required);
+			}
 
-            return schema;
+			return schema;
 
-        } finally {
+		} finally {
 
-            processing.remove(className);
-        }
-    }
+			processing.remove(className);
+		}
+	}
 
-    // =========================================================
-    // ✅ WRAPPER DETECTION
-    // =========================================================
-    private boolean shouldFlatten(
-            String typeName) {
+	// =========================================================
+	// ✅ WRAPPER DETECTION
+	// =========================================================
+	private boolean shouldFlatten(String typeName) {
 
-        if (typeName == null) {
+		if (typeName == null || typeName.isBlank()) {
 
-            return false;
-        }
+			return false;
+		}
 
-        return typeName.startsWith("Bean");
-    }
+		// =====================================================
+		// ✅ SOLO WRAPPERS ESPECIALES
+		// =====================================================
 
-    // =========================================================
-    // ✅ FLATTEN RECURSIVO
-    // =========================================================
-    @SuppressWarnings("unchecked")
-    private void flattenSchemaProperties(
-            String typeName,
-            Map<String, Object> targetProperties) {
+		return typeName.equals("BeanHeader") || typeName.equals("BeanBody") || typeName.equals("BeanRequest")
+				|| typeName.equals("BeanResponse");
+	}
 
-        Optional<ClassOrInterfaceDeclaration> childOpt =
-                classIndexer.findClass(typeName);
+	// =========================================================
+	// ✅ FLATTEN RECURSIVO
+	// =========================================================
+	@SuppressWarnings("unchecked")
+	private void flattenSchemaProperties(String typeName, Map<String, Object> targetProperties) {
 
-        if (childOpt.isEmpty()) {
+		Optional<ClassOrInterfaceDeclaration> childOpt = classIndexer.findClass(typeName);
 
-            return;
-        }
+		if (childOpt.isEmpty()) {
 
-        Map<String, Object> childSchema =
-                build(childOpt.get());
+			return;
+		}
 
-        Object propsObj =
-                childSchema.get("properties");
+		Map<String, Object> childSchema = build(childOpt.get());
 
-        if (!(propsObj instanceof Map)) {
+		Object propsObj = childSchema.get("properties");
 
-            return;
-        }
+		if (!(propsObj instanceof Map)) {
 
-        Map<String, Object> props =
-                (Map<String, Object>) propsObj;
+			return;
+		}
 
-        props.forEach((k, v) -> {
+		Map<String, Object> props = (Map<String, Object>) propsObj;
 
-            if (!(v instanceof Map)) {
+		props.forEach((k, v) -> {
 
-                targetProperties.put(k, v);
-                return;
-            }
+			if (!(v instanceof Map)) {
 
-            Map<String, Object> value =
-                    (Map<String, Object>) v;
+				targetProperties.put(k, v);
+				return;
+			}
 
-            Object ref =
-                    value.get("$ref");
+			Map<String, Object> value = (Map<String, Object>) v;
 
-            if (ref != null) {
+			Object ref = value.get("$ref");
 
-                String refType =
-                        ref.toString()
-                                .substring(
-                                        ref.toString()
-                                                .lastIndexOf("/") + 1);
+			if (ref != null) {
 
-                if (shouldFlatten(refType)) {
+				String refType = ref.toString().substring(ref.toString().lastIndexOf("/") + 1);
 
-                    flattenSchemaProperties(
-                            refType,
-                            targetProperties);
+				if (shouldFlatten(refType)) {
 
-                    return;
-                }
-            }
+					flattenSchemaProperties(refType, targetProperties);
 
-            targetProperties.put(k, v);
-        });
-    }
+					return;
+				}
+			}
 
-    // =========================================================
-    // ✅ ENSURE SCHEMA
-    // =========================================================
-    private void ensureSchemaWithParsing(
-            String type,
-            ClassOrInterfaceDeclaration context) {
+			targetProperties.put(k, v);
+		});
+	}
 
-        if (type == null
-                || type.isBlank()) {
+	// =========================================================
+	// ✅ ENSURE SCHEMA
+	// =========================================================
+	private void ensureSchemaWithParsing(String type, ClassOrInterfaceDeclaration context) {
 
-            return;
-        }
+		if (type == null || type.isBlank()) {
 
-        if (schemaMap.containsKey(type)) {
+			return;
+		}
 
-            return;
-        }
+		if (schemaMap.containsKey(type)) {
 
-        if (processing.contains(type)) {
+			return;
+		}
 
-            return;
-        }
+		if (processing.contains(type)) {
 
-        if ("String".equals(type)) {
+			return;
+		}
 
-            return;
-        }
+		if ("String".equals(type)) {
 
-        if ("byte".equalsIgnoreCase(type)) {
+			return;
+		}
 
-            return;
-        }
+		if ("byte".equalsIgnoreCase(type)) {
 
-        if (type.contains(",")) {
+			return;
+		}
 
-            return;
-        }
+		if (type.contains(",")) {
 
-        if (!isValidModel(type)) {
+			return;
+		}
 
-            return;
-        }
+		if (!isValidModel(type)) {
 
-        Optional<ClassOrInterfaceDeclaration> clazzOpt =
-                classIndexer.findClass(type);
+			return;
+		}
 
-        if (clazzOpt.isPresent()) {
+		Optional<ClassOrInterfaceDeclaration> clazzOpt = classIndexer.findClass(type);
 
-            build(clazzOpt.get());
-        }
-    }
+		if (clazzOpt.isPresent()) {
 
-    // =========================================================
-    // ✅ RESOLVE FULL TYPE
-    // =========================================================
-    private String resolveFullType(
-            String simpleType,
-            ClassOrInterfaceDeclaration clazz) {
+			build(clazzOpt.get());
+		}
+	}
 
-        if (simpleType == null) {
+	// =========================================================
+	// ✅ RESOLVE FULL TYPE
+	// =========================================================
+	private String resolveFullType(String simpleType, ClassOrInterfaceDeclaration clazz) {
 
-            return null;
-        }
+		if (simpleType == null) {
 
-        if (simpleType.contains(".")) {
+			return null;
+		}
 
-            return simpleType;
-        }
+		if (simpleType.contains(".")) {
 
-        return clazz.findCompilationUnit()
+			return simpleType;
+		}
 
-                .map(cu ->
+		return clazz.findCompilationUnit()
 
-                        cu.getImports()
-                                .stream()
+				.map(cu ->
 
-                                .filter(i ->
-                                        !i.isAsterisk())
+				cu.getImports().stream()
 
-                                .filter(i ->
-                                        i.getName()
-                                                .getIdentifier()
-                                                .equals(simpleType))
+						.filter(i -> !i.isAsterisk())
 
-                                .map(i ->
-                                        i.getNameAsString())
+						.filter(i -> i.getName().getIdentifier().equals(simpleType))
 
-                                .findFirst()
+						.map(i -> i.getNameAsString())
 
-                                .orElse(simpleType))
+						.findFirst()
 
-                .orElse(simpleType);
-    }
+						.orElse(simpleType))
 
-    // =========================================================
-    // ✅ SIMPLE NAME
-    // =========================================================
-    private String extractSimpleName(
-            String fullType) {
+				.orElse(simpleType);
+	}
 
-        if (fullType == null) {
+	// =========================================================
+	// ✅ SIMPLE NAME
+	// =========================================================
+	private String extractSimpleName(String fullType) {
 
-            return null;
-        }
+		if (fullType == null) {
 
-        return fullType.contains(".")
-                ? fullType.substring(
-                        fullType.lastIndexOf(".") + 1)
-                : fullType;
-    }
+			return null;
+		}
 
-    // =========================================================
-    // ✅ ENUM SCHEMA
-    // =========================================================
-    private void ensureEnumSchema(
-            String enumName) {
+		return fullType.contains(".") ? fullType.substring(fullType.lastIndexOf(".") + 1) : fullType;
+	}
 
-        if (schemaMap.containsKey(enumName)) {
+	// =========================================================
+	// ✅ ENUM SCHEMA
+	// =========================================================
+	private void ensureEnumSchema(String enumName) {
 
-            return;
-        }
+		if (schemaMap.containsKey(enumName)) {
 
-        if (enumMap == null
-                || !enumMap.containsKey(enumName)) {
+			return;
+		}
 
-            return;
-        }
+		if (enumMap == null || !enumMap.containsKey(enumName)) {
 
-        EnumDeclaration enumDecl =
-                enumMap.get(enumName);
+			return;
+		}
 
-        List<String> values =
-                enumDecl.getEntries()
-                        .stream()
+		EnumDeclaration enumDecl = enumMap.get(enumName);
 
-                        .map(e ->
-                                e.getNameAsString())
+		List<String> values = enumDecl.getEntries().stream()
 
-                        .collect(Collectors.toList());
+				.map(e -> e.getNameAsString())
 
-        Map<String, Object> schema =
-                new LinkedHashMap<>();
+				.collect(Collectors.toList());
 
-        schema.put(
-                "type",
-                "string");
+		Map<String, Object> schema = new LinkedHashMap<>();
 
-        schema.put(
-                "enum",
-                values);
+		schema.put("type", "string");
 
-        schemaMap.put(
-                enumName,
-                schema);
-    }
+		schema.put("enum", values);
 
-    // =========================================================
-    // ✅ VALID MODEL
-    // =========================================================
-    private boolean isValidModel(
-            String name) {
+		schemaMap.put(enumName, schema);
+	}
 
-        return !(name.endsWith("Impl")
-                || name.contains("Logger")
-                || name.contains("Client")
-                || name.contains("Config")
-                || name.contains("Filter"));
-    }
+	// =========================================================
+	// ✅ VALID MODEL
+	// =========================================================
+	private boolean isValidModel(String name) {
 
-    // =========================================================
-    // ✅ ANNOTATIONS
-    // =========================================================
-    private void applyAnnotations(
-            FieldDeclaration field,
-            Map<String, Object> prop) {
+		return !(name.endsWith("Impl") || name.contains("Logger") || name.contains("Client") || name.contains("Config")
+				|| name.contains("Filter"));
+	}
 
-        for (AnnotationExpr ann
-                : field.getAnnotations()) {
+	// =========================================================
+	// ✅ ANNOTATIONS
+	// =========================================================
+	private void applyAnnotations(FieldDeclaration field, Map<String, Object> prop) {
 
-            // ✅ NotNull
-            if (ann.getNameAsString()
-                    .equals("NotNull")) {
+		for (AnnotationExpr ann : field.getAnnotations()) {
 
-                prop.put(
-                        "nullable",
-                        false);
-            }
+			// ✅ NotNull
+			if (ann.getNameAsString().equals("NotNull")) {
 
-            // ✅ Size
-            if (ann.getNameAsString()
-                    .equals("Size")) {
+				prop.put("nullable", false);
+			}
 
-                ann.ifNormalAnnotationExpr(a -> {
+			// ✅ Size
+			if (ann.getNameAsString().equals("Size")) {
 
-                    a.getPairs().forEach(p -> {
+				ann.ifNormalAnnotationExpr(a -> {
 
-                        if (p.getNameAsString()
-                                .equals("min")) {
+					a.getPairs().forEach(p -> {
 
-                            prop.put(
-                                    "minLength",
+						if (p.getNameAsString().equals("min")) {
 
-                                    Integer.parseInt(
-                                            p.getValue()
-                                                    .toString()));
-                        }
+							prop.put("minLength",
 
-                        if (p.getNameAsString()
-                                .equals("max")) {
+									Integer.parseInt(p.getValue().toString()));
+						}
 
-                            prop.put(
-                                    "maxLength",
+						if (p.getNameAsString().equals("max")) {
 
-                                    Integer.parseInt(
-                                            p.getValue()
-                                                    .toString()));
-                        }
-                    });
-                });
-            }
-        }
-    }
+							prop.put("maxLength",
 
-    // =========================================================
-    // ✅ FORMAT
-    // =========================================================
-    private void applyFormat(
-            Map<String, Object> prop,
-            String type) {
+									Integer.parseInt(p.getValue().toString()));
+						}
+					});
+				});
+			}
+		}
+	}
 
-        if ("UUID".equals(type)) {
+	// =========================================================
+	// ✅ FORMAT
+	// =========================================================
+	private void applyFormat(Map<String, Object> prop, String type) {
 
-            prop.put(
-                    "format",
-                    "uuid");
-        }
+		if ("UUID".equals(type)) {
 
-        if ("LocalDate".equals(type)) {
+			prop.put("format", "uuid");
+		}
 
-            prop.put(
-                    "format",
-                    "date");
-        }
+		if ("LocalDate".equals(type)) {
 
-        if ("LocalDateTime".equals(type)
-                || "Date".equals(type)) {
+			prop.put("format", "date");
+		}
 
-            prop.put(
-                    "format",
-                    "date-time");
-        }
+		if ("LocalDateTime".equals(type) || "Date".equals(type)) {
 
-        if ("BigDecimal".equals(type)) {
+			prop.put("format", "date-time");
+		}
 
-            prop.put(
-                    "format",
-                    "double");
-        }
-    }
+		if ("BigDecimal".equals(type)) {
 
-    // =========================================================
-    // ✅ REQUIRED DETECTION
-    // =========================================================
-    private boolean isRequired(
-            FieldDeclaration field) {
+			prop.put("format", "double");
+		}
+	}
 
-        return field.getAnnotations()
-                .stream()
-                .anyMatch(ann -> {
+	// =========================================================
+	// ✅ REQUIRED DETECTION
+	// =========================================================
+	private boolean isRequired(FieldDeclaration field) {
 
-                    String name =
-                            ann.getNameAsString();
+		return field.getAnnotations().stream().anyMatch(ann -> {
 
-                    if (name.equals("NotNull")
-                            || name.equals("NotBlank")
-                            || name.equals("NotEmpty")
-                            || name.equals("NonNull")) {
+			String name = ann.getNameAsString();
 
-                        return true;
-                    }
+			if (name.equals("NotNull") || name.equals("NotBlank") || name.equals("NotEmpty")
+					|| name.equals("NonNull")) {
 
-                    if (name.equals("JsonProperty")) {
+				return true;
+			}
 
-                        if (ann.isNormalAnnotationExpr()) {
+			if (name.equals("JsonProperty")) {
 
-                            return ann
-                                    .asNormalAnnotationExpr()
-                                    .getPairs()
-                                    .stream()
-                                    .anyMatch(p ->
+				if (ann.isNormalAnnotationExpr()) {
 
-                                            p.getNameAsString()
-                                                    .equals("required")
+					return ann.asNormalAnnotationExpr().getPairs().stream().anyMatch(p ->
 
-                                            && p.getValue()
-                                                    .toString()
-                                                    .equals("true"));
-                        }
-                    }
+					p.getNameAsString().equals("required")
 
-                    return false;
-                });
-    }
+							&& p.getValue().toString().equals("true"));
+				}
+			}
 
-    // =========================================================
-    // ✅ SAFE SCHEMA REF
-    // =========================================================
-    private Map<String, Object> buildSafeSchemaReference(
-            String type,
-            ClassOrInterfaceDeclaration context) {
+			return false;
+		});
+	}
 
-        if (type == null
-                || type.isBlank()) {
+	// =========================================================
+	// ✅ SAFE SCHEMA REF
+	// =========================================================
+	private Map<String, Object> buildSafeSchemaReference(String type, ClassOrInterfaceDeclaration context) {
 
-            return Map.of(
-                    "type",
-                    "object");
-        }
+		if (type == null || type.isBlank()) {
 
-        // ✅ tipos ignorados
-        if (IGNORED_TYPES.contains(type)) {
+			return Map.of("type", "object");
+		}
 
-            return Map.of(
-                    "type",
-                    "object");
-        }
+		// ✅ tipos ignorados
+		if (IGNORED_TYPES.contains(type)) {
 
-        // ✅ schemas enterprise
-        if (registerKnownExternalSchema(type)) {
+			return Map.of("type", "object");
+		}
 
-            return Map.of(
-                    "$ref",
-                    "#/components/schemas/" + type);
-        }
+		// ✅ schemas enterprise
+		if (registerKnownExternalSchema(type)) {
 
-        // ✅ buscar clase real
-        Optional<ClassOrInterfaceDeclaration> target =
+			return Map.of("$ref", "#/components/schemas/" + type);
+		}
 
-                classIndexer.findClass(type);
+		// ✅ buscar clase real
+		Optional<ClassOrInterfaceDeclaration> target =
 
-        // ✅ clase encontrada
-        if (target.isPresent()) {
+				classIndexer.findClass(type);
 
-            ensureSchemaWithParsing(
-                    type,
-                    context);
+		// ✅ clase encontrada
+		if (target.isPresent()) {
 
-            return Map.of(
-                    "$ref",
-                    "#/components/schemas/" + type);
-        }
+			ensureSchemaWithParsing(type, context);
 
-        // ✅ fallback seguro
-        System.out.println(
-                "⚠️ Clase externa/no accesible detectada: "
-                        + type);
+			return Map.of("$ref", "#/components/schemas/" + type);
+		}
 
-        return Map.of(
-                "type",
-                "object");
-    }
+		// ✅ fallback seguro
+		System.out.println("⚠️ Clase externa/no accesible detectada: " + type);
 
-    // =========================================================
-    // ✅ COMMON ENTERPRISE SCHEMAS
-    // =========================================================
-    @SuppressWarnings("unchecked")
-    public boolean registerKnownExternalSchema(
-            String type) {
+		return Map.of("type", "object");
+	}
 
-        // =====================================================
-        // ✅ HeaderEntrada
-        // =====================================================
-        if ("HeaderEntrada".equals(type)) {
+	// =========================================================
+	// ✅ COMMON ENTERPRISE SCHEMAS
+	// =========================================================
+	@SuppressWarnings("unchecked")
+	public boolean registerKnownExternalSchema(String type) {
 
-            // ✅ validar si existe vacío
-            if (schemaMap.containsKey(type)) {
+		// =====================================================
+		// ✅ HeaderEntrada
+		// =====================================================
+		if ("HeaderEntrada".equals(type)) {
 
-                Object existingProps =
-                        schemaMap.get(type)
-                                .get("properties");
+			// ✅ validar si existe vacío
+			if (schemaMap.containsKey(type)) {
 
-                // ✅ ya válido
-                if (existingProps instanceof Map
-                        && !((Map<?, ?>) existingProps).isEmpty()) {
+				Object existingProps = schemaMap.get(type).get("properties");
 
-                    return true;
-                }
+				// ✅ ya válido
+				if (existingProps instanceof Map && !((Map<?, ?>) existingProps).isEmpty()) {
 
-                // ✅ schema vacío
-                schemaMap.remove(type);
-            }
+					return true;
+				}
 
-            Map<String, Object> props =
-                    new LinkedHashMap<>();
+				// ✅ schema vacío
+				schemaMap.remove(type);
+			}
 
-            props.put(
-                    "identificadorUnicoGlobal",
-                    Map.of("type", "string"));
+			Map<String, Object> props = new LinkedHashMap<>();
 
-            props.put(
-                    "identificacionCanal",
-                    Map.of("type", "string"));
+			props.put("identificadorUnicoGlobal", Map.of("type", "string"));
 
-            props.put(
-                    "identificacionSubCanal",
-                    Map.of("type", "string"));
+			props.put("identificacionCanal", Map.of("type", "string"));
 
-            props.put(
-                    "siglaAplicacion",
+			props.put("identificacionSubCanal", Map.of("type", "string"));
 
-                    Map.of(
-                            "type",
-                            "string",
-                            "minLength",
-                            1,
-                            "maxLength",
-                            4));
+			props.put("siglaAplicacion",
 
-            props.put(
-                    "identificacionUsuario",
-                    Map.of("type", "string"));
+					Map.of("type", "string", "minLength", 1, "maxLength", 4));
 
-            props.put(
-                    "direccionIpConsumidor",
-                    Map.of("type", "string"));
+			props.put("identificacionUsuario", Map.of("type", "string"));
 
-            props.put(
-                    "direccionIpCliente",
-                    Map.of("type", "string"));
+			props.put("direccionIpConsumidor", Map.of("type", "string"));
 
-            props.put(
-                    "fechaEnvioMensaje",
-                    Map.of("type", "string"));
+			props.put("direccionIpCliente", Map.of("type", "string"));
 
-            props.put(
-                    "horaEnvioMensaje",
-                    Map.of("type", "string"));
+			props.put("fechaEnvioMensaje", Map.of("type", "string"));
 
-            props.put(
-                    "atributoPagineo",
-                    Map.of("type", "string"));
+			props.put("horaEnvioMensaje", Map.of("type", "string"));
 
-            props.put(
-                    "claveBusqueda",
-                    Map.of("type", "string"));
+			props.put("atributoPagineo", Map.of("type", "string"));
 
-            props.put(
-                    "cantidadRegistros",
-                    Map.of("type", "integer"));
+			props.put("claveBusqueda", Map.of("type", "string"));
 
-            Map<String, Object> schema =
-                    new LinkedHashMap<>();
+			props.put("cantidadRegistros", Map.of("type", "integer"));
 
-            schema.put(
-                    "type",
-                    "object");
+			Map<String, Object> schema = new LinkedHashMap<>();
 
-            schema.put(
-                    "description",
-                    "Header corporativo de entrada Mercantil");
+			schema.put("type", "object");
 
-            schema.put(
-                    "properties",
-                    props);
+			schema.put("description", "Header corporativo de entrada Mercantil");
 
-            schema.put(
-                    "required",
+			schema.put("properties", props);
 
-                    List.of(
-                            "identificadorUnicoGlobal",
-                            "identificacionCanal",
-                            "identificacionSubCanal",
-                            "siglaAplicacion",
-                            "direccionIpConsumidor",
-                            "direccionIpCliente",
-                            "fechaEnvioMensaje",
-                            "horaEnvioMensaje"));
+			schema.put("required",
 
-            schemaMap.put(
-                    type,
-                    schema);
+					List.of("identificadorUnicoGlobal", "identificacionCanal", "identificacionSubCanal",
+							"siglaAplicacion", "direccionIpConsumidor", "direccionIpCliente", "fechaEnvioMensaje",
+							"horaEnvioMensaje"));
 
-            return true;
-        }
+			schemaMap.put(type, schema);
 
-        // =====================================================
-        // ✅ HeaderSalida
-        // =====================================================
-        if ("HeaderSalida".equals(type)) {
+			return true;
+		}
 
-            // ✅ validar si existe vacío
-            if (schemaMap.containsKey(type)) {
+		// =====================================================
+		// ✅ HeaderSalida
+		// =====================================================
+		if ("HeaderSalida".equals(type)) {
 
-                Object existingProps =
-                        schemaMap.get(type)
-                                .get("properties");
+			// ✅ validar si existe vacío
+			if (schemaMap.containsKey(type)) {
 
-                // ✅ ya válido
-                if (existingProps instanceof Map
-                        && !((Map<?, ?>) existingProps).isEmpty()) {
+				Object existingProps = schemaMap.get(type).get("properties");
 
-                    return true;
-                }
+				// ✅ ya válido
+				if (existingProps instanceof Map && !((Map<?, ?>) existingProps).isEmpty()) {
 
-                // ✅ schema vacío
-                schemaMap.remove(type);
-            }
+					return true;
+				}
 
-            Map<String, Object> props =
-                    new LinkedHashMap<>();
+				// ✅ schema vacío
+				schemaMap.remove(type);
+			}
 
-            props.put(
-                    "tipoMensaje",
+			Map<String, Object> props = new LinkedHashMap<>();
 
-                    Map.of(
-                            "type",
-                            "string",
-                            "example",
-                            "F"));
+			props.put("tipoMensaje",
 
-            props.put(
-                    "mensajeProgramadorSistema",
+					Map.of("type", "string", "example", "F"));
 
-                    Map.of(
-                            "type",
-                            "string",
-                            "example",
-                            "OPERACION EXITOSA"));
+			props.put("mensajeProgramadorSistema",
 
-            props.put(
-                    "codigoMensajeProgramador",
+					Map.of("type", "string", "example", "OPERACION EXITOSA"));
 
-                    Map.of(
-                            "type",
-                            "string",
-                            "example",
-                            "0000"));
+			props.put("codigoMensajeProgramador",
 
-            props.put(
-                    "mensajeUsuario",
+					Map.of("type", "string", "example", "0000"));
 
-                    Map.of(
-                            "type",
-                            "string",
-                            "example",
-                            "TRANSACCION EXITOSA"));
+			props.put("mensajeUsuario",
 
-            props.put(
-                    "codigoMensajeUsuario",
+					Map.of("type", "string", "example", "TRANSACCION EXITOSA"));
 
-                    Map.of(
-                            "type",
-                            "string",
-                            "example",
-                            "0000"));
+			props.put("codigoMensajeUsuario",
 
-            props.put(
-                    "fechaSalidaMensaje",
+					Map.of("type", "string", "example", "0000"));
 
-                    Map.of(
-                            "type",
-                            "string",
-                            "example",
-                            "20250609"));
+			props.put("fechaSalidaMensaje",
 
-            props.put(
-                    "horaSalidaMensaje",
+					Map.of("type", "string", "example", "20250609"));
 
-                    Map.of(
-                            "type",
-                            "string",
-                            "example",
-                            "102530"));
+			props.put("horaSalidaMensaje",
 
-            Map<String, Object> schema =
-                    new LinkedHashMap<>();
+					Map.of("type", "string", "example", "102530"));
 
-            schema.put(
-                    "type",
-                    "object");
+			Map<String, Object> schema = new LinkedHashMap<>();
 
-            schema.put(
-                    "description",
-                    "Header corporativo de salida Mercantil");
+			schema.put("type", "object");
 
-            schema.put(
-                    "properties",
-                    props);
+			schema.put("description", "Header corporativo de salida Mercantil");
 
-            schema.put(
-                    "required",
+			schema.put("properties", props);
 
-                    List.of(
-                            "tipoMensaje",
-                            "mensajeProgramadorSistema",
-                            "codigoMensajeProgramador",
-                            "mensajeUsuario",
-                            "codigoMensajeUsuario",
-                            "fechaSalidaMensaje",
-                            "horaSalidaMensaje"));
+			schema.put("required",
 
-            schemaMap.put(
-                    type,
-                    schema);
+					List.of("tipoMensaje", "mensajeProgramadorSistema", "codigoMensajeProgramador", "mensajeUsuario",
+							"codigoMensajeUsuario", "fechaSalidaMensaje", "horaSalidaMensaje"));
 
-            return true;
-        }
+			schemaMap.put(type, schema);
 
-        // =====================================================
-        // ✅ no schema encontrado
-        // =====================================================
-        return false;
-    }
+			return true;
+		}
+
+		// =====================================================
+		// ✅ no schema encontrado
+		// =====================================================
+		return false;
+	}
 }
