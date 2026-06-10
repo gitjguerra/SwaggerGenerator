@@ -9,117 +9,97 @@ import org.springframework.stereotype.Component;
 @Component
 public class ResponseExampleProvider {
 
-    @Autowired
-    private RuleEngine ruleEngine;
+	@Autowired
+	private RuleEngine ruleEngine;
 
-    @Autowired
-    private ExampleGenerator exampleGenerator;
+	@Autowired
+	private ExampleGenerator exampleGenerator;
 
-    @Autowired
-    private ExamplePathResolver examplePathResolver;
+	@Autowired
+	private ExamplePathResolver examplePathResolver;
 
-    // =========================================================
-    // ✅ BUILD RESPONSE EXAMPLE
-    // ✅ lookup usando endpointPath
-    // ✅ usa bodyKey REAL del schema
-    // ✅ evita contaminación por operationName
-    // =========================================================
-    public Map<String, Object> build(
-            String endpointPath,
-            String bodyKey,
-            String bodyType,
-            Map<String, Map<String, Object>> schemaMap,
-            Map<String, Object> exampleMap) {
+	// =========================================================
+	// ✅ BUILD RESPONSE EXAMPLE
+	// ✅ lookup usando endpointPath
+	// ✅ usa bodyKey REAL del schema
+	// ✅ evita contaminación por operationName
+	// =========================================================
+	public Map<String, Object> build(String endpointPath, String bodyKey, String bodyType,
+			Map<String, Map<String, Object>> schemaMap, Map<String, Object> exampleMap) {
 
-        Map<String, Object> response =
-                new LinkedHashMap<>();
+		Map<String, Object> response = new LinkedHashMap<>();
 
-        // =====================================================
-        // ✅ VALIDAR BODY
-        // =====================================================
-        if (bodyType == null
-                || bodyType.isBlank()) {
+		// =====================================================
+		// ✅ VALIDAR BODY
+		// =====================================================
+		if (bodyType == null || bodyType.isBlank()) {
 
-            return response;
-        }
+			return response;
+		}
 
-        // =====================================================
-        // ✅ PRIORIDAD 1
-        // ✅ RULES.XML
-        // ✅ PATH-BASED LOOKUP
-        // =====================================================
-        Map<String, String> rules =
-                ruleEngine.getResponseRules(
-                        endpointPath);
+		// =====================================================
+		// ✅ PRIORIDAD 1
+		// ✅ RULES.XML
+		// ✅ PATH-BASED LOOKUP
+		// =====================================================
 
-        // =====================================================
-        // ✅ SI EXISTEN RULES
-        // =====================================================
-        if (!rules.isEmpty()) {
+		System.out.println("🔥 endpointPath: " + endpointPath);
 
-            buildFromRules(
-                    response,
-                    rules);
+		Map<String, String> rules = ruleEngine.getResponseRules(endpointPath);
 
-            return response;
-        }
+		// =====================================================
+		// ✅ SI EXISTEN RULES
+		// =====================================================
+		if (!rules.isEmpty()) {
 
-        // =====================================================
-        // ✅ PRIORIDAD 2
-        // ✅ EXAMPLE MAP
-        // =====================================================
-        Object generated =
-                exampleMap.get(bodyType);
+			buildFromRules(response, rules);
 
-        // =====================================================
-        // ✅ PRIORIDAD 3
-        // ✅ GENERACIÓN AUTOMÁTICA
-        // =====================================================
-        if (generated == null) {
+			return response;
+		}
 
-            generated =
-                    exampleGenerator
-                            .buildExampleFromType(
-                                    bodyType);
-        }
+		// =====================================================
+		// ✅ PRIORIDAD 2
+		// ✅ EXAMPLE MAP
+		// =====================================================
+		Object generated = exampleMap.get(bodyType);
 
-        // =====================================================
-        // ✅ USAR bodyKey REAL
-        // ✅ NO:
-        // ✅ bodySalida + operationName
-        // =====================================================
-        response.put(
-                bodyKey,
-                generated);
+		// =====================================================
+		// ✅ PRIORIDAD 3
+		// ✅ GENERACIÓN AUTOMÁTICA
+		// =====================================================
+		if (generated == null) {
 
-        return response;
-    }
+			generated = exampleGenerator.buildExampleFromType(bodyType);
+		}
 
-    // =========================================================
-    // ✅ BUILD FROM RULES
-    // =========================================================
-    private void buildFromRules(
-            Map<String, Object> response,
-            Map<String, String> rules) {
+		// =====================================================
+		// ✅ USAR bodyKey REAL
+		// ✅ NO:
+		// ✅ bodySalida + operationName
+		// =====================================================
+		response.put(bodyKey, generated);
 
-        for (Map.Entry<String, String> entry
-                : rules.entrySet()) {
+		return response;
+	}
 
-            String path =
-                    entry.getKey();
+	// =========================================================
+	// ✅ BUILD FROM RULES
+	// =========================================================
+	private void buildFromRules(Map<String, Object> response, Map<String, String> rules) {
 
-            String value =
-                    entry.getValue();
+		for (Map.Entry<String, String> entry : rules.entrySet()) {
 
-            examplePathResolver.setNestedValue(
+			String path = entry.getKey();
 
-                    response,
+			String value = entry.getValue();
 
-                    path,
+			examplePathResolver.setNestedValue(
 
-                    examplePathResolver.parseValue(
-                            path,
-                            value));
-        }
-    }
+					response,
+
+					path,
+
+					examplePathResolver.parseValue(path, value));
+		}
+	}
 }

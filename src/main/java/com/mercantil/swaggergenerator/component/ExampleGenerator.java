@@ -74,7 +74,7 @@ public class ExampleGenerator {
 
 			System.out.println("⚠️ No schema encontrado para: " + type);
 
-			return null;
+			return new LinkedHashMap<>();
 		}
 
 		// ✅ ENUM
@@ -196,14 +196,24 @@ public class ExampleGenerator {
 					if (itemMap.containsKey("$ref")) {
 
 						String ref = itemMap.get("$ref").toString();
+
 						String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
-						example.put(jsonKey, List.of(buildExampleFromType(refType)));
+						Object nested = buildExampleFromType(refType);
+
+						// ✅ FIX CRÍTICO
+						if (nested == null) {
+
+							nested = new LinkedHashMap<>();
+						}
+
+						example.put(jsonKey, List.of(nested));
 
 					} else {
 
 						example.put(jsonKey, List.of(""));
 					}
+
 				}
 				return;
 			}

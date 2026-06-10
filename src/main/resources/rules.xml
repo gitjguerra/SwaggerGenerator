@@ -300,7 +300,7 @@
 		</response>
 
 	</api>
-	
+
 	<!-- ========================================================= -->
 	<!-- ✅ SAFE - CONSULTAR CLAVE CIFRADA -->
 	<!-- ========================================================= -->
@@ -331,37 +331,28 @@
 		<!-- ===================================================== -->
 		<request>
 
-			<field
-				name="bodyEntradaBuscarInventarios.tipoIdentificacion"
-				value="V"/>
+			<field name="bodyEntradaBuscarInventarios.tipoIdentificacion"
+				value="V" />
 
-			<field
-				name="bodyEntradaBuscarInventarios.cedulaRif"
-				value="124332657"/>
+			<field name="bodyEntradaBuscarInventarios.cedulaRif"
+				value="124332657" />
 
-			<field
-				name="bodyEntradaBuscarInventarios.numeroPersona"
-				value="11844825"/>
+			<field name="bodyEntradaBuscarInventarios.numeroPersona"
+				value="11844825" />
 
-			<field
-				name="bodyEntradaBuscarInventarios.tipoOperacion"
-				value="1"/>
+			<field name="bodyEntradaBuscarInventarios.tipoOperacion"
+				value="1" />
 
-			<field
-				name="bodyEntradaBuscarInventarios.codigoMoneda"
-				value="27"/>
+			<field name="bodyEntradaBuscarInventarios.codigoMoneda"
+				value="27" />
 
-			<field
-				name="bodyEntradaBuscarInventarios.montoPacto"
-				value="1500.75"/>
+			<field name="bodyEntradaBuscarInventarios.montoPacto"
+				value="1500.75" />
 
-			<field
-				name="bodyEntradaBuscarInventarios.subCanal"
-				value="6"/>
+			<field name="bodyEntradaBuscarInventarios.subCanal" value="6" />
 
-			<field
-				name="bodyEntradaBuscarInventarios.tasaSubastaUsd"
-				value="0.16"/>
+			<field name="bodyEntradaBuscarInventarios.tasaSubastaUsd"
+				value="0.16" />
 
 		</request>
 
@@ -370,137 +361,228 @@
 		<!-- ===================================================== -->
 		<response>
 
-			<field
-				name="bodySalidaBuscarInventarios.cantDiasCtaMercantil"
-				value="900"/>
+			<field name="bodySalidaBuscarInventarios.cantDiasCtaMercantil"
+				value="900" />
 
-			<field
-				name="bodySalidaBuscarInventarios.tasaCambio"
-				value=""/>
+			<field name="bodySalidaBuscarInventarios.tasaCambio" value="" />
 
-			<field
-				name="bodySalidaBuscarInventarios.tasaComisionCompra"
-				value="120.0000"/>
+			<field name="bodySalidaBuscarInventarios.tasaComisionCompra"
+				value="120.0000" />
 
-			<field
-				name="bodySalidaBuscarInventarios.montoTransferencia"
-				value="0.00"/>
+			<field name="bodySalidaBuscarInventarios.montoTransferencia"
+				value="0.00" />
 
-			<field
-				name="bodySalidaBuscarInventarios.tasaSwift"
-				value="0.00"/>
+			<field name="bodySalidaBuscarInventarios.tasaSwift"
+				value="0.00" />
 
-			<field
-				name="bodySalidaBuscarInventarios.tasaCompraUsd"
-				value=""/>
+			<field name="bodySalidaBuscarInventarios.tasaCompraUsd"
+				value="" />
 
-			<field
-				name="bodySalidaBuscarInventarios.tasaCompraEur"
-				value=""/>
+			<field name="bodySalidaBuscarInventarios.tasaCompraEur"
+				value="" />
 
-			<field
-				name="bodySalidaBuscarInventarios.horaCierre"
-				value="0"/>
+			<field name="bodySalidaBuscarInventarios.horaCierre" value="0" />
 
-			<field
-				name="bodySalidaBuscarInventarios.indCierreMelp"
-				value="9"/>
+			<field name="bodySalidaBuscarInventarios.indCierreMelp"
+				value="9" />
 
-			<field
-				name="bodySalidaBuscarInventarios.indCierreCanal"
-				value="3"/>
+			<field name="bodySalidaBuscarInventarios.indCierreCanal"
+				value="3" />
 
-			<field
-				name="bodySalidaBuscarInventarios.horaApertura"
-				value="0"/>
+			<field name="bodySalidaBuscarInventarios.horaApertura"
+				value="0" />
 
-			<field
-				name="bodySalidaBuscarInventarios.tasaTransferencia"
-				value="0.00"/>
+			<field name="bodySalidaBuscarInventarios.tasaTransferencia"
+				value="0.00" />
 
-			<field
-				name="bodySalidaBuscarInventarios.nroTlfnCliente"
-				value=""/>
+			<field name="bodySalidaBuscarInventarios.nroTlfnCliente"
+				value="" />
 
-			<field
-				name="bodySalidaBuscarInventarios.nombreCliente"
-				value=""/>
+			<field name="bodySalidaBuscarInventarios.nombreCliente"
+				value="" />
 
-			<field
-				name="bodySalidaBuscarInventarios.montoComision"
-				value="0.00"/>
+			<field name="bodySalidaBuscarInventarios.montoComision"
+				value="0.00" />
 
-			<field
-				name="bodySalidaBuscarInventarios.codigoProducto"
-				value="02606"/>
+			<field name="bodySalidaBuscarInventarios.codigoProducto"
+				value="02606" />
 
 			<field
 				name="bodySalidaBuscarInventarios.montoMultiploSolicitud"
-				value="100000000000.04"/>
+				value="100000000000.04" />
+
+			<field name="bodySalidaBuscarInventarios.tasaVentaEur" value="" />
+
+			<field name="bodySalidaBuscarInventarios.emailCliente"
+				value="0000000000" />
+
+			<field name="bodySalidaBuscarInventarios.tasaComisionVenta"
+				value="0.0000" />
+
+			<field name="bodySalidaBuscarInventarios.tasaCompraUsdEur"
+				value="" />
+
+			<field name="bodySalidaBuscarInventarios.montoMinPacto"
+				value="500000000053.00" />
+
+			<field name="bodySalidaBuscarInventarios.tasaVentaUsd" value="" />
+
+			<field name="bodySalidaBuscarInventarios.tasaVentaUsdEur"
+				value="840978 S0" />
+
+			<field name="bodySalidaBuscarInventarios.codMonedaIsoUsd"
+				value="900" />
+
+			<field name="bodySalidaBuscarInventarios.montoSwift"
+				value="0.00" />
+
+			<field name="bodySalidaBuscarInventarios.codMonedaIsoEur"
+				value="2" />
+
+			<field name="bodySalidaBuscarInventarios.codigoEmpresa"
+				value="00002" />
+
+			<field name="bodySalidaBuscarInventarios.montoOperacionNeto"
+				value="0.00" />
+
+			<field name="bodySalidaBuscarInventarios.montoMaxPacto"
+				value="0.00" />
+
+			<field name="bodySalidaBuscarInventarios.montoOperacionBs"
+				value="0.00" />
+
+			<field name="bodySalidaBuscarInventarios.fechaCtaMercantil"
+				value="5000000" />
+
+			<field name="bodySalidaBuscarInventarios.indCierreMele"
+				value="5" />
+
+		</response>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ TRANSFERIR OTROS BANCOS NACIONALES -->
+	<!-- ===================================================== -->
+	<api path="/transferir/otros-bancos-nacionales">
+
+		<request>
+
+			<field name="codSubCanal" value="01" />
+			<field name="flagDna" value="" />
+			<field name="fechHh" value="" />
+
+			<field name="datosBeneficiario.tipoCta" value="" />
+			<field name="datosBeneficiario.codBco" value="108" />
+			<field name="datosBeneficiario.nroCta"
+				value="0001080571610100098127" />
+			<field name="datosBeneficiario.nroTelf" value="" />
+			<field name="datosBeneficiario.correoBenef" value="" />
+			<field name="datosBeneficiario.nroId" value="18881376" />
+			<field name="datosBeneficiario.nomBenef" value="Cliente OB" />
+			<field name="datosBeneficiario.alias" value="" />
+			<field name="datosBeneficiario.tipoId" value="V" />
+
+			<field name="separadorEntrada" value="" />
+			<field name="nroPer" value="0" />
+			<field name="nroTarj" value="" />
+			<field name="digSegu" value="" />
+
+			<field name="datosTransferencia.concept" value="pago" />
+			<field name="datosTransferencia.codMoneda2" value="" />
+			<field name="datosTransferencia.mto1" value="277005.06" />
+			<field name="datosTransferencia.codMoneda1" value="VES" />
+			<field name="datosTransferencia.mto2" value="" />
+			<field name="datosTransferencia.mtoTasaDolares" value="" />
+
+			<field name="notaLarga.notaLargaDbto" value="" />
+			<field name="notaLarga.separadorNotaDbto" value="" />
+			<field name="notaLarga.separadorNotaCdto" value="" />
+			<field name="notaLarga.notaLargaCdto" value="" />
+			<field name="notaLarga.datosAdicionalesNota" value="" />
+
+			<field name="datosOrdenante.tipoCtaOr" value="" />
+			<field name="datosOrdenante.codBcoOr" value="105" />
+			<field name="datosOrdenante.nroCtaOr" value="001606000721" />
+			<field name="datosOrdenante.nroTlfOr" value="" />
+			<field name="datosOrdenante.nroIdOr" value="6876427" />
+			<field name="datosOrdenante.correoOrigenOr" value="" />
+			<field name="datosOrdenante.aliasOr" value="" />
+			<field name="datosOrdenante.tipoIdOr" value="V" />
+
+			<field name="datosAgendamiento.flagAgendamiento" value="" />
+			<field name="datosAgendamiento.idTrans" value="" />
+			<field name="datosAgendamiento.fchAgendamiento" value="" />
+			<field name="datosAgendamiento.codBcoAg" value="0" />
+
+			<field name="datosAdicionales.idAplic" value="" />
+			<field name="datosAdicionales.viaTransfer" value="" />
+			<field name="datosAdicionales.nroPagina" value="0" />
+			<field name="datosAdicionales.nomTransaccion" value="" />
+			<field name="datosAdicionales.tipoClv" value="" />
+			<field name="datosAdicionales.fchValor" value="20261112" />
+			<field name="datosAdicionales.tipoPago" value="" />
+			<field name="datosAdicionales.indicInstrum" value="" />
+			<field name="datosAdicionales.modo" value="" />
+			<field name="datosAdicionales.nombCabecera" value="" />
+
+			<field name="datosAdicEntrada" value="" />
+
+		</request>
+
+		<response>
+
+			<field name="bodySalidaTransferirOtrosBancosNacionales.descrip"
+				value="" />
+
+			<field name="bodySalidaTransferirOtrosBancosNacionales.flag"
+				value="" />
 
 			<field
-				name="bodySalidaBuscarInventarios.tasaVentaEur"
-				value=""/>
+				name="bodySalidaTransferirOtrosBancosNacionales.correoOrd" value="" />
+
+			<field name="bodySalidaTransferirOtrosBancosNacionales.nroCta"
+				value="0" />
 
 			<field
-				name="bodySalidaBuscarInventarios.emailCliente"
-				value="0000000000"/>
+				name="bodySalidaTransferirOtrosBancosNacionales.mtoComis"
+				value="0.00" />
 
 			<field
-				name="bodySalidaBuscarInventarios.tasaComisionVenta"
-				value="0.0000"/>
+				name="bodySalidaTransferirOtrosBancosNacionales.codMoneda" value="" />
 
 			<field
-				name="bodySalidaBuscarInventarios.tasaCompraUsdEur"
-				value=""/>
+				name="bodySalidaTransferirOtrosBancosNacionales.saldoDisp" value="" />
+
+			<field name="bodySalidaTransferirOtrosBancosNacionales.confir"
+				value="00142087" />
+
+			<field name="bodySalidaTransferirOtrosBancosNacionales.idTrans"
+				value="" />
+
+			<field name="bodySalidaTransferirOtrosBancosNacionales.codUsu"
+				value="" />
+
+			<field name="bodySalidaTransferirOtrosBancosNacionales.mtoLim"
+				value="" />
+
+			<field name="bodySalidaTransferirOtrosBancosNacionales.codBco"
+				value="0" />
+
+
+			<field name="bodySalidaTransferirOtrosBancosNacionales.msje"
+				value="" />
 
 			<field
-				name="bodySalidaBuscarInventarios.montoMinPacto"
-				value="500000000053.00"/>
+				name="bodySalidaTransferirOtrosBancosNacionales.saldoAct" value="" />
 
 			<field
-				name="bodySalidaBuscarInventarios.tasaVentaUsd"
-				value=""/>
+				name="bodySalidaTransferirOtrosBancosNacionales.correoBenef"
+				value="" />
 
 			<field
-				name="bodySalidaBuscarInventarios.tasaVentaUsdEur"
-				value="840978 S0"/>
-
-			<field
-				name="bodySalidaBuscarInventarios.codMonedaIsoUsd"
-				value="900"/>
-
-			<field
-				name="bodySalidaBuscarInventarios.montoSwift"
-				value="0.00"/>
-
-			<field
-				name="bodySalidaBuscarInventarios.codMonedaIsoEur"
-				value="2"/>
-
-			<field
-				name="bodySalidaBuscarInventarios.codigoEmpresa"
-				value="00002"/>
-
-			<field
-				name="bodySalidaBuscarInventarios.montoOperacionNeto"
-				value="0.00"/>
-
-			<field
-				name="bodySalidaBuscarInventarios.montoMaxPacto"
-				value="0.00"/>
-
-			<field
-				name="bodySalidaBuscarInventarios.montoOperacionBs"
-				value="0.00"/>
-
-			<field
-				name="bodySalidaBuscarInventarios.fechaCtaMercantil"
-				value="5000000"/>
-
-			<field
-				name="bodySalidaBuscarInventarios.indCierreMele"
-				value="5"/>
+				name="bodySalidaTransferirOtrosBancosNacionales.observacion"
+				value="" />
 
 		</response>
 
