@@ -71,8 +71,10 @@ public class ExampleGenerator {
 		Map<String, Object> schema = schemaMap.get(type);
 
 		if (schema == null) {
+
 			System.out.println("⚠️ No schema encontrado para: " + type);
-			return new LinkedHashMap<>();
+
+			return null;
 		}
 
 		// ✅ ENUM
@@ -99,6 +101,23 @@ public class ExampleGenerator {
 		// 🔥 FIX CRÍTICO: SOPORTE HERENCIA (allOf)
 		// =====================================================
 		if (!(propsObj instanceof Map)) {
+
+			// ✅ soporte enum/string/etc
+			if ("string".equals(schema.get("type"))) {
+				return "";
+			}
+
+			if ("integer".equals(schema.get("type"))) {
+				return 0;
+			}
+
+			if ("number".equals(schema.get("type"))) {
+				return 0.0;
+			}
+
+			if ("boolean".equals(schema.get("type"))) {
+				return false;
+			}
 
 			Map<String, Object> fallback = new LinkedHashMap<>();
 
@@ -161,13 +180,7 @@ public class ExampleGenerator {
 
 				Object nested = buildExampleFromType(refType);
 
-				// 🔥 FLATTEN AUTOMÁTICO
-				if (isSingleFieldWrapper(nested)) {
-					Map<String, Object> map = (Map<String, Object>) nested;
-					map.forEach((k, v) -> example.put(k, v));
-				} else {
-					example.put(jsonKey, nested);
-				}
+				example.put(jsonKey, nested);
 
 				return;
 			}
@@ -197,7 +210,7 @@ public class ExampleGenerator {
 
 			String apiName = extractApiName(type);
 
-			String ruleValue = ruleEngine.getRequestValue(apiName,jsonKey);
+			String ruleValue = ruleEngine.getRequestValue(apiName, jsonKey);
 
 			Object value;
 
@@ -210,30 +223,6 @@ public class ExampleGenerator {
 
 			example.put(jsonKey, value != null ? value : "");
 		});
-
-		// =====================================================
-		// 🔥 FIX FINAL: EVITA OBJETO VACÍO
-		// =====================================================
-		if (example.isEmpty()) {
-
-			Map<String, Object> fallback = new LinkedHashMap<>();
-
-			props.keySet().forEach(k -> fallback.put(k, ""));
-
-			return fallback;
-		}
-
-		// =====================================================
-		// ✅ FLATTEN WRAPPER (RESTAURADO 🔥)
-		// =====================================================
-		if (example.size() == 1) {
-
-			Object onlyValue = example.values().iterator().next();
-
-			if (onlyValue instanceof Map) {
-				return onlyValue;
-			}
-		}
 
 		exampleMap.put(cacheKey, example);
 
@@ -294,12 +283,6 @@ public class ExampleGenerator {
 		return classIndexer.findClass(className).map(clazz -> clazz.getFields().stream()
 				.flatMap(f -> f.getVariables().stream().filter(v -> v.getNameAsString().equals(fieldName)).map(v -> f))
 				.findFirst().map(f -> parserUtil.resolveJsonName(f, fieldName)).orElse(fieldName)).orElse(fieldName);
-	}
-
-	private boolean isSingleFieldWrapper(Object value) {
-		if (!(value instanceof Map))
-			return false;
-		return ((Map<?, ?>) value).size() == 1;
 	}
 
 	private String extractApiName(String type) {
