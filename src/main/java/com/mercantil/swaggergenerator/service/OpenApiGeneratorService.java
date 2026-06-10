@@ -213,7 +213,10 @@ public class OpenApiGeneratorService {
 		Map<String, Object> op = new LinkedHashMap<>();
 		op.put("tags", List.of(tag));
 		op.put("summary", method.getNameAsString());
-		op.put("operationId", method.getNameAsString());
+
+		String operationId = generateOperationId(tag, method.getNameAsString());
+
+		op.put("operationId", operationId);
 
 		Object request = requestBuilder.build(fullPath, method, schemaMap, exampleMap, IGNORED_TYPES);
 
@@ -622,6 +625,30 @@ public class OpenApiGeneratorService {
 
 			return emptyProps;
 		});
+	}
+
+	// =========================================================
+	// ✅ UNIQUE OPERATION ID
+	// =========================================================
+	private String generateOperationId(String tag, String methodName) {
+
+		if (methodName == null) {
+
+			return "operation";
+		}
+
+		String cleanTag =
+
+				tag == null ? "" : tag.replaceAll("\\s+", "");
+
+		// ✅ createJwt
+		return Character.toLowerCase(cleanTag.charAt(0))
+
+				+ cleanTag.substring(1)
+
+				+ Character.toUpperCase(methodName.charAt(0))
+
+				+ methodName.substring(1);
 	}
 
 }

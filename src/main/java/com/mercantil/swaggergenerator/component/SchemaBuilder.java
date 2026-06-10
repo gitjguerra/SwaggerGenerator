@@ -165,6 +165,12 @@ public class SchemaBuilder {
 
 									String name = parserUtil.resolveJsonName(field, var.getNameAsString());
 
+									// ✅ evitar propiedades inválidas
+									if (name == null || name.isBlank()) {
+
+										return;
+									}
+
 									Map<String, Object> prop = new LinkedHashMap<>();
 
 									var typeNode = var.getType();
@@ -198,6 +204,7 @@ public class SchemaBuilder {
 
 										String elementType = typeNode.asArrayType().getComponentType().asString();
 
+										// ✅ byte[]
 										if ("byte".equalsIgnoreCase(elementType)) {
 
 											prop.put("type", "string");
@@ -205,7 +212,8 @@ public class SchemaBuilder {
 											prop.put("format", "byte");
 										}
 
-								else {
+										// ✅ arrays normales
+										else {
 
 											prop.put("type", "array");
 
@@ -213,6 +221,7 @@ public class SchemaBuilder {
 
 													resolveFullType(elementType, clazz));
 
+											// ✅ primitivo
 											if (typeUtil.isPrimitive(res)) {
 
 												prop.put(
@@ -222,15 +231,14 @@ public class SchemaBuilder {
 														Map.of("type", typeUtil.mapType(res)));
 											}
 
-								else {
-
-												ensureSchemaWithParsing(res, clazz);
+											// ✅ objeto
+											else {
 
 												prop.put(
 
 														"items",
 
-														Map.of("$ref", "#/components/schemas/" + res));
+														buildSafeSchemaReference(res, clazz));
 											}
 										}
 									}
@@ -253,6 +261,7 @@ public class SchemaBuilder {
 
 										prop.put("type", "array");
 
+										// ✅ primitivo
 										if (typeUtil.isPrimitive(res)) {
 
 											prop.put(
@@ -262,15 +271,14 @@ public class SchemaBuilder {
 													Map.of("type", typeUtil.mapType(res)));
 										}
 
-								else {
-
-											ensureSchemaWithParsing(res, clazz);
+										// ✅ objeto
+										else {
 
 											prop.put(
 
 													"items",
 
-													Map.of("$ref", "#/components/schemas/" + res));
+													buildSafeSchemaReference(res, clazz));
 										}
 									}
 
@@ -289,6 +297,7 @@ public class SchemaBuilder {
 
 													resolveFullType(valueType, clazz));
 
+											// ✅ primitivo
 											if (typeUtil.isPrimitive(res)) {
 
 												prop.put(
@@ -298,15 +307,14 @@ public class SchemaBuilder {
 														Map.of("type", typeUtil.mapType(res)));
 											}
 
-								else {
-
-												ensureSchemaWithParsing(res, clazz);
+											// ✅ objeto
+											else {
 
 												prop.put(
 
 														"additionalProperties",
 
-														Map.of("$ref", "#/components/schemas/" + res));
+														buildSafeSchemaReference(res, clazz));
 											}
 										}
 									}
@@ -360,9 +368,9 @@ public class SchemaBuilder {
 
 								else {
 
-												ensureSchemaWithParsing(resolved, clazz);
+												prop.putAll(
 
-												prop.put("$ref", "#/components/schemas/" + resolved);
+														buildSafeSchemaReference(resolved, clazz));
 											}
 										}
 
@@ -384,10 +392,7 @@ public class SchemaBuilder {
 									// ✅ annotations
 									applyAnnotations(field, prop);
 
-									if (name == null || name.isBlank()) {
-										return;
-									}
-
+									// ✅ required
 									if (isRequired(field)) {
 
 										required.add(name);
@@ -399,13 +404,8 @@ public class SchemaBuilder {
 					});
 
 			// =================================================
-			// ✅ SIN PROPERTIES
+			// ✅ REQUIRED
 			// =================================================
-			if (properties.isEmpty()) {
-
-				schema.put("description", "Clase sin propiedades o no detectadas");
-			}
-
 			if (!required.isEmpty()) {
 
 				schema.put("required", required);
@@ -626,11 +626,13 @@ public class SchemaBuilder {
 
 		for (AnnotationExpr ann : field.getAnnotations()) {
 
+			// ✅ NotNull
 			if (ann.getNameAsString().equals("NotNull")) {
 
 				prop.put("nullable", false);
 			}
 
+			// ✅ Size
 			if (ann.getNameAsString().equals("Size")) {
 
 				ann.ifNormalAnnotationExpr(a -> {
@@ -683,7 +685,7 @@ public class SchemaBuilder {
 	}
 
 	// =========================================================
-	// ✅ isRequired
+	// ✅ REQUIRED DETECTION
 	// =========================================================
 	private boolean isRequired(FieldDeclaration field) {
 
@@ -691,18 +693,18 @@ public class SchemaBuilder {
 
 			String name = ann.getNameAsString();
 
-			// =================================================
+			// =============================================
 			// ✅ VALIDATIONS
-			// =================================================
+			// =============================================
 			if (name.equals("NotNull") || name.equals("NotBlank") || name.equals("NotEmpty")
 					|| name.equals("NonNull")) {
 
 				return true;
 			}
 
-			// =================================================
+			// =============================================
 			// ✅ JsonProperty(required = true)
-			// =================================================
+			// =============================================
 			if (name.equals("JsonProperty")) {
 
 				if (ann.isNormalAnnotationExpr()) {
@@ -717,6 +719,42 @@ public class SchemaBuilder {
 
 			return false;
 		});
+	}
+
+	// =========================================================
+	// ✅ SAFE SCHEMA REF
+	// ✅ evita $ref inválidos
+	// =========================================================
+	private Map<String, Object> buildSafeSchemaReference(String type, ClassOrInterfaceDeclaration context) {
+
+		if (type == null || type.isBlank()) {
+
+			return Map.of("type", "object");
+		}
+
+		// ✅ tipos ignorados
+		if (IGNORED_TYPES.contains(type)) {
+
+			return Map.of("type", "object");
+		}
+
+		// ✅ buscar clase real
+		Optional<ClassOrInterfaceDeclaration> target =
+
+				classIndexer.findClass(type);
+
+		// ✅ clase encontrada
+		if (target.isPresent()) {
+
+			ensureSchemaWithParsing(type, context);
+
+			return Map.of("$ref", "#/components/schemas/" + type);
+		}
+
+		// ✅ fallback seguro
+		System.out.println("⚠️ Clase externa/no accesible detectada: " + type);
+
+		return Map.of("type", "object");
 	}
 
 }
