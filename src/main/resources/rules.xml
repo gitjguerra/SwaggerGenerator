@@ -304,19 +304,21 @@
 	<api path="/tarjeta/consultar/saldo-tarjeta-prepago">
 
 		<request>
-
-			<field name="numeroTarjeta" value="501878200062873205" />
+		
+			<field name="codTrans" value=""/>
+			<field name="nroTarj" value="5888910003058274"/>
+			<field name="serialDisposit" value=""/>
+			<field name="nroTelf" value="0"/>
+			<field name="tipoId" value=""/>
+			<field name="nroId" value="0"/>
+			<field name="codSubCanal" value="0009"/>
 
 		</request>
 
 		<response>
-
-			<field
-				name="bodySalidaConsultarSaldoTarjetaPrepago.saldoDisponible"
-				value="250.75" />
-
-			<field name="bodySalidaConsultarSaldoTarjetaPrepago.moneda"
-				value="VES" />
+			
+			<field name="BodySalidaConsultarSaldoTarjetaPrepago.saldoDisp" value="250.75"/>
+			<field name="BodySalidaConsultarSaldoTarjetaPrepago.mtoComis" value="0.00"/>
 
 		</response>
 
@@ -699,6 +701,51 @@
 				value="" />
 
 		</response>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ CONSULTAR OPERACIONES RECHAZADAS -->
+	<!-- ===================================================== -->
+	<api path="/inversiones/consultar/operaciones-rechazadas">
+
+		<request>
+
+			<!-- ✅ ROOT -->
+			<field name="timestamp" value="2026-03-20T16:46:27.685Z"/>
+			<field name="transactionType" value="private-auction-approved"/>
+			<field name="errorCode" value="1"/>
+			<field name="transmissionId" value="1007828"/>
+			<field name="errorMessage" value="Error en datos transmitidos subasta privada id transmision 1007828 - Error code: 1"/>
+
+			<!-- ✅ OBJECT: transactionData -->
+			<field name="transactionData.fechaRecepcionFondos" value="2026-03-17T07:30:00.000"/>
+			<field name="transactionData.fechaSubasta" value="2026-03-18T08:00:00.000"/>
+			<field name="transactionData.fechaSolicitudCliente" value="2026-03-18T09:35:00.000"/>
+
+			<field name="transactionData.idMoneda" value="8404"/>
+			<field name="transactionData.rifCiCliente" value="V38981000"/>
+			<field name="transactionData.nombreCliente" value="GABRIELA CAMACHO"/>
+			<field name="transactionData.nroCtaBancariaCliente" value="01027653200001002888"/>
+			<field name="transactionData.idTipoCtaBancariaCliente" value="8"/>
+			<field name="transactionData.nroCtaBancariaExtCliente" value="01027653200001002888"/>
+			<field name="transactionData.idTipoCtaBancariaExtCliente" value="31"/>
+
+			<field name="transactionData.idActEconomicaCliente" value="0124"/>
+			<field name="transactionData.idDestinoFondos" value="10"/>
+			<field name="transactionData.idMedioPago" value="2"/>
+
+			<!-- ✅ STRING (mantener formato exacto) -->
+			<field name="transactionData.tasaCambioBs" value="700.0000"/>
+			<field name="transactionData.montoDivisa" value="1.0000"/>
+			<field name="transactionData.contravalorBs" value="700.0000"/>
+
+			<field name="transactionData.idEstatus" value="SA"/>
+			<field name="transactionData.idTipoOperacion" value="9"/>
+			<field name="transactionData.codigoSubasta" value="001"/>
+			<field name="transactionData.index" value="0"/>
+
+		</request>
 
 	</api>
 
