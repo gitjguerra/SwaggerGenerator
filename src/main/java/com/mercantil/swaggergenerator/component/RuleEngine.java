@@ -259,38 +259,49 @@ public class RuleEngine {
 			return null;
 		}
 
-		// ✅ normalizar entrada
+		// ✅ normalizar API
 		String normalizedKey = normalizePath(apiKey);
 
-		// ✅ 1. intento directo
 		Map<String, String> fields = source.get(normalizedKey);
 
-		// ✅ 2. fallback robusto (CLAVE DEL FIX)
+		// ✅ fallback robusto por key
 		if (fields == null) {
 
 			for (String key : source.keySet()) {
 
-				if (normalizePath(key).equals(normalizedKey)) {
+				if (normalizePath(key).equalsIgnoreCase(normalizedKey)) {
 					fields = source.get(key);
 					break;
 				}
 			}
 		}
 
+		// ✅ si sigue null → no hay rules
 		if (fields == null) {
 			return null;
 		}
 
-		// ✅ exact
+		// ✅ 1. match exacto
 		if (fields.containsKey(fieldName)) {
 			return fields.get(fieldName);
 		}
 
-		// ✅ case insensitive
-		for (String key : fields.keySet()) {
-			if (key.equalsIgnoreCase(fieldName)) {
-				return fields.get(key);
+		// ✅ 2. case insensitive (CLAVE PARA RESPONSE)
+		for (Map.Entry<String, String> entry : fields.entrySet()) {
+
+			if (entry.getKey().equalsIgnoreCase(fieldName)) {
+				return entry.getValue();
 			}
+		}
+
+		// ✅ soporte wildcard tipo bodySalida*
+		for (Map.Entry<String, String> entry : fields.entrySet()) {
+
+		    if (fieldName.toLowerCase().endsWith(
+		            entry.getKey().toLowerCase())) {
+
+		        return entry.getValue();
+		    }
 		}
 
 		return null;

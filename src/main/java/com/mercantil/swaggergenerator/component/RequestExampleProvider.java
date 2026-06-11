@@ -264,7 +264,26 @@ public class RequestExampleProvider {
 
 						.flatMap(c -> c.getParameters().stream())
 
-						.filter(param -> param.getNameAsString().equals(fieldName))
+						// ✅ MATCH FLEXIBLE (CLAVE)
+						.filter(param -> {
+
+							String p = param.getNameAsString().toLowerCase();
+							String f = fieldName.toLowerCase();
+
+							if (p.equals(f))
+								return true;
+							if (p.contains(f))
+								return true;
+							if (f.contains(p))
+								return true;
+
+							// ✅ normalización tipo banco
+							String np = p.replace("codigo", "").replace("numero", "").replace("identificador", "")
+									.replace("tipo", "");
+							String nf = f.replace("cod", "").replace("nro", "").replace("id", "").replace("tipo", "");
+
+							return np.equals(nf);
+						})
 
 						.map(param -> param.getAnnotationByName("JsonProperty"))
 
@@ -272,13 +291,13 @@ public class RequestExampleProvider {
 
 						.map(ann -> {
 
-							// ✅ CASO 1: @JsonProperty("abc")
+							// ✅ CASO 1
 							if (ann.isSingleMemberAnnotationExpr()) {
 
 								return ann.asSingleMemberAnnotationExpr().getMemberValue().toString().replace("\"", "");
 							}
 
-							// ✅ CASO 2: @JsonProperty(value="abc", required=true)
+							// ✅ CASO 2
 							if (ann.isNormalAnnotationExpr()) {
 
 								return ann.asNormalAnnotationExpr().getPairs().stream()
