@@ -48,6 +48,15 @@ public class ExampleGenerator {
 	// =========================================================
 	private Map<String, Map<String, Object>> schemaMap = new LinkedHashMap<>();
 
+	// =========================================================
+	// ✅ CONTEXTO PATH
+	// =========================================================
+	private String currentApiPath;
+
+	public void setCurrentApiPath(String apiPath) {
+		this.currentApiPath = apiPath;
+	}
+
 	public void setSchemaMap(Map<String, Map<String, Object>> schemaMap) {
 
 		this.schemaMap = schemaMap;
@@ -60,9 +69,15 @@ public class ExampleGenerator {
 	// =========================================================
 	public Object buildExampleFromType(String type) {
 
-		String apiName = extractApiName(type);
+		String apiName = currentApiPath;
+
+		if (apiName == null || apiName.isBlank()) {
+			// 👉 evitar que se genere example sin endpoint
+			return new LinkedHashMap<>();
+		}
 
 		return buildExampleFromType(type, "", apiName);
+
 	}
 
 	// =========================================================
@@ -313,9 +328,20 @@ public class ExampleGenerator {
 			// =================================================
 			// ✅ RULES.XML
 			// =================================================
+
+			System.out.println("🔎 API: [" + apiName + "] PATH: [" + fullPath + "] FIELD: [" + jsonKey + "]");
+
 			String ruleValue = ruleEngine.getRequestValue(apiName, fullPath);
 
-			// ✅ FALLBACK SIMPLE
+			// ✅ 2. intentar sin bodyEntrada...
+			if (ruleValue == null && fullPath.contains(".")) {
+
+				String reducedPath = fullPath.substring(fullPath.indexOf(".") + 1);
+
+				ruleValue = ruleEngine.getRequestValue(apiName, reducedPath);
+			}
+
+			// ✅ 3. fallback simple
 			if (ruleValue == null) {
 
 				ruleValue = ruleEngine.getRequestValue(apiName, jsonKey);
@@ -366,7 +392,7 @@ public class ExampleGenerator {
 
 		Map<String, Object> example = new LinkedHashMap<>();
 
-		String apiName = extractApiName(clazz.getNameAsString());
+		String apiName = currentApiPath != null ? currentApiPath : extractApiName(clazz.getNameAsString());
 
 		clazz.getFields().forEach(field -> {
 
@@ -760,25 +786,28 @@ public class ExampleGenerator {
 				// =====================================================
 				// ✅ EXTRAER JsonProperty
 				// =====================================================
+
 				for (AnnotationExpr ann : param.getAnnotations()) {
 
 					if (!"JsonProperty".equals(ann.getNameAsString())) {
 						continue;
 					}
 
-					// ✅ @JsonProperty("abc")
+					// ✅ CASO 1: @JsonProperty("abc")
 					if (ann.isSingleMemberAnnotationExpr()) {
 
 						return ann.asSingleMemberAnnotationExpr().getMemberValue().toString().replace("\"", "");
 					}
 
-					// ✅ @JsonProperty(value="abc")
+					// ✅ CASO 2: @JsonProperty(value="abc", required=true)
 					if (ann.isNormalAnnotationExpr()) {
 
 						return ann.asNormalAnnotationExpr().getPairs().stream()
-								.filter(pv -> "value".equals(pv.getNameAsString()))
-								.map(pv -> pv.getValue().toString().replace("\"", "")).findFirst().orElse(fieldName);
+								.filter(pair -> "value".equals(pair.getNameAsString()))
+								.map(pair -> pair.getValue().toString().replace("\"", "")).findFirst()
+								.orElse(fieldName);
 					}
+
 				}
 			}
 		}

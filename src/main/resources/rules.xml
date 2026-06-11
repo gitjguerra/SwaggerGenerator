@@ -50,6 +50,72 @@
 
 	</api>
 
+	<api path="/persona/consultar/autorizaciones-cliente">
+
+		<!-- ===================================================== -->
+		<!-- ✅ REQUEST -->
+		<!-- ===================================================== -->
+		<request>
+
+			<field name="codPais" value="VEN" />
+			<field name="tipoId" value="V" />
+			<field name="nroId" value="6820968" />
+			<field name="nroPer" value="0" />
+			<field name="tipoAutori" value="2" />
+			<field name="codProduc" value="24094552" />
+			<field name="codTipoProduc" value="CTAHO" />
+
+		</request>
+
+		<!-- ===================================================== -->
+		<!-- ✅ RESPONSE -->
+		<!-- ===================================================== -->
+		<response>
+
+			<field name="bodySalidaAutorizacionesCliente.nroAutori"
+				value="14117765" />
+
+			<field name="bodySalidaAutorizacionesCliente.fchFinAutori"
+				value="0" />
+
+			<field name="bodySalidaAutorizacionesCliente.idAutori"
+				value="" />
+
+			<field name="bodySalidaAutorizacionesCliente.fchSolicAutori"
+				value="20260422" />
+
+			<field name="bodySalidaAutorizacionesCliente.codTipoAutori"
+				value="2" />
+
+			<field name="bodySalidaAutorizacionesCliente.fchInicioAutori"
+				value="0" />
+
+			<field name="bodySalidaAutorizacionesCliente.carnetFnarioCapt"
+				value="9999999999" />
+
+			<field name="bodySalidaAutorizacionesCliente.statusAutori"
+				value="" />
+
+			<field name="bodySalidaAutorizacionesCliente.unidadOrgCapt"
+				value="999999" />
+
+			<field name="bodySalidaAutorizacionesCliente.indicAutoriClte"
+				value="1" />
+
+			<field name="bodySalidaAutorizacionesCliente.fchActualiz"
+				value="0" />
+
+			<field name="bodySalidaAutorizacionesCliente.codCanalAutori"
+				value="6" />
+
+			<!-- Arrays vacíos -->
+			<!-- autorizaciones[] -->
+			<!-- paisesDestinos[] -->
+
+		</response>
+
+	</api>
+
 	<!-- ===================================================== -->
 	<!-- ✅ CONSULTAR SALDO SAFE -->
 	<!-- ===================================================== -->
@@ -304,7 +370,7 @@
 	<!-- ========================================================= -->
 	<!-- ✅ SAFE - CONSULTAR CLAVE CIFRADA -->
 	<!-- ========================================================= -->
-	<api path="/consultar/clave-cifrada">
+	<api path="/safe/consultar/clave-cifrada">
 
 		<request>
 		</request>
@@ -324,7 +390,7 @@
 	<!-- ========================================================= -->
 	<!-- ✅ INVERSIONES - BUSCAR INVENTARIOS -->
 	<!-- ========================================================= -->
-	<api path="/buscar/inventarios">
+	<api path="/inversiones/buscar/inventarios">
 
 		<!-- ===================================================== -->
 		<!-- ✅ REQUEST -->
@@ -465,7 +531,7 @@
 	<!-- ===================================================== -->
 	<!-- ✅ TRANSFERIR OTROS BANCOS NACIONALES -->
 	<!-- ===================================================== -->
-	<api path="/transferir/otros-bancos-nacionales">
+	<api path="/simf/transferir-otros-bancos-nacionales">
 
 		<request>
 
@@ -635,6 +701,5 @@
 		</response>
 
 	</api>
-
 
 </rules>

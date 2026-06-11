@@ -48,6 +48,8 @@ public class OpenApiGeneratorService {
 	@Autowired
 	private ClassIndexer classIndexer;
 
+	private String currentServiceName;
+
 	// =========================================================
 	// ✅ SCHEMAS / EXAMPLES
 	// =========================================================
@@ -107,6 +109,7 @@ public class OpenApiGeneratorService {
 		backendServiceMap = new LinkedHashMap<>();
 
 		this.currentBeansPath = service.getBeansPath();
+		this.currentServiceName = service.getName().toLowerCase();
 
 		doc.security = List.of(Map.of("bearerAuth", List.of()));
 
@@ -149,14 +152,6 @@ public class OpenApiGeneratorService {
 		beanFiles.forEach(f ->
 
 		processBeanSchemas(f, service.getBasePackage()));
-
-		// =====================================================
-		// ✅ SEGUNDA PASADA
-		// SOLO EXAMPLES
-		// =====================================================
-		beanFiles.forEach(f ->
-
-		processBeanExamples(f, service.getBasePackage()));
 
 		// =====================================================
 		// ✅ CONTROLLERS
@@ -286,19 +281,16 @@ public class OpenApiGeneratorService {
 			path = httpMapping.get("path");
 		}
 
-		String fullPath =
+		String rawPath = "/" + (basePath == null ? "" : basePath) + "/" + (path == null ? "" : path);
 
-				("/"
+		// ✅ normalizar path base
+		rawPath = normalizePath(rawPath);
 
-						+ (basePath == null ? "" : basePath)
+		// ✅ obtener prefijo del microservicio
+		String servicePrefix = resolveServicePrefix();
 
-						+ "/"
-
-						+ (path == null ? "" : path))
-
-						.replaceAll("//+", "/")
-
-						.trim();
+		// ✅ construir path final correcto
+		String fullPath = normalizePath(servicePrefix + rawPath);
 
 		if (fullPath.length() > 1 && fullPath.endsWith("/")) {
 
@@ -315,6 +307,7 @@ public class OpenApiGeneratorService {
 
 		op.put("operationId", operationId);
 
+		exampleGenerator.setCurrentApiPath(fullPath);
 		Object request = requestBuilder.build(fullPath, method, schemaMap, exampleMap, IGNORED_TYPES);
 
 		if (request != null) {
@@ -386,46 +379,6 @@ public class OpenApiGeneratorService {
 		} catch (Exception e) {
 
 			System.out.println("❌ Error parseando schema: " + file.getAbsolutePath());
-
-			e.printStackTrace();
-		}
-	}
-
-	// =========================================================
-	// ✅ PROCESS EXAMPLES
-	// =========================================================
-	private void processBeanExamples(File file, String basePackage) {
-
-		try {
-
-			CompilationUnit cu = StaticJavaParser.parse(file);
-
-			cu.findAll(ClassOrInterfaceDeclaration.class)
-
-					.forEach(clazz -> {
-
-						boolean allowed = isInBasePackage(file, clazz, basePackage);
-
-						if (!allowed) {
-
-							return;
-						}
-
-						String className = clazz.getNameAsString();
-
-						if (IGNORED_TYPES.contains(className)) {
-
-							return;
-						}
-
-						exampleMap.put(className,
-
-								exampleGenerator.buildExampleFromType(className));
-					});
-
-		} catch (Exception e) {
-
-			System.out.println("❌ Error generando example: " + file.getAbsolutePath());
 
 			e.printStackTrace();
 		}
@@ -816,4 +769,39 @@ public class OpenApiGeneratorService {
 
 				+ methodName.substring(1);
 	}
+
+	private String resolveServicePrefix() {
+
+		if (currentServiceName == null || currentServiceName.isBlank()) {
+			return "";
+		}
+
+		if (!currentServiceName.startsWith("/")) {
+			return "/" + currentServiceName;
+		}
+
+		return currentServiceName;
+	}
+
+	private String normalizePath(String path) {
+
+		if (path == null || path.isBlank()) {
+			return "/";
+		}
+
+		path = path.trim();
+
+		path = path.replaceAll("//+", "/");
+
+		if (!path.startsWith("/")) {
+			path = "/" + path;
+		}
+
+		if (path.length() > 1 && path.endsWith("/")) {
+			path = path.substring(0, path.length() - 1);
+		}
+
+		return path;
+	}
+
 }
