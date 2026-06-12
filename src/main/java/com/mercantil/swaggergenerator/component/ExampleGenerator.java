@@ -328,8 +328,7 @@ public class ExampleGenerator {
 			// =================================================
 			// ✅ RULES.XML
 			// =================================================
-
-			System.out.println("🔎 API: [" + apiName + "] PATH: [" + fullPath + "] FIELD: [" + jsonKey + "]");
+			//System.out.println("🔎 API: [" + apiName + "] PATH: [" + fullPath + "] FIELD: [" + jsonKey + "]");
 
 			String ruleValue = ruleEngine.getRequestValue(apiName, fullPath);
 
@@ -566,7 +565,7 @@ public class ExampleGenerator {
 
 		return "/" + kebab;
 	}
-
+	
 	// =========================================================
 	// ✅ PARSE VALUE
 	// =========================================================

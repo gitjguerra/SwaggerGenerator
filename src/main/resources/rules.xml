@@ -703,7 +703,7 @@
 		</response>
 
 	</api>
-
+	
 	<!-- ===================================================== -->
 	<!-- ✅ CONSULTAR OPERACIONES RECHAZADAS -->
 	<!-- ===================================================== -->
@@ -746,6 +746,19 @@
 			<field name="transactionData.index" value="0"/>
 
 		</request>
+
+		<!-- ✅ ✅ NUEVO RESPONSE -->
+		<response>
+
+			<field name="headerSalida.tipoMensaje" value="I"/>
+			<field name="headerSalida.mensajeProgramadorSistema" value="OK"/>
+			<field name="headerSalida.codigoMensajeProgramador" value="0000"/>
+			<field name="headerSalida.mensajeUsuario" value="OK"/>
+			<field name="headerSalida.codigoMensajeUsuario" value="0000"/>
+			<field name="headerSalida.fechaSalidaMensaje" value="20260612"/>
+			<field name="headerSalida.horaSalidaMensaje" value="082944"/>
+
+		</response>
 
 	</api>
 

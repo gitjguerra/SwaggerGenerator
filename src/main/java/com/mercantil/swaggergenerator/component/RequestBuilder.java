@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.mercantil.swaggergenerator.component.special.SpecialRequestDispatcher;
 
 @Component
 public class RequestBuilder {
@@ -21,10 +22,13 @@ public class RequestBuilder {
 	@Autowired
 	private RequestResponseResolver requestResponseResolver;
 
+	@Autowired
+	private SpecialRequestDispatcher specialDispatcher;
+
 	// =========================================================
-	// ✅ BUILD REQUEST
-	// ✅ AHORA SOPORTA ENDPOINT PATH
+	// ✅ BUILD REQUEST (VERSIÓN FINAL SEGURA)
 	// =========================================================
+	@SuppressWarnings("unchecked")
 	public Map<String, Object> build(String endpointPath, MethodDeclaration method,
 			Map<String, Map<String, Object>> schemaMap, Map<String, Object> exampleMap, List<String> ignoredTypes) {
 
@@ -36,7 +40,6 @@ public class RequestBuilder {
 		java.util.function.Function<String, Map<String, Object>> safeRef = type -> {
 
 			if (type == null || ignoredTypes.contains(type)) {
-
 				return Map.of("type", "object");
 			}
 
@@ -44,7 +47,7 @@ public class RequestBuilder {
 		};
 
 		// =====================================================
-		// ✅ HEADER ENTRADA
+		// ✅ HEADER ENTRADA (flujo normal)
 		// =====================================================
 		requestProps.put("headerEntrada", safeRef.apply("HeaderEntrada"));
 
@@ -61,7 +64,6 @@ public class RequestBuilder {
 			Map.Entry<String, String> entry = requestBodies.entrySet().iterator().next();
 
 			bodyFieldName = entry.getKey();
-
 			bodyType = entry.getValue();
 		}
 
@@ -69,7 +71,6 @@ public class RequestBuilder {
 		// ✅ ASEGURAR SCHEMA
 		// =====================================================
 		if (bodyType != null && !ignoredTypes.contains(bodyType)) {
-
 			ensureSchemaExists(bodyType, schemaMap);
 		}
 
@@ -79,19 +80,15 @@ public class RequestBuilder {
 		boolean hasBody = hasProperties(bodyType, schemaMap);
 
 		// =====================================================
-		// ✅ AGREGAR BODY SCHEMA
+		// ✅ AGREGAR BODY SCHEMA (flujo normal)
 		// =====================================================
 		if (bodyType != null && hasBody) {
 
-			requestProps.put(
-
-					bodyFieldName,
-
-					safeRef.apply(bodyType));
+			requestProps.put(bodyFieldName, safeRef.apply(bodyType));
 		}
 
 		// =====================================================
-		// ✅ REQUEST EXAMPLE
+		// ✅ REQUEST EXAMPLE (normal)
 		// =====================================================
 		Map<String, Object> requestExample = new LinkedHashMap<>();
 
@@ -99,7 +96,6 @@ public class RequestBuilder {
 
 		// =====================================================
 		// ✅ BODY EXAMPLE
-		// ✅ lookup por PATH
 		// =====================================================
 		if (bodyType != null && hasBody) {
 
@@ -109,52 +105,35 @@ public class RequestBuilder {
 		}
 
 		// =====================================================
-		// ✅ REQUEST JSON
+		// ✅ SPECIAL HANDLER
+		// =====================================================
+		boolean handled = specialDispatcher.applyIfMatch(endpointPath, hasBody, requestProps, requestExample);
+		if (handled) {
+			System.out.println("✅ Request manejado por SpecialHandler");
+		}
+
+		// =====================================================
+		// ✅ REQUEST JSON FINAL
 		// =====================================================
 		Map<String, Object> requestJson = Map.of(
 
-				"schema",
+				"schema", Map.of("type", "object", "properties", requestProps),
 
-				Map.of("type", "object",
+				"examples", Map.of("default", Map.of("summary", "Ejemplo generado", "value", requestExample)));
 
-						"properties", requestProps),
-
-				"examples",
-
-				Map.of("default",
-
-						Map.of("summary", "Ejemplo generado",
-
-								"value", requestExample)));
-
-		// =====================================================
-		// ✅ CONTENT
-		// =====================================================
-		return Map.of(
-
-				"required", true,
-
-				"content",
-
-				Map.of("application/json", requestJson));
+		return Map.of("required", true, "content", Map.of("application/json", requestJson));
 	}
 
 	// =========================================================
-	// ✅ HAS PROPERTIES
-	// =========================================================
 	private boolean hasProperties(String type, Map<String, Map<String, Object>> schemaMap) {
 
-		if (type == null) {
-
+		if (type == null)
 			return false;
-		}
 
 		Map<String, Object> schema = schemaMap.get(type);
 
-		if (schema == null) {
-
+		if (schema == null)
 			return false;
-		}
 
 		Object props = schema.get("properties");
 
@@ -162,23 +141,12 @@ public class RequestBuilder {
 	}
 
 	// =========================================================
-	// ✅ ENSURE SCHEMA EXISTS
-	// =========================================================
 	private void ensureSchemaExists(String typeName, Map<String, Map<String, Object>> schemaMap) {
 
 		if (typeName == null || typeName.isBlank()) {
-
 			return;
 		}
 
-		schemaMap.computeIfAbsent(
-
-				typeName,
-
-				k -> Map.of(
-
-						"type", "object",
-
-						"properties", new LinkedHashMap<>()));
+		schemaMap.computeIfAbsent(typeName, k -> Map.of("type", "object", "properties", new LinkedHashMap<>()));
 	}
 }
