@@ -761,5 +761,62 @@
 		</response>
 
 	</api>
+	
+	<!-- ===================================================== -->
+	<!-- ✅ CREDITOS - CONSULTAR INDICE INVERSION -->
+	<!-- ===================================================== -->
+	<api path="/creditos/consultar/indice-inversion">
 
+		<!-- ================================================= -->
+		<!-- ✅ REQUEST -->
+		<!-- ================================================= -->
+		<request>
+
+			<!-- ✅ BODY -->
+			<field name="indic" value="2"/>
+			<field name="fchIndiceInver" value="20250612"/>
+			<field name="mtoBs" value="1"/>
+			<field name="mtoUnidadValorCdto" value="1"/>
+
+		</request>
+
+		<!-- ================================================= -->
+		<!-- ✅ RESPONSE -->
+		<!-- ================================================= -->
+		<response>
+
+			<!-- ✅ HEADER SALIDA -->
+			<field name="headerSalida.tipoMensaje" value="I"/>
+			<field name="headerSalida.mensajeProgramadorSistema" value="TRANSACCION SATISFACTORIA"/>
+			<field name="headerSalida.codigoMensajeProgramador" value="0000"/>
+			<field name="headerSalida.mensajeUsuario" value="TRANSACCION SATISFACTORIA"/>
+			<field name="headerSalida.codigoMensajeUsuario" value="0000"/>
+			<field name="headerSalida.fechaSalidaMensaje" value="20260612"/>
+			<field name="headerSalida.horaSalidaMensaje" value="910413"/>
+
+			<!-- ✅ BODY SALIDA -->
+			<field name="bodySalidaConsultarIndiceInversion.mtoUnidadValorCdtoSalida" value="2.0385072"/>
+			<field name="bodySalidaConsultarIndiceInversion.valorIndiceInver" value="000000000.49055504"/>
+			<field name="bodySalidaConsultarIndiceInversion.mtoBsSalida" value="1.00"/>
+			<field name="bodySalidaConsultarIndiceInversion.fchUltCargaIndiceInver" value="20250612"/>
+
+		</response>
+
+	</api>
+	
+	<!-- ===================================================== -->
+	<!-- ✅ CONSULTAR RIF PCE -->
+	<!-- ===================================================== -->
+	<api path="/creditos/consultar/rif-pce">
+
+		<request>
+
+			<!-- ✅ BODY -->
+			<field name="rifPce.nacRif" value="V"/>
+			<field name="rifPce.ciRif" value="12345678"/>
+
+		</request>
+
+	</api>
+	
 </rules>

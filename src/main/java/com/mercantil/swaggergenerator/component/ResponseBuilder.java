@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.mercantil.swaggergenerator.component.special.SpecialRequestDispatcher;
 import com.mercantil.swaggergenerator.util.ParserUtil;
 
 @Component
@@ -25,6 +26,9 @@ public class ResponseBuilder {
 
 	@Autowired
 	private RequestResponseResolver requestResponseResolver;
+
+	@Autowired
+	private SpecialRequestDispatcher specialDispatcher;
 
 	// ✅ FIX CRÍTICO
 	@Autowired
@@ -194,6 +198,16 @@ public class ResponseBuilder {
 			}
 
 			responseExample.put(bodyKey, fallback);
+		}
+
+		// =====================================================
+		// ✅ SPECIAL HANDLER (🔥 AQUÍ VA)
+		// =====================================================
+		boolean handled = specialDispatcher.applyIfMatch(endpointPath, true,
+				propsFinal, responseExample);
+
+		if (handled) {
+			System.out.println("✅ Response manejado por SpecialHandler");
 		}
 
 		// =====================================================
