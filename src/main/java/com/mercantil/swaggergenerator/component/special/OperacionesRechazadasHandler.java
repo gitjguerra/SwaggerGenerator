@@ -27,7 +27,7 @@ public class OperacionesRechazadasHandler implements SpecialRequestHandler {
                       Map<String, Object> requestProps,
                       Map<String, Object> requestExample) {
 
-        System.out.println("✅ SPECIAL HANDLER: operaciones-rechazadas");
+        System.out.println(" ***** SPECIAL HANDLER: operaciones-rechazadas");
 
         requestProps.clear();
         requestExample.clear();
