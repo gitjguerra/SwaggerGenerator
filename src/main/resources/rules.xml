@@ -822,30 +822,53 @@
 	<!-- ===================================================== -->
 	<!-- ✅ CREDITOS - DISPONIBILIDAD PCE -->
 	<!-- ===================================================== -->
-	
-<!-- ===================================================== -->
-<!-- ✅ CREDITOS - DISPONIBILIDAD PCE -->
-<!-- ===================================================== -->
-<api path="/creditos/consultar/disponibilidad-pce">
+	<api path="/creditos/consultar/disponibilidad-pce">
 
-    <request>
+		<request>
 
-        <field name="tipoIdClte" value="123"/>
-        <field name="numIdCtle" value="123"/>
+			<field name="tipoIdClte" value="123"/>
+			<field name="numIdCtle" value="123"/>
 
-    </request>
+		</request>
 
-    <response>
+		<response>
 
-        <field name="bodySalidaConsultarDisponibilidadPce.mtoDis" value="0.00"/>
-        <field name="bodySalidaConsultarDisponibilidadPce.plazoCdto" value="0"/>
-        <field name="bodySalidaConsultarDisponibilidadPce.codMotiv" value="0"/>
-        <field name="bodySalidaConsultarDisponibilidadPce.mtoMin" value="0.00"/>
-        <field name="bodySalidaConsultarDisponibilidadPce.ctaCrediticia" value="0"/>
+			<field name="bodySalidaConsultarDisponibilidadPce.mtoDis" value="10.00"/>
+			<field name="bodySalidaConsultarDisponibilidadPce.plazoCdto" value="0"/>
+			<field name="bodySalidaConsultarDisponibilidadPce.codMotiv" value="0"/>
+			<field name="bodySalidaConsultarDisponibilidadPce.mtoMin" value="0.00"/>
+			<field name="bodySalidaConsultarDisponibilidadPce.ctaCrediticia" value="1"/>
 
-    </response>
+		</response>
 
-</api>
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ CREDITOS - SOLICITUD CREDITO PCE -->
+	<!-- ===================================================== -->
+	<api path="/creditos/generar/solicitud-credito-pce">
+
+		<request>
+			<field name="tipoIdClte" value="V"/>
+			<field name="id" value="123"/>
+			<field name="mtoSolic" value="100.50"/>
+			<field name="plazoCdto" value="12"/>
+			<field name="cantCuotas" value="12"/>
+			<field name="mtoCuota" value="10.50"/>
+			<field name="tasa" value="1.5"/>
+			<field name="tasaComisFlat" value="0.5"/>
+			<field name="mtoComisFlat" value="5.00"/>
+			<field name="tasaPread" value="0.2"/>
+		</request>
+		
+		<response>
+
+			<field name="bodySalidaGenerarSolicitudCreditosPce.numSolic" value="10"/>
+			<field name="bodySalidaGenerarSolicitudCreditosPce.fchaSolic" value="20260612"/>
+
+		</response>
+		
+	</api>
 
 
 </rules>
