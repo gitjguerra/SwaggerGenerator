@@ -819,4 +819,33 @@
 
 	</api>
 	
+	<!-- ===================================================== -->
+	<!-- ✅ CREDITOS - DISPONIBILIDAD PCE -->
+	<!-- ===================================================== -->
+	
+<!-- ===================================================== -->
+<!-- ✅ CREDITOS - DISPONIBILIDAD PCE -->
+<!-- ===================================================== -->
+<api path="/creditos/consultar/disponibilidad-pce">
+
+    <request>
+
+        <field name="tipoIdClte" value="123"/>
+        <field name="numIdCtle" value="123"/>
+
+    </request>
+
+    <response>
+
+        <field name="bodySalidaConsultarDisponibilidadPce.mtoDis" value="0.00"/>
+        <field name="bodySalidaConsultarDisponibilidadPce.plazoCdto" value="0"/>
+        <field name="bodySalidaConsultarDisponibilidadPce.codMotiv" value="0"/>
+        <field name="bodySalidaConsultarDisponibilidadPce.mtoMin" value="0.00"/>
+        <field name="bodySalidaConsultarDisponibilidadPce.ctaCrediticia" value="0"/>
+
+    </response>
+
+</api>
+
+
 </rules>
