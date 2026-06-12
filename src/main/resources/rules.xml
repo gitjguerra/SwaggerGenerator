@@ -870,5 +870,35 @@
 		
 	</api>
 
+	<!-- ===================================================== -->
+	<!-- ✅ INVERSIONES - CONSULTAR ORDENES CEDULA -->
+	<!-- ===================================================== -->
+	<api path="/inversiones/consultar/ordenes-cedula">
+
+		<!-- ✅ REQUEST -->
+		<request>
+
+			<field name="codProd" value="0300"/>
+			<field name="tipoId" value="V"/>
+			<field name="nroId" value="12345678"/>
+			<field name="nroPer" value="11107"/>
+			<field name="mesCalend" value="6"/>
+			<field name="ordenSeleccionada" value="1755017"/>
+
+		</request>
+
+		<!-- ✅ RESPONSE -->
+		<response>
+
+			<!-- ✅ ARRAY ordenes -->
+			<field name="bodySalidaConsultarOrdenesCedula.ordenes[0].numeroOrden" value="1755017"/>
+			<field name="bodySalidaConsultarOrdenesCedula.ordenes[0].codigoProducto" value="0300"/>
+			<field name="bodySalidaConsultarOrdenesCedula.ordenes[0].estado" value="ACTIVA"/>
+			<field name="bodySalidaConsultarOrdenesCedula.ordenes[0].fecha" value="20260612"/>
+
+		</response>
+
+	</api>
+
 
 </rules>
