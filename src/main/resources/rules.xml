@@ -900,5 +900,60 @@
 
 	</api>
 
+	<!-- ===================================================== -->
+	<!-- ✅ INVERSIONES - CREAR ORDEN COMPRA VENTA -->
+	<!-- ===================================================== -->
+	<api path="/inversiones/crear/orden-compra-venta">
+
+		<!-- ✅ REQUEST -->
+		<request>
+
+			<field name="codigoEmpresa" value="00002"/>
+			<field name="codigoProducto" value="0300"/>
+			<field name="numeroPersona" value="2367098492"/>
+			<field name="tipoIdentificacion" value="V"/>
+			<field name="cedulaRif" value="59417849"/>
+
+			<field name="tipoOperacion" value="1"/>
+			<field name="mtoPacto" value="1500.75"/>
+			<field name="codigoMoneda" value="USD"/>
+
+			<field name="cuentaBolivares" value="01027653200001002888"/>
+			<field name="cuentaDivisas" value="01027653200001002889"/>
+
+			<field name="mtoOperacionBs" value="5000.00"/>
+			<field name="mtoComision" value="5.00"/>
+
+			<field name="tasaComisionCompra" value="1.5"/>
+			<field name="tasaComisionVenta" value="1.2"/>
+			<field name="tasaCambio" value="36.50"/>
+
+			<field name="subCanal" value="6"/>
+			<field name="codigoSegmento" value="01"/>
+			<field name="origenFondos" value="10"/>
+			<field name="destinoFondos" value="20"/>
+
+			<field name="actividadEconomica" value="001"/>
+			<field name="nombreCliente" value="CLIENTE PRUEBA"/>
+			<field name="nroTlfnCliente" value="04141234567"/>
+			<field name="emailCliente" value="cliente@email.com"/>
+
+		</request>
+
+		<!-- ✅ RESPONSE -->
+		<response>
+
+			<!-- ✅ BODY -->
+			<field name="bodySalidaCrearOrdenCompraVenta.numeroOrden" value="999999"/>
+
+			<field name="bodySalidaCrearOrdenCompraVenta.datosControl" value="OK"/>
+
+			<!-- ✅ NESTED OBJECT -->
+			<field name="bodySalidaCrearOrdenCompraVenta.salidaMenudeo.nroConsecMbuSal" value="123456"/>
+			<field name="bodySalidaCrearOrdenCompraVenta.salidaMenudeo.idMovimientoBcvSal" value="BCV001"/>
+
+		</response>
+
+	</api>
 
 </rules>

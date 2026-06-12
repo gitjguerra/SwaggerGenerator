@@ -32,20 +32,27 @@ public class RequestResponseResolver {
         Optional<String> requestOpt =
                 method.getParameters()
                         .stream()
-
                         .map(p -> p.getType().asString())
-
                         .filter(t -> t.startsWith("Request"))
-
                         .findFirst();
 
         if (requestOpt.isPresent()) {
 
-            requestType =
-                    requestOpt.get();
+            requestType = requestOpt.get();
 
             Map<String, Object> reqSchema =
                     schemaMap.get(requestType);
+
+            // =================================================
+            // ✅ KEY NORMALIZADO DESDE REQUEST TYPE
+            // 👉 Evita ambigüedad entre Venta / Inversion
+            // =================================================
+            String endpointKey = requestType
+                    .replace("Request", "")
+                    .replace("BodyEntrada", "")
+                    .replaceAll("([a-z])([A-Z])", "$1-$2")
+                    .replace("-", "")
+                    .toLowerCase();
 
             // =================================================
             // ✅ BUSCAR bodyEntrada*
@@ -66,7 +73,6 @@ public class RequestResponseResolver {
                         String key =
                                 entry.getKey();
 
-                        // ✅ SOLO bodyEntrada*
                         if (!key.toLowerCase()
                                 .startsWith("bodyentrada")) {
 
@@ -93,12 +99,26 @@ public class RequestResponseResolver {
                                 refObj.get("$ref")
                                         .toString();
 
-                        bodyType =
+                        String refType =
                                 ref.substring(
                                         ref.lastIndexOf("/") + 1);
 
-                        bodyFieldName =
-                                key;
+                        // =================================================
+                        // ✅ ✅ FILTRO CRÍTICO (FIX REAL)
+                        // =================================================
+                        String normalizedRef =
+                                refType
+                                        .replace("BodyEntrada", "")
+                                        .replaceAll("([a-z])([A-Z])", "$1-$2")
+                                        .replace("-", "")
+                                        .toLowerCase();
+
+                        if (!normalizedRef.endsWith(endpointKey)) {
+                            continue;
+                        }
+
+                        bodyType = refType;
+                        bodyFieldName = key;
 
                         break;
                     }
@@ -148,15 +168,9 @@ public class RequestResponseResolver {
         Map<String, String> bodies =
                 new LinkedHashMap<>();
 
-        // =====================================================
-        // ✅ RESPONSE SCHEMA
-        // =====================================================
         Map<String, Object> responseSchema =
                 schemaMap.get(responseType);
 
-        // =====================================================
-        // ✅ BUSCAR SOLO bodySalida*
-        // =====================================================
         if (responseSchema != null) {
 
             Object propsObj =
@@ -173,11 +187,6 @@ public class RequestResponseResolver {
                     String key =
                             entry.getKey();
 
-                    // =================================================
-                    // ✅ SOLO bodySalida*
-                    // ✅ EVITA contaminación de requests
-                    // ✅ EVITA contaminación entre endpoints
-                    // =================================================
                     if (!key.toLowerCase()
                             .startsWith("bodysalida")) {
 
@@ -208,9 +217,6 @@ public class RequestResponseResolver {
                             ref.substring(
                                     ref.lastIndexOf("/") + 1);
 
-                    // =================================================
-                    // ✅ MATCH EXACTO
-                    // =================================================
                     bodies.put(
                             key,
                             refType);
@@ -220,7 +226,6 @@ public class RequestResponseResolver {
 
         // =====================================================
         // ✅ FALLBACK CONTROLADO
-        // ✅ SOLO SI NO EXISTE RESPONSE SCHEMA
         // =====================================================
         if (bodies.isEmpty()
                 && responseSchema == null) {
@@ -239,9 +244,6 @@ public class RequestResponseResolver {
                     bodyField,
                     bodyClass);
 
-            // =================================================
-            // ✅ CREAR SCHEMA VACÍO SOLO SI NO EXISTE
-            // =================================================
             schemaMap.computeIfAbsent(
 
                     bodyClass,
