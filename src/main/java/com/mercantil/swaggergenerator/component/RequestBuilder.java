@@ -10,121 +10,172 @@ import org.springframework.stereotype.Component;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.mercantil.swaggergenerator.component.special.SpecialRequestDispatcher;
 
+
 @Component
 public class RequestBuilder {
 
-	@Autowired
-	private HeaderExampleProvider headerProvider;
+    @Autowired
+    private HeaderExampleProvider headerProvider;
 
-	@Autowired
-	private RequestExampleProvider requestExampleProvider;
+    @Autowired
+    private RequestExampleProvider requestExampleProvider;
 
-	@Autowired
-	private RequestResponseResolver requestResponseResolver;
+    @Autowired
+    private RequestResponseResolver requestResponseResolver;
 
-	@Autowired
-	private SpecialRequestDispatcher specialDispatcher;
+    @Autowired
+    private SpecialRequestDispatcher specialDispatcher;
 
-	// =========================================================
-	// ✅ BUILD REQUEST (VERSIÓN FINAL SEGURA)
-	// =========================================================
-	@SuppressWarnings("unchecked")
-	public Map<String, Object> build(String endpointPath, MethodDeclaration method,
-			Map<String, Map<String, Object>> schemaMap, Map<String, Object> exampleMap, List<String> ignoredTypes) {
+    // =========================================================
+    // ✅ BUILD REQUEST (RESTAURADO + SEGURO)
+    // =========================================================
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> build(String endpointPath, MethodDeclaration method,
+            Map<String, Map<String, Object>> schemaMap,
+            Map<String, Object> exampleMap,
+            List<String> ignoredTypes) {
 
-		Map<String, Object> requestProps = new LinkedHashMap<>();
+        Map<String, Object> requestProps = new LinkedHashMap<>();
 
-		// =====================================================
-		// ✅ SAFE REF
-		// =====================================================
-		java.util.function.Function<String, Map<String, Object>> safeRef = type -> {
+        // =====================================================
+        // ✅ SAFE REF
+        // =====================================================
+        java.util.function.Function<String, Map<String, Object>> safeRef = type -> {
 
-			if (type == null || ignoredTypes.contains(type)) {
-				return Map.of("type", "object");
-			}
+            if (type == null || ignoredTypes.contains(type)) {
+                return Map.of("type", "object");
+            }
 
-			return Map.of("$ref", "#/components/schemas/" + type);
-		};
+            return Map.of("$ref", "#/components/schemas/" + type);
+        };
 
-		// =====================================================
-		// ✅ HEADER ENTRADA (flujo normal)
-		// =====================================================
-		requestProps.put("headerEntrada", safeRef.apply("HeaderEntrada"));
+        // =====================================================
+        // ✅ HEADER
+        // =====================================================
+        requestProps.put("headerEntrada", safeRef.apply("HeaderEntrada"));
 
-		// =====================================================
-		// ✅ RESOLVER BODY REQUESTS
-		// =====================================================
-		Map<String, String> requestBodies = requestResponseResolver.resolveRequestBodies(method, schemaMap);
+        // =====================================================
+        // ✅ RESOLVER BODY
+        // =====================================================
+        Map<String, String> requestBodies =
+                requestResponseResolver.resolveRequestBodies(method, schemaMap);
 
-		String bodyFieldName = null;
-		String bodyType = null;
+        String bodyFieldName = null;
+        String bodyType = null;
 
-		if (!requestBodies.isEmpty()) {
+        if (!requestBodies.isEmpty()) {
+            Map.Entry<String, String> entry = requestBodies.entrySet().iterator().next();
+            bodyFieldName = entry.getKey();
+            bodyType = entry.getValue();
+        }
 
-			Map.Entry<String, String> entry = requestBodies.entrySet().iterator().next();
+        // =====================================================
+        // ✅ ASEGURAR SCHEMA
+        // =====================================================
+        if (bodyType != null && !ignoredTypes.contains(bodyType)) {
+            ensureSchemaExists(bodyType, schemaMap);
+        }
 
-			bodyFieldName = entry.getKey();
-			bodyType = entry.getValue();
-		}
+        // =====================================================
+        // ✅ VALIDAR BODY REAL (IMPORTANTE 🔥)
+        // =====================================================
+        boolean hasBody = hasProperties(bodyType, schemaMap);
 
-		// =====================================================
-		// ✅ ASEGURAR SCHEMA
-		// =====================================================
-		if (bodyType != null && !ignoredTypes.contains(bodyType)) {
-			ensureSchemaExists(bodyType, schemaMap);
-		}
+        // =====================================================
+        // ✅ AGREGAR BODY SCHEMA SOLO SI TIENE PROPS
+        // =====================================================
+        if (bodyType != null && hasBody) {
+            requestProps.put(bodyFieldName, safeRef.apply(bodyType));
+        }
 
-		// =====================================================
-		// ✅ AGREGAR BODY SCHEMA (flujo normal)
-		// =====================================================
-		if (bodyType != null) {
-			requestProps.put(bodyFieldName, safeRef.apply(bodyType));
-		}
+        // =====================================================
+        // ✅ REQUEST EXAMPLE
+        // =====================================================
+        Map<String, Object> requestExample = new LinkedHashMap<>();
 
-		// =====================================================
-		// ✅ REQUEST EXAMPLE (normal)
-		// =====================================================
-		Map<String, Object> requestExample = new LinkedHashMap<>();
+        requestExample.put("headerEntrada",
+                headerProvider.buildHeaderEntrada());
 
-		requestExample.put("headerEntrada", headerProvider.buildHeaderEntrada());
+        // =====================================================
+        // ✅ BODY EXAMPLE SOLO SI ES VÁLIDO
+        // =====================================================
+        if (bodyType != null && hasBody) {
 
-		// =====================================================
-		// ✅ BODY EXAMPLE
-		// =====================================================
-		if (bodyType != null) {
+            Object bodyExample = requestExampleProvider.build(
+                    endpointPath, bodyType, schemaMap, exampleMap);
 
-			Object bodyExample = requestExampleProvider.build(endpointPath, bodyType, schemaMap, exampleMap);
+            if (bodyExample != null
+                    && (!(bodyExample instanceof Map)
+                    || !((Map<?, ?>) bodyExample).isEmpty())) {
 
-			requestExample.put(bodyFieldName, bodyExample);
-		}
+                requestExample.put(bodyFieldName, bodyExample);
+            }
+        }
 
-		// =====================================================
-		// ✅ SPECIAL HANDLER
-		// =====================================================
-		boolean handled = specialDispatcher.applyIfMatch(endpointPath, bodyType != null, requestProps, requestExample);
-		if (handled) {
-			System.out.println("✅ Request manejado por SpecialHandler");
-		}
+        // =====================================================
+        // ✅ SPECIAL HANDLER
+        // =====================================================
+        boolean handled = specialDispatcher.applyIfMatch(
+                endpointPath, hasBody, requestProps, requestExample);
 
-		// =====================================================
-		// ✅ REQUEST JSON FINAL
-		// =====================================================
-		Map<String, Object> requestJson = Map.of(
+        if (handled) {
+            System.out.println("✅ Request manejado por SpecialHandler");
+        }
 
-				"schema", Map.of("type", "object", "properties", requestProps),
+        // =====================================================
+        // ✅ REQUEST FINAL
+        // =====================================================
+        Map<String, Object> requestJson = Map.of(
+                "schema", Map.of(
+                        "type", "object",
+                        "properties", requestProps
+                ),
+                "examples", Map.of(
+                        "default",
+                        Map.of(
+                                "summary", "Ejemplo generado",
+                                "value", requestExample
+                        )
+                )
+        );
 
-				"examples", Map.of("default", Map.of("summary", "Ejemplo generado", "value", requestExample)));
+        return Map.of(
+                "required", true,
+                "content", Map.of("application/json", requestJson)
+        );
+    }
 
-		return Map.of("required", true, "content", Map.of("application/json", requestJson));
-	}
+    // =========================================================
+    // ✅ VALIDAR SI EL SCHEMA TIENE PROPERTIES
+    // =========================================================
+    private boolean hasProperties(String type,
+            Map<String, Map<String, Object>> schemaMap) {
 
-	// =========================================================
-	private void ensureSchemaExists(String typeName, Map<String, Map<String, Object>> schemaMap) {
+        if (type == null) return false;
 
-		if (typeName == null || typeName.isBlank()) {
-			return;
-		}
+        Map<String, Object> schema = schemaMap.get(type);
+        if (schema == null) return false;
 
-		schemaMap.computeIfAbsent(typeName, k -> Map.of("type", "object", "properties", new LinkedHashMap<>()));
-	}
+        Object props = schema.get("properties");
+
+        return props instanceof Map && !((Map<?, ?>) props).isEmpty();
+    }
+
+    // =========================================================
+    // ✅ ASEGURAR SCHEMA EXISTE
+    // =========================================================
+    private void ensureSchemaExists(String typeName,
+            Map<String, Map<String, Object>> schemaMap) {
+
+        if (typeName == null || typeName.isBlank()) {
+            return;
+        }
+
+        schemaMap.computeIfAbsent(typeName, k ->
+                Map.of(
+                        "type", "object",
+                        "properties", new LinkedHashMap<>()
+                )
+        );
+    }
 }
