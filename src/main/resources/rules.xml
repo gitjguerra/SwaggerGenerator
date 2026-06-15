@@ -388,147 +388,79 @@
 		</response>
 
 	</api>
-
-	<!-- ========================================================= -->
+	
+	<!-- ===================================================== -->
 	<!-- ✅ INVERSIONES - BUSCAR INVENTARIOS -->
-	<!-- ========================================================= -->
+	<!-- ===================================================== -->
 	<api path="/inversiones/buscar/inventarios">
 
-		<!-- ===================================================== -->
 		<!-- ✅ REQUEST -->
-		<!-- ===================================================== -->
 		<request>
 
-			<field name="bodyEntradaBuscarInventarios.tipoIdentificacion"
-				value="V" />
-
-			<field name="bodyEntradaBuscarInventarios.cedulaRif"
-				value="124332657" />
-
-			<field name="bodyEntradaBuscarInventarios.numeroPersona"
-				value="11844825" />
-
-			<field name="bodyEntradaBuscarInventarios.tipoOperacion"
-				value="1" />
-
-			<field name="bodyEntradaBuscarInventarios.codigoMoneda"
-				value="27" />
-
-			<field name="bodyEntradaBuscarInventarios.montoPacto"
-				value="1500.75" />
-
-			<field name="bodyEntradaBuscarInventarios.subCanal" value="6" />
-
-			<field name="bodyEntradaBuscarInventarios.tasaSubastaUsd"
-				value="0.16" />
+			<field name="tipoIdentificacion" value="s"/>
+			<field name="cedulaRif" value="429881055350712"/>
+			<field name="numeroPersona" value="6068708818"/>
+			<field name="tipoOperacion" value="7"/>
+			<field name="codigoMoneda" value="str"/>
+			<field name="mtoPacto" value="13287832371661356"/>
+			<field name="subCanal" value="9900"/>
+			<field name="tasaSubastaUsd" value=""/>
 
 		</request>
 
-		<!-- ===================================================== -->
 		<!-- ✅ RESPONSE -->
-		<!-- ===================================================== -->
 		<response>
 
-			<field name="bodySalidaBuscarInventarios.cantDiasCtaMercantil"
-				value="900" />
+			<field name="bodySalidaBuscarInventarios.cantDiasCtaMercantil" value="0"/>
+			<field name="bodySalidaBuscarInventarios.tasaCambio" value=""/>
+			<field name="bodySalidaBuscarInventarios.tasaComisionCompra" value="0.0000"/>
+			<field name="bodySalidaBuscarInventarios.montoTransferencia" value="0.00"/>
+			<field name="bodySalidaBuscarInventarios.tasaSwift" value="0.00"/>
+			<field name="bodySalidaBuscarInventarios.tasaCompraUsd" value=""/>
+			<field name="bodySalidaBuscarInventarios.tasaCompraEur" value=""/>
 
-			<field name="bodySalidaBuscarInventarios.tasaCambio" value="" />
+			<field name="bodySalidaBuscarInventarios.horaCierre" value="0"/>
+			<field name="bodySalidaBuscarInventarios.indCierreMelp" value=""/>
+			<field name="bodySalidaBuscarInventarios.indCierreCanal" value=""/>
+			<field name="bodySalidaBuscarInventarios.horaApertura" value="0"/>
 
-			<field name="bodySalidaBuscarInventarios.tasaComisionCompra"
-				value="120.0000" />
+			<field name="bodySalidaBuscarInventarios.tasaTransferencia" value="0.00"/>
 
-			<field name="bodySalidaBuscarInventarios.montoTransferencia"
-				value="0.00" />
+			<field name="bodySalidaBuscarInventarios.nroTlfnCliente" value=""/>
+			<field name="bodySalidaBuscarInventarios.nombreCliente" value=""/>
 
-			<field name="bodySalidaBuscarInventarios.tasaSwift"
-				value="0.00" />
+			<field name="bodySalidaBuscarInventarios.montoComision" value="0.00"/>
+			<field name="bodySalidaBuscarInventarios.codigoProducto" value=""/>
 
-			<field name="bodySalidaBuscarInventarios.tasaCompraUsd"
-				value="" />
+			<field name="bodySalidaBuscarInventarios.montoMultiploSolicitud" value="0.00"/>
 
-			<field name="bodySalidaBuscarInventarios.tasaCompraEur"
-				value="" />
+			<field name="bodySalidaBuscarInventarios.tasaVentaEur" value=""/>
+			<field name="bodySalidaBuscarInventarios.emailCliente" value=""/>
 
-			<field name="bodySalidaBuscarInventarios.horaCierre" value="0" />
+			<field name="bodySalidaBuscarInventarios.tasaComisionVenta" value="0.0000"/>
+			<field name="bodySalidaBuscarInventarios.tasaCompraUsdEur" value=""/>
 
-			<field name="bodySalidaBuscarInventarios.indCierreMelp"
-				value="9" />
+			<field name="bodySalidaBuscarInventarios.montoMinPacto" value="0.00"/>
 
-			<field name="bodySalidaBuscarInventarios.indCierreCanal"
-				value="3" />
+			<field name="bodySalidaBuscarInventarios.tasaVentaUsd" value=""/>
+			<field name="bodySalidaBuscarInventarios.tasaVentaUsdEur" value=""/>
 
-			<field name="bodySalidaBuscarInventarios.horaApertura"
-				value="0" />
+			<field name="bodySalidaBuscarInventarios.codMonedaIsoUsd" value="0"/>
+			<field name="bodySalidaBuscarInventarios.montoSwift" value="0.00"/>
+			<field name="bodySalidaBuscarInventarios.codMonedaIsoEur" value="0"/>
 
-			<field name="bodySalidaBuscarInventarios.tasaTransferencia"
-				value="0.00" />
+			<field name="bodySalidaBuscarInventarios.codigoEmpresa" value="MERSC"/>
 
-			<field name="bodySalidaBuscarInventarios.nroTlfnCliente"
-				value="" />
+			<field name="bodySalidaBuscarInventarios.montoOperacionNeto" value="0.00"/>
+			<field name="bodySalidaBuscarInventarios.montoMaxPacto" value="0.00"/>
+			<field name="bodySalidaBuscarInventarios.montoOperacionBs" value="0.00"/>
 
-			<field name="bodySalidaBuscarInventarios.nombreCliente"
-				value="" />
-
-			<field name="bodySalidaBuscarInventarios.montoComision"
-				value="0.00" />
-
-			<field name="bodySalidaBuscarInventarios.codigoProducto"
-				value="02606" />
-
-			<field
-				name="bodySalidaBuscarInventarios.montoMultiploSolicitud"
-				value="100000000000.04" />
-
-			<field name="bodySalidaBuscarInventarios.tasaVentaEur" value="" />
-
-			<field name="bodySalidaBuscarInventarios.emailCliente"
-				value="0000000000" />
-
-			<field name="bodySalidaBuscarInventarios.tasaComisionVenta"
-				value="0.0000" />
-
-			<field name="bodySalidaBuscarInventarios.tasaCompraUsdEur"
-				value="" />
-
-			<field name="bodySalidaBuscarInventarios.montoMinPacto"
-				value="500000000053.00" />
-
-			<field name="bodySalidaBuscarInventarios.tasaVentaUsd" value="" />
-
-			<field name="bodySalidaBuscarInventarios.tasaVentaUsdEur"
-				value="840978 S0" />
-
-			<field name="bodySalidaBuscarInventarios.codMonedaIsoUsd"
-				value="900" />
-
-			<field name="bodySalidaBuscarInventarios.montoSwift"
-				value="0.00" />
-
-			<field name="bodySalidaBuscarInventarios.codMonedaIsoEur"
-				value="2" />
-
-			<field name="bodySalidaBuscarInventarios.codigoEmpresa"
-				value="00002" />
-
-			<field name="bodySalidaBuscarInventarios.montoOperacionNeto"
-				value="0.00" />
-
-			<field name="bodySalidaBuscarInventarios.montoMaxPacto"
-				value="0.00" />
-
-			<field name="bodySalidaBuscarInventarios.montoOperacionBs"
-				value="0.00" />
-
-			<field name="bodySalidaBuscarInventarios.fechaCtaMercantil"
-				value="5000000" />
-
-			<field name="bodySalidaBuscarInventarios.indCierreMele"
-				value="5" />
+			<field name="bodySalidaBuscarInventarios.fechaCtaMercantil" value="0"/>
+			<field name="bodySalidaBuscarInventarios.indCierreMele" value=""/>
 
 		</response>
 
 	</api>
-
 
 	<!-- ===================================================== -->
 	<!-- ✅ TRANSFERIR OTROS BANCOS NACIONALES -->
@@ -899,7 +831,7 @@
 		</response>
 
 	</api>
-
+	
 	<!-- ===================================================== -->
 	<!-- ✅ INVERSIONES - CREAR ORDEN COMPRA VENTA -->
 	<!-- ===================================================== -->
@@ -908,49 +840,136 @@
 		<!-- ✅ REQUEST -->
 		<request>
 
-			<field name="codigoEmpresa" value="00002"/>
-			<field name="codigoProducto" value="0300"/>
+			<field name="codigoEmpresa" value=""/>
+			<field name="codigoProducto" value=""/>
 			<field name="numeroPersona" value="2367098492"/>
-			<field name="tipoIdentificacion" value="V"/>
-			<field name="cedulaRif" value="59417849"/>
+			<field name="tipoIdentificacion" value="s"/>
+			<field name="cedulaRif" value="594178491660365"/>
 
-			<field name="tipoOperacion" value="1"/>
-			<field name="mtoPacto" value="1500.75"/>
-			<field name="codigoMoneda" value="USD"/>
+			<field name="tipoOperacion" value="0"/>
+			<field name="mtoPacto" value="16721164827100732"/>
+			<field name="codigoMoneda" value=""/>
 
-			<field name="cuentaBolivares" value="01027653200001002888"/>
-			<field name="cuentaDivisas" value="01027653200001002889"/>
+			<field name="cuentaBolivares" value="53786624543605520000"/>
+			<field name="cuentaDivisas" value="15062541122116202000"/>
 
-			<field name="mtoOperacionBs" value="5000.00"/>
-			<field name="mtoComision" value="5.00"/>
+			<field name="mtoOperacionBs" value="51247843979470130"/>
+			<field name="mtoComision" value="14044527973506194"/>
 
-			<field name="tasaComisionCompra" value="1.5"/>
-			<field name="tasaComisionVenta" value="1.2"/>
-			<field name="tasaCambio" value="36.50"/>
+			<field name="tasaComisionCompra" value="859.0954164767074"/>
+			<field name="tasaComisionVenta" value="357.550409598351"/>
+			<field name="tasaCambio" value=""/>
 
-			<field name="subCanal" value="6"/>
-			<field name="codigoSegmento" value="01"/>
-			<field name="origenFondos" value="10"/>
-			<field name="destinoFondos" value="20"/>
+			<field name="tasaCompraUsd" value=""/>
+			<field name="tasaCompraEur" value=""/>
+			<field name="tasaCompraUsdEur" value=""/>
 
-			<field name="actividadEconomica" value="001"/>
-			<field name="nombreCliente" value="CLIENTE PRUEBA"/>
-			<field name="nroTlfnCliente" value="04141234567"/>
-			<field name="emailCliente" value="cliente@email.com"/>
+			<field name="tasaVentaUsd" value=""/>
+			<field name="tasaVentaEur" value=""/>
+			<field name="tasaVentaUsdEur" value=""/>
+
+			<field name="cantDiasCtaMercantil" value="4268"/>
+			<field name="fechaCtaMercantil" value="18144680"/>
+
+			<field name="codMonedaIsoUsd" value="250"/>
+			<field name="codMonedaIsoEur" value="317"/>
+
+			<field name="subCanal" value="6636"/>
+			<field name="codigoSegmento" value="st"/>
+
+			<field name="origenFondos" value="15"/>
+			<field name="destinoFondos" value="66"/>
+			<field name="actividadEconomica" value="43"/>
+
+			<field name="dna" value=""/>
+			<field name="sesscookie" value=""/>
+
+			<field name="horaApertura" value="334567"/>
+			<field name="horaCierre" value="781429"/>
+
+			<field name="nombreCliente" value=""/>
+			<field name="nroTlfnCliente" value=""/>
+			<field name="emailCliente" value=""/>
+
+			<field name="mtoSwift" value="306423207080.6994"/>
+			<field name="mtoTransferencia" value="429158581797.3508"/>
+
+			<field name="tasaSwift" value="192.44223418448297"/>
+			<field name="tasaTransferencia" value="210.2057133317984"/>
+
+			<field name="ctaExtranjera" value=""/>
+			<field name="bcoExtranjero" value=""/>
+			<field name="codSwift" value=""/>
+			<field name="codAba" value=""/>
+			<field name="codSwiftCorr" value=""/>
 
 		</request>
 
-		<!-- ✅ RESPONSE -->
+		<!-- ✅ RESPONSE (lo dejas igual si ya lo tienes) -->
 		<response>
 
-			<!-- ✅ BODY -->
-			<field name="bodySalidaCrearOrdenCompraVenta.numeroOrden" value="999999"/>
+			<field name="bodySalidaCrearOrdenCompraVenta.numeroOrden" value="0"/>
+			<field name="bodySalidaCrearOrdenCompraVenta.datosControl" value=""/>
 
-			<field name="bodySalidaCrearOrdenCompraVenta.datosControl" value="OK"/>
+			<field name="bodySalidaCrearOrdenCompraVenta.salidaMenudeo.nroConsecMbuSal" value="0"/>
+			<field name="bodySalidaCrearOrdenCompraVenta.salidaMenudeo.idMovimientoBcvSal" value=""/>
 
-			<!-- ✅ NESTED OBJECT -->
-			<field name="bodySalidaCrearOrdenCompraVenta.salidaMenudeo.nroConsecMbuSal" value="123456"/>
-			<field name="bodySalidaCrearOrdenCompraVenta.salidaMenudeo.idMovimientoBcvSal" value="BCV001"/>
+		</response>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ INVERSIONES - CREAR ORDEN COMPRA INVERSION -->
+	<!-- ===================================================== -->
+	<api path="/inversiones/crear/orden-compra-inversion">
+
+		<!-- ✅ REQUEST -->
+		<request>
+
+			<field name="cantAccionA" value=""/>
+			<field name="cantAccionB" value=""/>
+
+			<field name="diasVigencia" value="4268"/>
+
+			<field name="codEmpresa" value=""/>
+			<field name="codProduc" value=""/>
+			<field name="codTitulo" value=""/>
+
+			<field name="ctaBs" value="5378662454"/>
+			<field name="ctaDivisas" value="1506254"/>
+
+			<field name="destinoFondos" value="66"/>
+			<field name="dna" value=""/>
+
+			<field name="fchVcto" value=""/>
+			<field name="fchVigencia" value="18144680"/>
+
+			<field name="mtoComis" value="14044527973506194"/>
+			<field name="mtoOper" value="51247843979470130"/>
+
+			<field name="nroId" value="594178491660365"/>
+			<field name="nroPer" value="2367098492"/>
+
+			<field name="precioMaximo" value=""/>
+			<field name="sesscookie" value=""/>
+
+			<field name="subCanal" value="6636"/>
+
+			<field name="tasaComisVta" value="357.550409598351"/>
+			<field name="tipoCambio" value=""/>
+
+			<field name="tipoId" value="J"/>
+
+			<field name="valorEfectivo" value=""/>
+			<field name="valorNominal" value=""/>
+
+		</request>
+
+		<!-- ✅ RESPONSE (genérico si no tienes uno específico) -->
+		<response>
+
+			<field name="bodySalidaCrearOrdenCompraInversion.numeroOrden" value="0"/>
+			<field name="bodySalidaCrearOrdenCompraInversion.datosControl" value=""/>
 
 		</response>
 
@@ -960,68 +979,148 @@
 	<!-- ✅ SIMF - CONSULTAR TABLA BANCO AMPLIADA -->
 	<!-- ===================================================== -->
 	<api path="/simf/consultar/tabla-banco-ampliada">
-	
-	    <!-- ===================== -->
-	    <!-- ✅ REQUEST -->
-	    <!-- ===================== -->
-	    <request>
-	
-	        <!-- ✅ SIN bodyEntrada -->
-	        <field name="codSudeban" value="105"/>
-	        <field name="codAba" value="1"/>
-	        <field name="bcoPignora" value=""/>
-	        <field name="indBusqIndice" value="1"/>
-	        <field name="sitBco" value=""/>
-	        <field name="codSuc" value=""/>
-	        <field name="codSwift" value=""/>
-	
-	    </request>
-	
-	    <!-- ===================== -->
-	    <!-- ✅ RESPONSE -->
-	    <!-- ===================== -->
-	    <response>
-	
-	        <!-- ✅ SOLO BODY SALIDA -->
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.cantReg" value="1"/>
-	
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codBcoAba" value="0"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codAla" value="0"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nomEstado" value="DISTRITO CAPITAL"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroTelf2" value=""/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroTelf1" value=""/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codClasif" value=""/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].indParaisoFiscal" value="0"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codMoneda" value="VES"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroCtaPpal" value="00000000000000000000"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroCtaMayor" value="0"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].indConversion" value="N"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].tipoPagoMovi" value="0"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].ciudad" value="CARACAS"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codDircab" value=""/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].indBcoPignora" value="1"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codPost" value="1011"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].indOtraDivisa" value="0"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].calle" value="EDIFICIO MERCANTIL: 1, AVENIDA ANDRES BELLO"/>
-	
-	        <!-- ✅ CLAVE NORMALIZADA -->
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].bco" value="MERCANTIL C.A. BANCO UNIVERSAL"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].sitBco" value=""/>
-	
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].fchAct" value="20240425"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroPer" value="0"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codBcoBcv" value="0"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codBcoSwift" value="BAMRVECA"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroCarnet" value="380164"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroCtaBcv" value="00000000000000000000"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroTelex1" value=""/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].pais" value="VENEZUELA"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroTelex3" value=""/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].indicPagoMovi" value="0"/>
-	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroTelex2" value=""/>
-	
-	    </response>
-	
+
+		<!-- ===================== -->
+		<!-- ✅ REQUEST -->
+		<!-- ===================== -->
+		<request>
+
+			<!-- ✅ SIN bodyEntrada -->
+			<field name="codSudeban" value="105"/>
+			<field name="codAba" value="1"/>
+			<field name="bcoPignora" value=""/>
+			<field name="indBusqIndice" value="1"/>
+			<field name="sitBco" value=""/>
+			<field name="codSuc" value=""/>
+			<field name="codSwift" value=""/>
+
+		</request>
+
+		<!-- ===================== -->
+		<!-- ✅ RESPONSE -->
+		<!-- ===================== -->
+		<response>
+
+			<!-- ✅ SOLO BODY SALIDA -->
+			<field name="bodySalidaConsultarTablaBancoAmpliada.cantReg" value="1"/>
+
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codBcoAba" value="0"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codAla" value="0"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nomEstado" value="DISTRITO CAPITAL"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroTelf2" value=""/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroTelf1" value=""/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codClasif" value=""/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].indParaisoFiscal" value="0"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codMoneda" value="VES"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroCtaPpal" value="00000000000000000000"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroCtaMayor" value="0"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].indConversion" value="N"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].tipoPagoMovi" value="0"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].ciudad" value="CARACAS"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codDircab" value=""/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].indBcoPignora" value="1"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codPost" value="1011"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].indOtraDivisa" value="0"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].calle" value="EDIFICIO MERCANTIL: 1, AVENIDA ANDRES BELLO"/>
+
+			<!-- ✅ CLAVE NORMALIZADA -->
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].bco" value="MERCANTIL C.A. BANCO UNIVERSAL"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].sitBco" value=""/>
+
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].fchAct" value="20240425"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroPer" value="0"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codBcoBcv" value="0"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codBcoSwift" value="BAMRVECA"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroCarnet" value="380164"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroCtaBcv" value="00000000000000000000"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroTelex1" value=""/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].pais" value="VENEZUELA"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroTelex3" value=""/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].indicPagoMovi" value="0"/>
+			<field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroTelex2" value=""/>
+
+		</response>
+
 	</api>
 
+	<!-- ===================================================== -->
+	<!-- ✅ SIMF - REGISTRAR REFERENCIAS DEBITO INMEDIATO -->
+	<!-- ===================================================== -->
+	<api path="/simf/registrar/referencia-debito-inmediato">
+
+		<request>
+
+			<!-- ✅ CAMPOS PLANOS (SIN header NI bodyEntrada) -->
+			<field name="refNro" value="1514"/>
+			<field name="nroPer" value="2500"/>
+			<field name="codInteg" value="1820"/>
+			<field name="factNro" value="f-555"/>
+			<field name="dbtoRef" value=""/>
+			<field name="origenRef" value="1"/>
+			<field name="idCi" value="V"/>
+			<field name="nroId" value="23652965"/>
+
+		</request>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ SIMF - REGISTRAR BANCO COMPRA DIVISAS -->
+	<!-- ===================================================== -->
+	<api path="/simf/registrar/banco-compra-divisa">
+
+		<request>
+
+			<!-- ✅ CAMPOS PLANOS -->
+			<field name="codSubCanal" value="1"/>
+			<field name="codMoneda" value="USD"/>
+			<field name="nroPer" value="3150630"/>
+			<field name="nacIdOrd" value="V"/>
+			<field name="nroIdOrd" value="1533056"/>
+			<field name="nomClte" value="DULCE MARIA PINEDA"/>
+			<field name="nroCtaMonNal" value="136146023"/>
+			<field name="nroCtaMe" value="5157007590"/>
+			<field name="codMotivOper" value="3"/>
+			<field name="codOrigDestFdo" value="5"/>
+			<field name="nroTelfClte" value="04141151342"/>
+			<field name="emailClte" value="orlydd01@gmail.com"/>
+			<field name="mtoOperDivisa" value="20"/>
+			<field name="mtoOperMonNac" value="1201.1"/>
+			<field name="mtoComisOper" value="0.73"/>
+			<field name="tipoCmbDivMen" value="60.05"/>
+			<field name="fctrCmbDl" value="60.05"/>
+
+		</request>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ SIMF - REGISTRAR BANCO VENDE DIVISAS -->
+	<!-- ===================================================== -->
+	<api path="/simf/registrar/banco-vende-divisa">
+
+		<request>
+
+			<!-- ✅ CAMPOS PLANOS -->
+			<field name="codSubCanal" value="1"/>
+			<field name="codMoneda" value="USD"/>
+			<field name="nroPer" value="3150630"/>
+			<field name="nacIdOrd" value="V"/>
+			<field name="nroIdOrd" value="1533056"/>
+			<field name="nomClte" value="DULCE MARIA PINEDA"/>
+			<field name="nroCtaMonedaNal" value="136146023"/>
+			<field name="nroCtaMe" value="5157007590"/>
+			<field name="codMotivOper" value="3"/>
+			<field name="codOrigenDestinoFdo" value="5"/>
+			<field name="nroTelfClte" value="04141151342"/>
+			<field name="emailClte" value="orlydd01@gmail.com"/>
+			<field name="mtoOperDivisa" value="20"/>
+			<field name="mtoOperMonNac" value="1201.1"/>
+			<field name="mtoComisOper" value="0.73"/>
+			<field name="tipoCambioDivisaMenudeo" value="60.05"/>
+			<field name="factorCambioDolar" value="60.05"/>
+
+		</request>
+
+	</api>
 </rules>
