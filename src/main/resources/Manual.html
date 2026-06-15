@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Manual Generador Swagger - Completo</title>
+
+<style>
+.xml {
+    background-color: #f4f6f8;
+    border-left: 5px solid #2f75b5;
+    padding: 12px;
+    border-radius: 5px;
+    font-family: Consolas, monospace;
+    color: #1a1a1a;
+    font-size: 13px;
+    white-space: pre-wrap;
+}
+
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    margin: 40px;
+    background-color: #f7f9fc;
+    color: #333;
+}
+
+h1 { color:#1f4e79; border-bottom:4px solid #1f4e79; padding-bottom:10px;}
+h2 { color:#2f75b5; margin-top:30px;}
+h3 { color:#44546a;}
+
+.box {
+    background:#ffffff;
+    border-left:6px solid #4CAF50;
+    padding:15px;
+    margin:15px 0;
+    border-radius:6px;
+}
+
+.warning {
+    border-left:6px solid #ff9800;
+    background:#fff8e1;
+}
+
+.error {
+    border-left:6px solid #f44336;
+    background:#fdecea;
+}
+
+.code {
+    background-color:#272822;
+    color:#f8f8f2;
+    padding:12px;
+    border-radius:5px;
+    font-family:Consolas;
+    font-size:13px;
+    white-space:pre-wrap;
+}
+
+ul { margin-left:20px; }
+
+table {
+    border-collapse: collapse;
+    width:100%;
+    margin:15px 0;
+}
+
+th, td {
+    border:1px solid #ddd;
+    padding:8px;
+}
+
+th {
+    background-color:#1f4e79;
+    color:white;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📘 Manual Completo - Generador Swagger</h1>
+
+<!-- INTRO -->
+<h2>🚀 1. Introducción</h2>
+<div class="box">
+Este proyecto genera automáticamente documentación Swagger (OpenAPI) a partir de DTOs Java.<br><br>
+
+Permite:
+<ul>
+<li>✔ Generar schemas dinámicamente</li>
+<li>✔ Construir ejemplos JSON automáticos</li>
+<li>✔ Personalizar valores mediante rules.xml</li>
+<li>✔ Resolver casos complejos mediante handlers</li>
+</ul>
+</div>
+
+---
+
+<h2>🏗️ 2. Arquitectura General</h2>
+
+<table>
+<tr><th>Componente</th><th>Responsabilidad</th></tr>
+<tr><td>SchemaBuilder</td><td>Construye JSON schema desde DTOs</td></tr>
+<tr><td>ExampleGenerator</td><td>Genera ejemplos automáticos</td></tr>
+<tr><td>RuleEngine</td><td>Aplica rules.xml</td></tr>
+<tr><td>Handlers</td><td>Corrigen casos complejos</td></tr>
+<tr><td>ParserUtil</td><td>Resuelve nombres JSON</td></tr>
+<tr><td>TypeUtil</td><td>Mapeo de tipos Java → JSON</td></tr>
+</table>
+
+---
+
+<h2>🔄 3. Flujo de Ejecución</h2>
+
+<div class="code">
+1. Leer DTOs (JavaParser)
+2. Generar schemas (SchemaBuilder)
+3. Generar example base
+4. Aplicar rules.xml
+5. Aplicar handlers especiales
+</div>
+
+---
+
+<h2>⚙️ 4. Configuración application.yml</h2>
+
+<div class="code">
+swagger:
+  output-dir: C:\SwaggerGenerator\openapi-json-files
+
+services:
+  list:
+    - name: creditos
+      controllersPath: ...
+      beansPath: ...
+      basePath: /creditos
+</div>
+
+<div class="box">
+<b>Descripción:</b><br>
+<ul>
+<li>output-dir → carpeta de salida del swagger</li>
+<li>controllersPath → donde están los endpoints</li>
+<li>beansPath → donde están los DTOs</li>
+<li>basePath → prefijo del API</li>
+</ul>
+</div>
+
+---
+
+<h2>📚 5. abbreviations.txt</h2>
+
+<div class="code">
+numero=num
+identificacion=id
+cuenta=cta
+nombre=nom
+fecha=fch
+monto=mto
+cliente=clte
+credito=cdto
+descripcion=descrip
+</div>
+
+<div class="box">
+<b>Uso:</b>
+<ul>
+<li>Normaliza nombres JSON</li>
+<li>Evita nombres largos</li>
+<li>Se aplica automáticamente</li>
+</ul>
+</div>
+
+---
+
+<h2>📦 6. Estructura del Proyecto</h2>
+
+<div class="code">
+controller/
+  OpenApiController.java
+
+service/
+  OpenApiGeneratorService.java
+
+component/
+  SchemaBuilder.java
+  ExampleGenerator.java
+  RequestExampleProvider.java
+  RuleEngine.java
+
+component/special/
+  RifPceHandler.java
+  DisponibilidadPceHandler.java
+
+util/
+  ParserUtil.java
+  TypeUtil.java
+  AbbreviationUtil.java
+</div>
+
+---
+
+<h2>🧠 7. Responsabilidad por Clase</h2>
+
+<div class="box"><b>OpenApiGeneratorService</b><br>Orquestador principal del proceso</div>
+
+<div class="box"><b>SchemaBuilder</b><br>Construye la definición JSON de cada clase</div>
+
+<div class="box"><b>ExampleGenerator</b><br>Genera ejemplos con valores por defecto</div>
+
+<div class="box"><b>RequestExampleProvider</b><br>Aplica los valores de rules.xml</div>
+
+<div class="box"><b>RuleEngine</b><br>Parsea rules.xml</div>
+
+<div class="box"><b>Handlers</b><br>Resuelven estructuras complejas</div>
+
+---
+
+<h2>📜 8. Uso de rules.xml</h2>
+<div class="xml">
+&lt;api path="/persona/consultar/ejemplo"&gt;
+
+  &lt;request&gt;
+    &lt;field name="codPaisEntrada" value="VEN"/&gt;
+    &lt;field name="tipoIdEntrada" value="V"/&gt;
+  &lt;/request&gt;
+
+  &lt;response&gt;
+    &lt;field name="bodySalidaEjemplo.nomCliente" value="JUAN PEREZ"/&gt;
+  &lt;/response&gt;
+
+&lt;/api&gt;
+</div>
+
+
+<div class="error">
+❌ NO incluir headerEntrada ni headerSalida
+</div>
+
+---
+
+<h2>📦 9. Reglas para Arrays y Objetos</h2>
+
+<div class="box">lista[0].campo ✅</div>
+<div class="box">objeto.campo ✅</div>
+<div class="box">lista[0].objeto.campo ✅</div>
+
+---
+
+<h2>⚠️ 10. Cuándo usar Handler</h2>
+
+<div class="warning">
+<ul>
+<li>Flatten rompe estructura</li>
+<li>Nested complejo</li>
+<li>rules.xml no aplica</li>
+<li>DTO con JsonCreator conflictivo</li>
+</ul>
+</div>
+
+---
+
+<h2>⚙️ 11. Ejemplo Handler</h2>
+
+<div class="code">
+@Component
+public class EjemploHandler {
+
+    public boolean supports(String path) {
+        return path.equals("/endpoint");
+    }
+
+    public void apply(Map example) {
+
+        example.remove("bodyEntrada");
+
+        Map body = new LinkedHashMap();
+        body.put("campo","valor");
+
+        example.put("bodyEntrada", body);
+    }
+}
+</div>
+
+---
+
+<h2>📊 12. Clasificación de Endpoints</h2>
+
+<table>
+<tr><th>Tipo</th><th>Solución</th></tr>
+<tr><td>Simple</td><td>rules.xml</td></tr>
+<tr><td>Intermedio</td><td>rules.xml + ajustes</td></tr>
+<tr><td>Complejo</td><td>Handler</td></tr>
+</table>
+
+---
+
+<h2>🚨 13. Errores Comunes</h2>
+
+<div class="error">rules no aplica → endpoint incorrecto</div>
+<div class="error">valores no cambian → usar handler</div>
+<div class="error">estructura incorrecta → flatten</div>
+
+---
+
+<h2>🚀 14. Buenas Prácticas</h2>
+
+<div class="box">
+<ul>
+<li>✔ Usar rules.xml primero</li>
+<li>✔ Handler solo si es necesario</li>
+<li>✔ No modificar SchemaBuilder innecesariamente</li>
+<li>✔ Probar endpoint individualmente</li>
+</ul>
+</div>
+
+---
+
+<h2>🏁 15. Conclusión</h2>
+
+<div class="box">
+El sistema se basa en 3 capas:
+
+<ul>
+<li>DTO → estructura</li>
+<li>rules.xml → valores</li>
+<li>handler → lógica avanzada</li>
+</ul>
+</div>
+
+</body>
+</html>
