@@ -1123,4 +1123,70 @@
 		</request>
 
 	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ SIMF - VALIDAR CLIENTE COMPRA VENTA DIVISAS -->
+	<!-- ===================================================== -->
+	<api path="/simf/validar/cliente-compra-venta-divisas">
+
+		<!-- ✅ REQUEST -->
+		<request>
+
+			<field name="codSubCanal" value="1"/>
+			<field name="tipoOper" value="C"/>
+			<field name="codMoneda" value="USD"/>
+			<field name="nroPer" value="10998760"/>
+			<field name="nacIdOrd" value="V"/>
+			<field name="nroIdOrd" value="27130130"/>
+
+		</request>
+
+		<!-- ✅ ✅ RESPONSE -->
+		<response>
+
+			<!-- ✅ HEADER SALIDA -->
+			<field name="headerSalida.tipoMensaje" value="W"/>
+			<field name="headerSalida.mensajeProgramadorSistema" value="OPERACION EXITOSA"/>
+			<field name="headerSalida.codigoMensajeProgramador" value="0000"/>
+			<field name="headerSalida.mensajeUsuario" value="TRANSACCION REALIZADA SATISFACTORIAMENTE"/>
+			<field name="headerSalida.codigoMensajeUsuario" value="0000"/>
+			<field name="headerSalida.fechaSalidaMensaje" value="20260615"/>
+			<field name="headerSalida.horaSalidaMensaje" value="104610"/>
+
+			<!-- ✅ BODY -->
+			<field name="bodySalidaValidarClienteCompraVentaDivisas.factorCambioDolar" value="587.4059"/>
+			<field name="bodySalidaValidarClienteCompraVentaDivisas.mtoMaxSeg" value="0.00"/>
+			<field name="bodySalidaValidarClienteCompraVentaDivisas.descSegOrd" value=""/>
+			<field name="bodySalidaValidarClienteCompraVentaDivisas.indCupoDisp" value="S"/>
+			<field name="bodySalidaValidarClienteCompraVentaDivisas.tipoCambioDivMenudeo" value="000000587.4059000000000"/>
+			<field name="bodySalidaValidarClienteCompraVentaDivisas.mtoMaxAno" value="1000.00"/>
+			<field name="bodySalidaValidarClienteCompraVentaDivisas.mtoMaxMes" value="0.00"/>
+			<field name="bodySalidaValidarClienteCompraVentaDivisas.porcComis" value="0.0000"/>
+
+		</response>
+
+	</api>	
+	
+	<!-- ===================================================== -->
+	<!-- ✅ CREDITOS - CONSULTAR LINEA CREDITO COMPROMETIDA -->
+	<!-- ===================================================== -->
+	<api path="/creditos/consultar/linea-credito-comprometida">
+
+		<!-- ✅ REQUEST -->
+		<request>
+
+			<!-- ✅ nivel 1 -->
+			<field name="tipoConsulta" value="1"/>
+
+			<!-- ✅ ARRAY grupo empresa -->
+			<field name="gruposEmpresasLineasCreditosComprometida[0].numPer" value="3148421"/>
+
+			<!-- ✅ objeto id (IMPORTANTE: anidado) -->
+			<field name="gruposEmpresasLineasCreditosComprometida[0].id.nacRifGrupo" value="V"/>
+			<field name="gruposEmpresasLineasCreditosComprometida[0].id.numCiRif" value="4321456"/>
+
+		</request>
+
+	</api>
+
 </rules>

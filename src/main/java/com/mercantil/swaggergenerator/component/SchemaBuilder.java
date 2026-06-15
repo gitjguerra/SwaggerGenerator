@@ -341,11 +341,13 @@ public class SchemaBuilder {
 											prop.put("type", "string");
 										}
 
-										// ✅ flatten SOLO wrappers especiales
-										else if (shouldFlatten(resolved)) {
+										// ✅ NO flatten si el campo tiene JsonProperty (estructura explícita)
+										boolean hasExplicitJsonName = field.getAnnotationByName("JsonProperty")
+												.isPresent()
+												|| parserUtil.resolveJsonName(field, var.getNameAsString()) != null;
 
+										if (shouldFlatten(resolved) && !hasExplicitJsonName) {
 											flattenSchemaProperties(resolved, properties);
-
 											flattened = true;
 										}
 
