@@ -75,15 +75,9 @@ public class RequestBuilder {
 		}
 
 		// =====================================================
-		// ✅ VALIDAR BODY
-		// =====================================================
-		boolean hasBody = hasProperties(bodyType, schemaMap);
-
-		// =====================================================
 		// ✅ AGREGAR BODY SCHEMA (flujo normal)
 		// =====================================================
-		if (bodyType != null && hasBody) {
-
+		if (bodyType != null) {
 			requestProps.put(bodyFieldName, safeRef.apply(bodyType));
 		}
 
@@ -97,7 +91,7 @@ public class RequestBuilder {
 		// =====================================================
 		// ✅ BODY EXAMPLE
 		// =====================================================
-		if (bodyType != null && hasBody) {
+		if (bodyType != null) {
 
 			Object bodyExample = requestExampleProvider.build(endpointPath, bodyType, schemaMap, exampleMap);
 
@@ -107,7 +101,7 @@ public class RequestBuilder {
 		// =====================================================
 		// ✅ SPECIAL HANDLER
 		// =====================================================
-		boolean handled = specialDispatcher.applyIfMatch(endpointPath, hasBody, requestProps, requestExample);
+		boolean handled = specialDispatcher.applyIfMatch(endpointPath, bodyType != null, requestProps, requestExample);
 		if (handled) {
 			System.out.println("✅ Request manejado por SpecialHandler");
 		}
@@ -122,22 +116,6 @@ public class RequestBuilder {
 				"examples", Map.of("default", Map.of("summary", "Ejemplo generado", "value", requestExample)));
 
 		return Map.of("required", true, "content", Map.of("application/json", requestJson));
-	}
-
-	// =========================================================
-	private boolean hasProperties(String type, Map<String, Map<String, Object>> schemaMap) {
-
-		if (type == null)
-			return false;
-
-		Map<String, Object> schema = schemaMap.get(type);
-
-		if (schema == null)
-			return false;
-
-		Object props = schema.get("properties");
-
-		return props instanceof Map && !((Map<?, ?>) props).isEmpty();
 	}
 
 	// =========================================================

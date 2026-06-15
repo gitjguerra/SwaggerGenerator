@@ -956,4 +956,72 @@
 
 	</api>
 
+	<!-- ===================================================== -->
+	<!-- ✅ SIMF - CONSULTAR TABLA BANCO AMPLIADA -->
+	<!-- ===================================================== -->
+	<api path="/simf/consultar/tabla-banco-ampliada">
+	
+	    <!-- ===================== -->
+	    <!-- ✅ REQUEST -->
+	    <!-- ===================== -->
+	    <request>
+	
+	        <!-- ✅ SIN bodyEntrada -->
+	        <field name="codSudeban" value="105"/>
+	        <field name="codAba" value="1"/>
+	        <field name="bcoPignora" value=""/>
+	        <field name="indBusqIndice" value="1"/>
+	        <field name="sitBco" value=""/>
+	        <field name="codSuc" value=""/>
+	        <field name="codSwift" value=""/>
+	
+	    </request>
+	
+	    <!-- ===================== -->
+	    <!-- ✅ RESPONSE -->
+	    <!-- ===================== -->
+	    <response>
+	
+	        <!-- ✅ SOLO BODY SALIDA -->
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.cantReg" value="1"/>
+	
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codBcoAba" value="0"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codAla" value="0"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nomEstado" value="DISTRITO CAPITAL"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroTelf2" value=""/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroTelf1" value=""/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codClasif" value=""/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].indParaisoFiscal" value="0"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codMoneda" value="VES"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroCtaPpal" value="00000000000000000000"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroCtaMayor" value="0"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].indConversion" value="N"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].tipoPagoMovi" value="0"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].ciudad" value="CARACAS"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codDircab" value=""/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].indBcoPignora" value="1"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codPost" value="1011"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].indOtraDivisa" value="0"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].calle" value="EDIFICIO MERCANTIL: 1, AVENIDA ANDRES BELLO"/>
+	
+	        <!-- ✅ CLAVE NORMALIZADA -->
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].bco" value="MERCANTIL C.A. BANCO UNIVERSAL"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].sitBco" value=""/>
+	
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].fchAct" value="20240425"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroPer" value="0"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codBcoBcv" value="0"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].codBcoSwift" value="BAMRVECA"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroCarnet" value="380164"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroCtaBcv" value="00000000000000000000"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroTelex1" value=""/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].pais" value="VENEZUELA"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroTelex3" value=""/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].indicPagoMovi" value="0"/>
+	        <field name="bodySalidaConsultarTablaBancoAmpliada.bancos[0].nroTelex2" value=""/>
+	
+	    </response>
+	
+	</api>
+
 </rules>

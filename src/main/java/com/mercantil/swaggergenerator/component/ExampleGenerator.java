@@ -11,6 +11,7 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.mercantil.swaggergenerator.util.AbbreviationUtil;
 import com.mercantil.swaggergenerator.util.ParserUtil;
 import com.mercantil.swaggergenerator.util.SmartExampleUtil;
 import com.mercantil.swaggergenerator.util.TypeUtil;
@@ -41,7 +42,7 @@ public class ExampleGenerator {
 	// =========================================================
 	// ✅ CACHE
 	// =========================================================
-	private Map<String, Object> exampleMap = new LinkedHashMap<>();
+	// private Map<String, Object> exampleMap = new LinkedHashMap<>();
 
 	// =========================================================
 	// ✅ SCHEMAS
@@ -61,7 +62,7 @@ public class ExampleGenerator {
 
 		this.schemaMap = schemaMap;
 
-		this.exampleMap = new LinkedHashMap<>();
+		// this.exampleMap = new LinkedHashMap<>();
 	}
 
 	// =========================================================
@@ -113,18 +114,6 @@ public class ExampleGenerator {
 		if ("byte".equals(type) || "byte[]".equals(type)) {
 
 			return "base64-string";
-		}
-
-		// =====================================================
-		// ✅ CACHE
-		// =====================================================
-		String cacheKey =
-
-				type + "_PATH_" + currentPath + "_API_" + apiName + "_CTX_" + System.identityHashCode(dataContext);
-
-		if (exampleMap.containsKey(cacheKey)) {
-
-			return exampleMap.get(cacheKey);
 		}
 
 		// =====================================================
@@ -247,24 +236,18 @@ public class ExampleGenerator {
 		props.forEach((key, val) -> {
 
 			if (!(val instanceof Map)) {
-
 				return;
 			}
 
 			Map<String, Object> prop = (Map<String, Object>) val;
 
-			String jsonKey = resolveJsonNameFromClass(type, key);
+			// ✅ CLAVE: normalizar el key del schema directamente
+			String jsonKey = normalizeJsonKey(key);
 
 			// =================================================
 			// ✅ FULL PATH
 			// =================================================
-			String fullPath =
-
-					currentPath == null || currentPath.isBlank()
-
-							? jsonKey
-
-							: currentPath + "." + jsonKey;
+			String fullPath = currentPath == null || currentPath.isBlank() ? jsonKey : currentPath + "." + jsonKey;
 
 			// =================================================
 			// ✅ OBJETO NESTED
@@ -272,18 +255,39 @@ public class ExampleGenerator {
 			if (prop.containsKey("$ref")) {
 
 				String ref = prop.get("$ref").toString();
-
 				String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
 				Object nested = buildExampleFromType(refType, fullPath, apiName);
 
-				if (nested == null) {
+				// ✅ NUEVO: verificar si el refType realmente existe como propiedad en schema
+				Map<String, Object> currentSchema = schemaMap.get(type);
 
+				boolean isActuallyPresent = false;
+
+				if (currentSchema != null && currentSchema.containsKey("properties")) {
+
+					Map<String, Object> currentProps = (Map<String, Object>) currentSchema.get("properties");
+
+					// ✅ si NO está como propiedad → fue flatten
+					isActuallyPresent = currentProps.containsKey(key);
+				}
+
+				// ✅ SI FUE FLATTEN → expandir
+				if (!isActuallyPresent && nested instanceof Map) {
+
+					((Map<?, ?>) nested).forEach((k, v) -> {
+						example.put(k.toString(), v);
+					});
+
+					return;
+				}
+
+				// ✅ comportamiento normal
+				if (nested == null) {
 					nested = new LinkedHashMap<>();
 				}
 
 				example.put(jsonKey, nested);
-
 				return;
 			}
 
@@ -328,8 +332,6 @@ public class ExampleGenerator {
 			// =================================================
 			// ✅ RULES.XML
 			// =================================================
-			//System.out.println("🔎 API: [" + apiName + "] PATH: [" + fullPath + "] FIELD: [" + jsonKey + "]");
-
 			String ruleValue = ruleEngine.getRequestValue(apiName, fullPath);
 
 			// ✅ 2. intentar sin bodyEntrada...
@@ -368,13 +370,19 @@ public class ExampleGenerator {
 				value = normalizeSmartValue(type, key, smartValue);
 			}
 
+			// ✅ eliminar cualquier key previa del schema
+			example.remove(key);
+			example.remove(jsonKey);
+
+			// ✅ insertar el correcto
 			example.put(jsonKey, value != null ? value : "");
+
 		});
 
 		// =====================================================
 		// ✅ CACHE
 		// =====================================================
-		exampleMap.put(cacheKey, example);
+		// exampleMap.put(cacheKey, example);
 
 		return example;
 	}
@@ -385,7 +393,7 @@ public class ExampleGenerator {
 	@SuppressWarnings("unchecked")
 	public Object buildExampleFromClass(ClassOrInterfaceDeclaration clazz) {
 
-		exampleMap = new LinkedHashMap<>();
+		// exampleMap = new LinkedHashMap<>();
 
 		dataContext = new LinkedHashMap<>();
 
@@ -482,57 +490,27 @@ public class ExampleGenerator {
 
 		return classIndexer.findClass(className)
 
-				.map(clazz -> {
+				.map(clazz -> clazz.getFields().stream().flatMap(
+						f -> f.getVariables().stream().filter(v -> v.getNameAsString().equals(fieldName)).map(v -> f))
+						.findFirst().map(f -> {
 
-					// =============================================
-					// ✅ 1. BUSCAR FIELD
-					// =============================================
-					return clazz.getFields()
+							// ✅ 1. PRIORIDAD: JsonProperty
+							String ctorJsonName = this.resolveJsonNameFromConstructor(clazz, fieldName);
 
-							.stream()
+							if (ctorJsonName != null && !ctorJsonName.isBlank() && !ctorJsonName.equals(fieldName)) {
 
-							.flatMap(f ->
+								return ctorJsonName;
+							}
 
-							f.getVariables()
+							// ✅ 2. resolver base
+							String base = parserUtil.resolveJsonName(f, fieldName);
 
-									.stream()
+							// ✅ 3. FORZAR NORMALIZACIÓN SIEMPRE
+							return normalizeJsonKey(base);
 
-									.filter(v ->
+						}).orElse(normalizeJsonKey(fieldName)))
 
-									v.getNameAsString().equals(fieldName))
-
-									.map(v -> f))
-
-							.findFirst()
-
-							.map(f -> {
-
-								// =====================================
-								// ✅ 2. PRIORIDAD:
-								// constructor @JsonProperty
-								// =====================================
-								String ctorJsonName =
-
-										parserUtil.resolveJsonNameFromConstructor(clazz, fieldName);
-
-								if (ctorJsonName != null && !ctorJsonName.isBlank()
-										&& !ctorJsonName.equals(fieldName)) {
-
-									return ctorJsonName;
-								}
-
-								// =====================================
-								// ✅ 3. FALLBACK:
-								// annotations field
-								// =====================================
-								return parserUtil.resolveJsonName(f, fieldName);
-
-							})
-
-							.orElse(fieldName);
-				})
-
-				.orElse(fieldName);
+				.orElse(normalizeJsonKey(fieldName));
 	}
 
 	// =========================================================
@@ -565,7 +543,7 @@ public class ExampleGenerator {
 
 		return "/" + kebab;
 	}
-	
+
 	// =========================================================
 	// ✅ PARSE VALUE
 	// =========================================================
@@ -770,13 +748,18 @@ public class ExampleGenerator {
 				// ✅ MATCH FLEXIBLE (CRÍTICO)
 				// =====================================================
 				String normalizedF = f.replace("cod", "").replace("nro", "").replace("num", "").replace("id", "")
-						.replace("tipo", "").trim();
+						.replace("tipo", "")
+						// ✅ FIX CRÍTICO
+						.replace("banco", "bco").trim();
 
 				String normalizedP = p.replace("codigo", "").replace("numero", "").replace("identificador", "")
-						.replace("tipo", "").trim();
+						.replace("tipo", "")
+						// ✅ FIX CRÍTICO
+						.replace("banco", "bco").trim();
 
-				boolean match = normalizedF.equals(normalizedP) || normalizedF.contains(normalizedP)
-						|| normalizedP.contains(normalizedF) || f.equals(p); // fallback exacto
+				boolean match = normalizedF.equals(normalizedP)
+						|| normalizedF.replace("bco", "").equals(normalizedP.replace("bco", ""))
+						|| normalizedF.contains(normalizedP) || normalizedP.contains(normalizedF) || f.equals(p);
 
 				if (!match) {
 					continue;
@@ -812,6 +795,33 @@ public class ExampleGenerator {
 		}
 
 		return fieldName;
+	}
+
+	private String normalizeJsonKey(String name) {
+
+		if (name == null || name.isBlank()) {
+			return name;
+		}
+
+		// ✅ SPLIT ROBUSTO (MUY IMPORTANTE)
+		String[] tokens = name.replaceAll("([A-Z])", " $1").trim().toLowerCase().split("\\s+");
+
+		StringBuilder result = new StringBuilder();
+
+		for (int i = 0; i < tokens.length; i++) {
+
+			String token = tokens[i];
+
+			String normalized = AbbreviationUtil.getAbbreviations().getOrDefault(token, token);
+
+			if (i == 0) {
+				result.append(normalized);
+			} else {
+				result.append(Character.toUpperCase(normalized.charAt(0))).append(normalized.substring(1));
+			}
+		}
+
+		return result.toString();
 	}
 
 }

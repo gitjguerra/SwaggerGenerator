@@ -121,18 +121,8 @@ public class ResponseBuilder {
 
 				System.out.println("⚠️ Schema no encontrado: " + bodyType);
 
-				continue;
-			}
-
-			// =================================================
-			// ✅ VALIDAR BODY
-			// =================================================
-			boolean hasBody = hasProperties(bodyType, schemaMap);
-
-			// ✅ operaciones sin body
-			if (!hasBody) {
-
-				continue;
+				// ✅ en vez de ignorar → crear fallback
+				schemaMap.put(bodyType, Map.of("type", "object", "properties", new LinkedHashMap<>()));
 			}
 
 			// =================================================
@@ -203,8 +193,7 @@ public class ResponseBuilder {
 		// =====================================================
 		// ✅ SPECIAL HANDLER (🔥 AQUÍ VA)
 		// =====================================================
-		boolean handled = specialDispatcher.applyIfMatch(endpointPath, true,
-				propsFinal, responseExample);
+		boolean handled = specialDispatcher.applyIfMatch(endpointPath, true, propsFinal, responseExample);
 
 		if (handled) {
 			System.out.println("✅ Response manejado por SpecialHandler");
@@ -249,28 +238,6 @@ public class ResponseBuilder {
 						"content",
 
 						Map.of("application/json", responseJson)));
-	}
-
-	// =========================================================
-	// ✅ VALIDAR SI EL SCHEMA TIENE PROPERTIES
-	// =========================================================
-	private boolean hasProperties(String type, Map<String, Map<String, Object>> schemaMap) {
-
-		if (type == null) {
-
-			return false;
-		}
-
-		Map<String, Object> schema = schemaMap.get(type);
-
-		if (schema == null) {
-
-			return false;
-		}
-
-		Object props = schema.get("properties");
-
-		return props instanceof Map && !((Map<?, ?>) props).isEmpty();
 	}
 
 	// =========================================================

@@ -16,6 +16,7 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.mercantil.swaggergenerator.util.AbbreviationUtil;
 import com.mercantil.swaggergenerator.util.ParserUtil;
 import com.mercantil.swaggergenerator.util.TypeUtil;
 
@@ -161,6 +162,9 @@ public class SchemaBuilder {
 								.forEach(var -> {
 
 									String name = parserUtil.resolveJsonName(field, var.getNameAsString());
+									if (!isWrapperName(name)) {
+										name = normalizeJsonKey(name);
+									}
 
 									// ✅ evitar propiedades inválidas
 									if (name == null || name.isBlank()) {
@@ -420,16 +424,41 @@ public class SchemaBuilder {
 	private boolean shouldFlatten(String typeName) {
 
 		if (typeName == null || typeName.isBlank()) {
-
 			return false;
 		}
 
-		// =====================================================
-		// ✅ SOLO WRAPPERS ESPECIALES
-		// =====================================================
+		Optional<ClassOrInterfaceDeclaration> clazzOpt = classIndexer.findClass(typeName);
 
-		return typeName.equals("BeanHeader") || typeName.equals("BeanBody") || typeName.equals("BeanRequest")
-				|| typeName.equals("BeanResponse");
+		if (clazzOpt.isEmpty()) {
+			return false;
+		}
+
+		ClassOrInterfaceDeclaration clazz = clazzOpt.get();
+
+		// ✅ analizar campos
+		return clazz.getFields().stream()
+
+				.filter(f -> !f.isStatic() && !f.isTransient())
+
+				.flatMap(f -> f.getVariables().stream())
+
+				.allMatch(var -> {
+
+					String rawType = var.getType().asString();
+
+					// ❌ si es lista o map → NO flatten
+					if (rawType.contains("List<") || rawType.contains("Map<")) {
+						return false;
+					}
+
+					String cleanType = rawType.startsWith("Optional<") ? parserUtil.extractGeneric(rawType) : rawType;
+
+					String resolved = parserUtil.resolveFinalType(cleanType);
+
+					// ✅ SOLO flatten si TODOS son primitivos
+					return typeUtil.isPrimitive(resolved) || "String".equals(resolved) || "Integer".equals(resolved)
+							|| "Long".equals(resolved);
+				});
 	}
 
 	// =========================================================
@@ -903,4 +932,41 @@ public class SchemaBuilder {
 		// =====================================================
 		return false;
 	}
+
+	private String normalizeJsonKey(String name) {
+
+		if (name == null || name.isBlank()) {
+			return name;
+		}
+
+		String[] tokens = name.replaceAll("([A-Z])", " $1").trim().toLowerCase().split("\\s+");
+
+		StringBuilder result = new StringBuilder();
+
+		for (int i = 0; i < tokens.length; i++) {
+
+			String token = tokens[i];
+
+			String normalized = AbbreviationUtil.getAbbreviations().getOrDefault(token, token);
+
+			if (i == 0) {
+				result.append(normalized);
+			} else {
+				result.append(Character.toUpperCase(normalized.charAt(0))).append(normalized.substring(1));
+			}
+		}
+
+		return result.toString();
+	}
+
+	private boolean isWrapperName(String name) {
+
+		if (name == null) {
+			return true;
+		}
+
+		return name.startsWith("bodyEntrada") || name.startsWith("bodySalida") || name.startsWith("headerEntrada")
+				|| name.startsWith("headerSalida");
+	}
+
 }
