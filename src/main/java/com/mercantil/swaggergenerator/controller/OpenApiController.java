@@ -1,5 +1,6 @@
 package com.mercantil.swaggergenerator.controller;
 
+import java.io.File;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,8 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.mercantil.swaggergenerator.config.ServiceConfig;
-import com.mercantil.swaggergenerator.config.SwaggerConfig;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.mercantil.swaggergenerator.config.ServiceLoader;
 import com.mercantil.swaggergenerator.model.OpenApiDoc;
 import com.mercantil.swaggergenerator.model.ServiceItem;
 import com.mercantil.swaggergenerator.service.OpenApiGeneratorService;
@@ -22,92 +24,122 @@ import com.mercantil.swaggergenerator.service.OpenApiGeneratorService;
 @RequestMapping("/api/openapi")
 public class OpenApiController {
 
-    @Autowired
-    private OpenApiGeneratorService service;
+	@Autowired
+	private OpenApiGeneratorService service;
 
-    @Autowired
-    private ServiceConfig config;
+	// =========================================================
+	// ✅ GENERAR UN SOLO SERVICIO
+	// =========================================================
 
-    @Autowired
-    private SwaggerConfig swaggerConfig;
+	@GetMapping("/{name}")
+	public OpenApiDoc get(@PathVariable String name) {
 
-    // =========================================================
-    // ✅ GENERAR UN SOLO SERVICIO (SIEMPRE GUARDA + DEVUELVE JSON)
-    // =========================================================
-    @GetMapping("/{name}")
-    public OpenApiDoc get(@PathVariable String name) {
+		String outputDir = getOutputDir();
 
-        // ✅ obtiene ruta validada desde configuración
-        String outputDir = swaggerConfig.requireOutputDir();
+		List<ServiceItem> services = ServiceLoader.load();
 
-        // ✅ buscar servicio por nombre (case-insensitive)
-        ServiceItem serviceItem = config.getList().stream()
-                .filter(s -> s.getName().equalsIgnoreCase(name))
-                .findFirst()
-                .orElseThrow(() ->
-                        new ResponseStatusException(HttpStatus.NOT_FOUND,
-                                "Servicio no encontrado: " + name)
-                );
+		ServiceItem serviceItem = services.stream().filter(s -> s.getName().equalsIgnoreCase(name)).findFirst()
+				.orElseThrow(
+						() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Servicio no encontrado: " + name));
 
-        // ✅ generar OpenAPI + guardar archivo + devolver JSON
-        return service.generateAndSaveReturningDoc(serviceItem, outputDir);
-    }
+		// ✅ generar
+		OpenApiDoc doc = service.generate(serviceItem);
 
-    // =========================================================
-    // ✅ GENERAR TODOS LOS SERVICIOS (SIEMPRE GUARDA + MERGE)
-    // =========================================================
-    @GetMapping("/all")
-    public OpenApiDoc generateAll() {
+		// ✅ guardar
+		save(doc, serviceItem.getName(), outputDir);
 
-        // ✅ obtiene ruta validada desde configuración
-        String outputDir = swaggerConfig.requireOutputDir();
+		return doc;
+	}
 
-        // ✅ documento final combinado
-        OpenApiDoc merged = new OpenApiDoc();
+	// =========================================================
+	// ✅ GENERAR TODOS LOS SERVICIOS
+	// =========================================================
 
-        // ✅ configuración base
-        merged.info.title = "API ALL";
-        merged.security = List.of(Map.of("bearerAuth", List.of()));
+	@GetMapping("/all")
+	public OpenApiDoc generateAll() {
 
-        // ✅ inicializar schemas UNA SOLA VEZ (optimización)
-        Map<String, Object> mergedSchemas =
-                (Map<String, Object>) merged.components.computeIfAbsent("schemas",
-                        k -> new LinkedHashMap<>());
+		String outputDir = getOutputDir();
 
-        // ✅ recorrer todos los servicios configurados
-        config.getList().forEach(s -> {
+		OpenApiDoc merged = new OpenApiDoc();
 
-            // ✅ generar + guardar cada servicio
-            OpenApiDoc doc = service.generateAndSaveReturningDoc(s, outputDir);
+		merged.info.title = "API ALL";
+		merged.security = List.of(Map.of("bearerAuth", List.of()));
 
-            // ✅ merge de paths
-            merged.paths.putAll(doc.paths);
+		Map<String, Object> mergedSchemas = (Map<String, Object>) merged.components.computeIfAbsent("schemas",
+				k -> new LinkedHashMap<>());
 
-            // ✅ merge de schemas
-            Map<String, Object> schemas =
-                    (Map<String, Object>) doc.components.get("schemas");
+		List<ServiceItem> services = ServiceLoader.load();
 
-            if (schemas != null) {
-                mergedSchemas.putAll(schemas);
-            }
+		services.forEach(s -> {
 
-            // ✅ merge de tags (evitar duplicados)
-            doc.tags.forEach(tag -> {
-                boolean exists = merged.tags.stream()
-                        .anyMatch(t -> t.get("name").equals(tag.get("name")));
+			// ✅ generar
+			OpenApiDoc doc = service.generate(s);
 
-                if (!exists) {
-                    merged.tags.add(tag);
-                }
-            });
+			// ✅ guardar
+			save(doc, s.getName(), outputDir);
 
-            // ✅ merge de servers (opcional)
-            if (doc.servers != null) {
-                merged.servers.addAll(doc.servers);
-            }
-        });
+			// ✅ merge paths
+			merged.paths.putAll(doc.paths);
 
-        // ✅ devolver documento combinado
-        return merged;
-    }
+			// ✅ merge schemas
+			Map<String, Object> schemas = (Map<String, Object>) doc.components.get("schemas");
+
+			if (schemas != null) {
+				mergedSchemas.putAll(schemas);
+			}
+
+			// ✅ merge tags
+			doc.tags.forEach(tag -> {
+
+				boolean exists = merged.tags.stream().anyMatch(t -> t.get("name").equals(tag.get("name")));
+
+				if (!exists) {
+					merged.tags.add(tag);
+				}
+			});
+
+			// ✅ merge servers
+			if (doc.servers != null) {
+				merged.servers.addAll(doc.servers);
+			}
+		});
+
+		return merged;
+	}
+
+	// =========================================================
+	// ✅ UTILIDAD
+	// =========================================================
+	private String getOutputDir() {
+
+		String outputDir = System.getProperty("pathOutput");
+
+		if (outputDir == null || outputDir.isBlank()) {
+			throw new RuntimeException("❌ pathOutput no configurado");
+		}
+
+		return outputDir;
+	}
+
+	private void save(OpenApiDoc doc, String serviceName, String outputDir) {
+
+		try {
+
+			File dir = new File(outputDir);
+
+			if (!dir.exists()) {
+				dir.mkdirs();
+			}
+
+			File file = new File(dir, serviceName + ".json");
+
+			new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).writeValue(file, doc);
+
+			System.out.println("✅ Archivo generado: " + file.getAbsolutePath());
+
+		} catch (Exception e) {
+			throw new RuntimeException("❌ Error guardando swagger", e);
+		}
+	}
+
 }

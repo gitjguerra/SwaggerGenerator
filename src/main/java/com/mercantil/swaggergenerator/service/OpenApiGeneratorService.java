@@ -23,6 +23,7 @@ import com.mercantil.swaggergenerator.component.ExampleGenerator;
 import com.mercantil.swaggergenerator.component.RequestBuilder;
 import com.mercantil.swaggergenerator.component.ResponseBuilder;
 import com.mercantil.swaggergenerator.component.SchemaBuilder;
+import com.mercantil.swaggergenerator.config.ServiceLoader;
 import com.mercantil.swaggergenerator.model.OpenApiDoc;
 import com.mercantil.swaggergenerator.model.ServiceItem;
 import com.mercantil.swaggergenerator.util.HttpMethodUtil;
@@ -109,7 +110,7 @@ public class OpenApiGeneratorService {
 		backendServiceMap = new LinkedHashMap<>();
 
 		this.currentBeansPath = service.getBeansPath();
-		this.currentServiceName = service.getName().toLowerCase();
+		this.currentServiceName = service.getName().toLowerCase().trim();
 
 		doc.security = List.of(Map.of("bearerAuth", List.of()));
 
@@ -591,20 +592,6 @@ public class OpenApiGeneratorService {
 	}
 
 	// =========================================================
-	// ✅ GENERATE + SAVE
-	// =========================================================
-	public OpenApiDoc generateAndSaveReturningDoc(ServiceItem service, String outputDir) {
-
-		System.out.println("\n📦 Generando y guardando servicio: " + service.getName());
-
-		OpenApiDoc doc = generate(service);
-
-		saveDoc(doc, service.getName(), outputDir);
-
-		return doc;
-	}
-
-	// =========================================================
 	// ✅ SAVE JSON
 	// =========================================================
 	private void saveDoc(OpenApiDoc doc, String serviceName, String outputDir) {
@@ -839,6 +826,34 @@ public class OpenApiGeneratorService {
 		}
 
 		return path;
+	}
+
+	public void generateAll() {
+
+		List<ServiceItem> services = ServiceLoader.load();
+
+		String outputDir = System.getProperty("pathOutput");
+
+		if (outputDir == null || outputDir.isBlank()) {
+			throw new RuntimeException("❌ pathOutput no configurado");
+		}
+
+		System.out.println("🚀 Generando " + services.size() + " servicios...");
+
+		for (ServiceItem service : services) {
+
+			try {
+
+				OpenApiDoc doc = generate(service);
+
+				saveDoc(doc, service.getName(), outputDir);
+
+			} catch (Exception e) {
+
+				System.out.println("❌ Error generando servicio: " + service.getName());
+				e.printStackTrace();
+			}
+		}
 	}
 
 }
