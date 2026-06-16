@@ -680,9 +680,46 @@ public class OpenApiGeneratorService {
 	}
 
 	// =========================================================
+	// =========================================================
 	private String resolveConfigPath(ServiceItem service) {
 
-		return "C:/BM_HOME/appl/api-" + service.getName() + "/config";
+		// =====================================================
+		// ✅ BM_HOME (OSBA STYLE)
+		// =====================================================
+		String bmHome = System.getenv("BM_HOME");
+
+		if (bmHome == null || bmHome.isBlank()) {
+			throw new RuntimeException("❌ BM_HOME no está configurado en el entorno");
+		}
+
+		String serviceName = service.getName();
+
+		if (serviceName == null || serviceName.isBlank()) {
+			throw new RuntimeException("❌ Nombre del servicio inválido");
+		}
+
+		// =====================================================
+		// ✅ NORMALIZAR NOMBRE (SIN FORZAR api-)
+		// =====================================================
+		String folderName = serviceName;
+
+		// ✅ si ya viene como api-xxx lo respeta
+		if (serviceName.startsWith("api-")) {
+			folderName = serviceName;
+		}
+
+		// ✅ si NO viene como api-xxx → usa directo (ej: swagger-generator)
+		// ✅ sin modificar
+
+		// =====================================================
+		// ✅ BUILD PATH PORTABLE
+		// =====================================================
+		StringBuilder path = new StringBuilder();
+
+		path.append(bmHome).append(File.separator).append("appl").append(File.separator).append(folderName)
+				.append(File.separator).append("config");
+
+		return path.toString();
 	}
 
 	// =========================================================
