@@ -317,8 +317,8 @@
 
 		<response>
 			
-			<field name="BodySalidaConsultarSaldoTarjetaPrepago.saldoDisp" value="250.75"/>
-			<field name="BodySalidaConsultarSaldoTarjetaPrepago.mtoComis" value="0.00"/>
+			<field name="bodySalidaConsultarSaldoTarjetaPrepago.saldoDisp" value="250.75"/>
+			<field name="bodySalidaConsultarSaldoTarjetaPrepago.mtoComis" value="0.00"/>
 
 		</response>
 
@@ -351,7 +351,17 @@
 
 		<request>
 
-			<field name="codigoRegion" value="01" />
+			<field name="codEstado" value="01"/>
+
+			<field name="codClaseOfic" value="01"/>
+
+			<field name="codTipoOfic" value="01"/>
+
+			<field name="tipoMoneda" value="USD"/>
+
+			<field name="mtoRequerido" value="100.00"/>
+
+			<field name="observacion" value="CONSULTA"/>
 
 		</request>
 		
