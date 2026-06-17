@@ -62,7 +62,7 @@ public class OpenApiController {
 
 		OpenApiDoc merged = new OpenApiDoc();
 
-		merged.info.title = "API ALL";
+		merged.info.setTitle("API ALL");
 		merged.security = List.of(Map.of("bearerAuth", List.of()));
 
 		Map<String, Object> mergedSchemas = (Map<String, Object>) merged.components.computeIfAbsent("schemas",

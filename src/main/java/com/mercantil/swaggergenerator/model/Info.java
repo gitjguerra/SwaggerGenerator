@@ -1,10 +1,12 @@
 package com.mercantil.swaggergenerator.model;
 
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
+@Setter
 public class Info {
-    public String title = "API";
-    public String version = "1.0";
-    public String description = "Generado dinámicamente por Banco Mercantil";
+    private String title = "API";
+    private String version = "1.0";
+    private String description = "Generado dinámicamente por Banco Mercantil";
 }

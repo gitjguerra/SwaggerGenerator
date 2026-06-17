@@ -114,7 +114,7 @@ public class OpenApiGeneratorService {
 
 		doc.security = List.of(Map.of("bearerAuth", List.of()));
 
-		doc.info.title = "API " + service.getName();
+		doc.info.setTitle("API " + service.getName());
 
 		doc.servers.add(
 
