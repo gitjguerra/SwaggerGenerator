@@ -36,7 +36,7 @@ public class OpenApiGeneratorService {
 	private static final String URL_SEPARATOR = "/";
 	private static final String PROPERTIES = "properties";
 	private static final String STRING = "string";
-	
+
 	private final HttpMethodUtil httpMethodUtil;
 	private final SchemaBuilder schemaBuilder;
 	private final ExampleGenerator exampleGenerator;
@@ -98,8 +98,8 @@ public class OpenApiGeneratorService {
 
 		log.info("\n==============================");
 		log.info("Generando servicio: {}", service.getName());
-		log.info("📁 BeansPath: {}", service.getBeansPath());
-		log.info("📁 ControllersPath: {}", service.getControllersPath());
+		log.info("BeansPath: {}", service.getBeansPath());
+		log.info("ControllersPath: {}", service.getControllersPath());
 		log.info("==============================\n");
 
 		OpenApiDoc doc = new OpenApiDoc();
@@ -253,7 +253,6 @@ public class OpenApiGeneratorService {
 	// =========================================================
 	// ✅ PROCESS METHOD
 	// =========================================================
-	@SuppressWarnings("unchecked")
 	private void processMethod(MethodDeclaration method, OpenApiDoc doc, String tag, String basePath) {
 
 		Map<String, String> httpMapping = httpMethodUtil.detect(method);
@@ -282,7 +281,8 @@ public class OpenApiGeneratorService {
 			path = httpMapping.get("path");
 		}
 
-		String rawPath = URL_SEPARATOR + (basePath == null ? "" : basePath) + URL_SEPARATOR + (path == null ? "" : path);
+		String rawPath = URL_SEPARATOR + (basePath == null ? "" : basePath) + URL_SEPARATOR
+				+ (path == null ? "" : path);
 
 		// ✅ normalizar path base
 		rawPath = normalizePath(rawPath);
@@ -379,7 +379,7 @@ public class OpenApiGeneratorService {
 
 		} catch (Exception e) {
 
-			System.out.println("❌ Error parseando schema: " + file.getAbsolutePath());
+			log.error("Error parseando schema: {}", file.getAbsolutePath());
 
 			e.printStackTrace();
 		}
@@ -519,9 +519,7 @@ public class OpenApiGeneratorService {
 
 				clazz.findCompilationUnit()
 
-						.flatMap(c ->
-
-						c.getPackageDeclaration())
+						.flatMap(CompilationUnit::getPackageDeclaration)
 
 						.map(p ->
 
@@ -634,7 +632,16 @@ public class OpenApiGeneratorService {
 				return;
 			}
 
-			var db = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+			javax.xml.parsers.DocumentBuilderFactory db = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+
+			// ✅ Protección XXE
+			db.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+			db.setFeature("http://xml.org/sax/features/external-general-entities", false);
+			db.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+			db.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+
+			db.setXIncludeAware(false);
+			db.setExpandEntityReferences(false);
 
 			var builder = db.newDocumentBuilder();
 
@@ -663,13 +670,8 @@ public class OpenApiGeneratorService {
 		}
 	}
 
-	// =========================================================
-	// =========================================================
 	private String resolveConfigPath(ServiceItem service) {
 
-		// =====================================================
-		// ✅ BM_HOME (OSBA STYLE)
-		// =====================================================
 		String bmHome = System.getenv("BM_HOME");
 
 		if (bmHome == null || bmHome.isBlank()) {
@@ -682,25 +684,7 @@ public class OpenApiGeneratorService {
 			throw new ServiceException("Nombre del servicio inválido");
 		}
 
-		// =====================================================
-		// ✅ NORMALIZAR NOMBRE (SIN FORZAR api-)
-		// =====================================================
-		String folderName = serviceName;
-
-		// ✅ si ya viene como api-xxx lo respeta
-		if (serviceName.startsWith("api-")) {
-			folderName = serviceName;
-		}
-
-		// =====================================================
-		// ✅ BUILD PATH PORTABLE
-		// =====================================================
-		StringBuilder path = new StringBuilder();
-
-		path.append(bmHome).append(File.separator).append("appl").append(File.separator).append(folderName)
-				.append(File.separator).append("config");
-
-		return path.toString();
+		return bmHome + File.separator + "appl" + File.separator + serviceName + File.separator + "config";
 	}
 
 	// =========================================================
@@ -738,7 +722,6 @@ public class OpenApiGeneratorService {
 	// =========================================================
 	// ✅ REMOVE EMPTY
 	// =========================================================
-	@SuppressWarnings("unchecked")
 	private void removeEmptySchemas() {
 
 		schemaMap.entrySet()
@@ -749,11 +732,7 @@ public class OpenApiGeneratorService {
 
 					Object props = schema.get(PROPERTIES);
 
-					boolean emptyProps =
-
-							props instanceof Map
-
-									&& ((Map<?, ?>) props).isEmpty();
+					boolean emptyProps = props instanceof Map && ((Map<?, ?>) props).isEmpty();
 
 					return emptyProps;
 				});
