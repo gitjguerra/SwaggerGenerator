@@ -354,16 +354,16 @@
 			<field name="codigoRegion" value="01" />
 
 		</request>
-
+		
 		<response>
 
 			<field
-				name="bodySalidaConsultarOficinasDisponibles.oficinas[0].codigoOficina"
-				value="0101" />
+				name="bodySalidaConsultarOficinaDisponible.oficinas[0].codOfic"
+				value="0101"/>
 
 			<field
-				name="bodySalidaConsultarOficinasDisponibles.oficinas[0].nombreOficina"
-				value="CARACAS PRINCIPAL" />
+				name="bodySalidaConsultarOficinaDisponible.oficinas[0].nomOfic"
+				value="CARACAS PRINCIPAL"/>
 
 		</response>
 
@@ -1169,23 +1169,96 @@
 	
 	<!-- ===================================================== -->
 	<!-- ✅ CREDITOS - CONSULTAR LINEA CREDITO COMPROMETIDA -->
-	<!-- ===================================================== -->
+	<!-- ===================================================== -->	
 	<api path="/creditos/consultar/linea-credito-comprometida">
+
+		<request>
+
+			<!-- ✅ NIVEL ROOT BODY -->
+			<field name="bodyEntradaConsultarLineaCreditoComprometida.tipoConsulta"
+				   value="1"/>
+
+			<!-- ✅ ARRAY -->
+			<field name="bodyEntradaConsultarLineaCreditoComprometida.gruposEmpresasLineasCreditosComprometida[0].numPer"
+				   value="3148421"/>
+
+			<!-- ✅ OBJETO ANIDADO -->
+			<field name="bodyEntradaConsultarLineaCreditoComprometida.gruposEmpresasLineasCreditosComprometida[0].id.nacRifGrupo"
+				   value="V"/>
+
+			<field name="bodyEntradaConsultarLineaCreditoComprometida.gruposEmpresasLineasCreditosComprometida[0].id.numCiRif"
+				   value="4321456"/>
+
+		</request>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ PERSONA - CONSULTAR CUENTAS OFICINAS ACTIVAS -->
+	<!-- ===================================================== -->
+	<api path="/persona/consultar/cuentas-oficinas-activas">
 
 		<!-- ✅ REQUEST -->
 		<request>
 
-			<!-- ✅ nivel 1 -->
-			<field name="tipoConsulta" value="1"/>
-
-			<!-- ✅ ARRAY grupo empresa -->
-			<field name="gruposEmpresasLineasCreditosComprometida[0].numPer" value="3148421"/>
-
-			<!-- ✅ objeto id (IMPORTANTE: anidado) -->
-			<field name="gruposEmpresasLineasCreditosComprometida[0].id.nacRifGrupo" value="V"/>
-			<field name="gruposEmpresasLineasCreditosComprometida[0].id.numCiRif" value="4321456"/>
+			<field name="codPaisEntrada" value="VEN"/>
+			<field name="tipoIdEntrada" value="V"/>
+			<field name="nroIdEntrada" value="23652965"/>
+			<field name="nroPer" value="0"/>
 
 		</request>
+
+		<!-- ✅ RESPONSE -->
+		<response>
+
+			<!-- ✅ ARRAY oficinasActivas -->
+			<field name="bodySalidaConsultarCuentasOficinasActivas.oficinasActivas[0].codSafeAcept" value="699"/>
+			<field name="bodySalidaConsultarCuentasOficinasActivas.oficinasActivas[0].nomOficSafeAcepta" value="PRINCIPAL CENTRO SAMBIL LA CANDELARIA"/>
+			<field name="bodySalidaConsultarCuentasOficinasActivas.oficinasActivas[0].nroctaAcepta" value="1606061291"/>
+			<field name="bodySalidaConsultarCuentasOficinasActivas.oficinasActivas[0].txtDireccAcepta" value="EDF CENTRO SAMBIL LA CANDELARIA NV PB LOC AB08 ENT ANDRES BELLO AVE VOLLMER LA CANDELARIA CANDELARIA"/>
+			<field name="bodySalidaConsultarCuentasOficinasActivas.oficinasActivas[0].oficSafeAcepta" value="217"/>
+
+			<!-- ✅ segundo elemento -->
+			<field name="bodySalidaConsultarCuentasOficinasActivas.oficinasActivas[1].codSafeAcept" value="157"/>
+			<field name="bodySalidaConsultarCuentasOficinasActivas.oficinasActivas[1].nomOficSafeAcepta" value="LA CASCADA"/>
+			<field name="bodySalidaConsultarCuentasOficinasActivas.oficinasActivas[1].nroctaAcepta" value="157089754"/>
+			<field name="bodySalidaConsultarCuentasOficinasActivas.oficinasActivas[1].txtDireccAcepta" value="CTRO COM LA CASCADA LOC 46 Y 47 CRT PANAMERICANA A SEC CORRALITO CORRALITO CARRIZAL"/>
+			<field name="bodySalidaConsultarCuentasOficinasActivas.oficinasActivas[1].oficSafeAcepta" value="276"/>
+
+		</response>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ PERSONA - CONSULTAR GRUPO ECONOMICO -->
+	<!-- ===================================================== -->
+	<api path="/persona/consultar/grupo-economico">
+
+		<!-- ✅ REQUEST -->
+		<request>
+
+			<field name="codGrupoReferido" value="10026"/>
+
+		</request>
+
+		<!-- ✅ RESPONSE -->
+		<response>
+
+			<!-- ✅ SOLO BODY -->
+			<field name="bodySalidaConsultarGrupoEconomico.nomGrupo" value="U.C.L.A"/>
+			<field name="bodySalidaConsultarGrupoEconomico.codMegaGrupo" value="0"/>
+			<field name="bodySalidaConsultarGrupoEconomico.nomEspecTransacc" value=""/>
+			<field name="bodySalidaConsultarGrupoEconomico.carnetFuncGrupo" value="0"/>
+			<field name="bodySalidaConsultarGrupoEconomico.nomFuncGrupo" value=""/>
+			<field name="bodySalidaConsultarGrupoEconomico.descripCodUnidadNeg" value=""/>
+			<field name="bodySalidaConsultarGrupoEconomico.descripTipoGrupo" value=""/>
+			<field name="bodySalidaConsultarGrupoEconomico.codFuncGrupo" value="63"/>
+			<field name="bodySalidaConsultarGrupoEconomico.tipoGrupo" value="0"/>
+			<field name="bodySalidaConsultarGrupoEconomico.carnetEspecTransacc" value="0"/>
+			<field name="bodySalidaConsultarGrupoEconomico.nomMegaGrupo" value=""/>
+			<field name="bodySalidaConsultarGrupoEconomico.codUnidadNeg" value="0"/>
+
+		</response>
 
 	</api>
 
