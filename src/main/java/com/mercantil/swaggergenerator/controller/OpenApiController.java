@@ -5,7 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.mercantil.swaggergenerator.config.ServiceLoader;
+import com.mercantil.swaggergenerator.exception.ControllerException;
 import com.mercantil.swaggergenerator.model.OpenApiDoc;
 import com.mercantil.swaggergenerator.model.ServiceItem;
 import com.mercantil.swaggergenerator.service.OpenApiGeneratorService;
@@ -24,8 +26,12 @@ import com.mercantil.swaggergenerator.service.OpenApiGeneratorService;
 @RequestMapping("/api/openapi")
 public class OpenApiController {
 
-	@Autowired
-	private OpenApiGeneratorService service;
+	private static final Logger log = LogManager.getLogger(OpenApiController.class);
+
+	private final OpenApiGeneratorService service;
+	public OpenApiController(OpenApiGeneratorService service) {
+		this.service = service;
+	}
 
 	// =========================================================
 	// ✅ GENERAR UN SOLO SERVICIO
@@ -115,7 +121,7 @@ public class OpenApiController {
 		String outputDir = System.getProperty("pathOutput");
 
 		if (outputDir == null || outputDir.isBlank()) {
-			throw new RuntimeException("❌ pathOutput no configurado");
+			throw new ControllerException("pathOutput no configurado");
 		}
 
 		return outputDir;
@@ -135,10 +141,10 @@ public class OpenApiController {
 
 			new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).writeValue(file, doc);
 
-			System.out.println("✅ Archivo generado: " + file.getAbsolutePath());
+			log.info("Archivo generado: {}", file.getAbsolutePath());
 
 		} catch (Exception e) {
-			throw new RuntimeException("❌ Error guardando swagger", e);
+			throw new ControllerException("Error guardando swagger", e);
 		}
 	}
 
