@@ -724,18 +724,15 @@ public class OpenApiGeneratorService {
 	// =========================================================
 	private void removeEmptySchemas() {
 
-		schemaMap.entrySet()
+		schemaMap.entrySet().removeIf(entry -> {
 
-				.removeIf(entry -> {
+			Map<String, Object> schema = entry.getValue();
 
-					Map<String, Object> schema = entry.getValue();
+			Object props = schema.get(PROPERTIES);
 
-					Object props = schema.get(PROPERTIES);
+			return props instanceof Map && ((Map<?, ?>) props).isEmpty();
+		});
 
-					boolean emptyProps = props instanceof Map && ((Map<?, ?>) props).isEmpty();
-
-					return emptyProps;
-				});
 	}
 
 	// =========================================================
