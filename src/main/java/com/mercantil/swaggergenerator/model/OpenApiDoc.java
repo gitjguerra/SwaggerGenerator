@@ -11,37 +11,36 @@ import lombok.Setter;
 
 @Getter
 @Setter
-
 public class OpenApiDoc {
 
-    public String openapi = "3.0.1";
+    public static final String SCHEMAS = "schemas";
+    public static final String SECURITY_SCHEMES = "securitySchemes";
 
-    public Info info = new Info();
+    private String openapi = "3.0.1";
 
-    public List<Map<String, String>> servers = new ArrayList<>();
+    private Info info = new Info();
 
-    public List<Map<String, String>> tags = new ArrayList<>();
+    private List<Map<String, String>> servers = new ArrayList<>();
 
-    public Map<String, Object> paths = new LinkedHashMap<>();
+    private List<Map<String, String>> tags = new ArrayList<>();
 
-    public Map<String, Object> components = new HashMap<>();
-    
-    public List<Map<String, List<String>>> security;
+    private Map<String, Object> paths = new LinkedHashMap<>();
 
-	public OpenApiDoc() {
-	
-	    components.put("schemas", new LinkedHashMap<>());
-	
-	    // ✅ 🔐 SECURITY SCHEME
-	    Map<String, Object> securitySchemes = new LinkedHashMap<>();
-	
-	    securitySchemes.put("bearerAuth", Map.of(
-	        "type", "http",
-	        "scheme", "bearer",
-	        "bearerFormat", "JWT"
-	    ));
-	
-	    components.put("securitySchemes", securitySchemes);
-	}
+    private Map<String, Object> components = new HashMap<>();
 
+    private List<Map<String, List<String>>> security;
+
+    public OpenApiDoc() {
+
+        components.put(SCHEMAS, new LinkedHashMap<>());
+
+        Map<String, Object> securitySchemes = new LinkedHashMap<>();
+
+        securitySchemes.put("bearerAuth", Map.of(
+                "type", "http",
+                "scheme", "bearer",
+                "bearerFormat", "JWT"));
+
+        components.put(SECURITY_SCHEMES, securitySchemes);
+    }
 }

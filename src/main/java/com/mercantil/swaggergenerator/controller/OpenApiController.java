@@ -29,9 +29,12 @@ public class OpenApiController {
 	private static final Logger log = LogManager.getLogger(OpenApiController.class);
 
 	private final OpenApiGeneratorService service;
+
 	public OpenApiController(OpenApiGeneratorService service) {
 		this.service = service;
 	}
+
+	private static final String SCHEMAS_KEY = "schemas";
 
 	// =========================================================
 	// ✅ GENERAR UN SOLO SERVICIO
@@ -68,10 +71,10 @@ public class OpenApiController {
 
 		OpenApiDoc merged = new OpenApiDoc();
 
-		merged.info.setTitle("API ALL");
-		merged.security = List.of(Map.of("bearerAuth", List.of()));
+		merged.getInfo().setTitle("API ALL");
+		merged.setSecurity(List.of(Map.of("bearerAuth", List.of())));
 
-		Map<String, Object> mergedSchemas = (Map<String, Object>) merged.components.computeIfAbsent("schemas",
+		Map<String, Object> mergedSchemas = (Map<String, Object>) merged.getComponents().computeIfAbsent(SCHEMAS_KEY,
 				k -> new LinkedHashMap<>());
 
 		List<ServiceItem> services = ServiceLoader.load();
@@ -85,28 +88,28 @@ public class OpenApiController {
 			save(doc, s.getName(), outputDir);
 
 			// ✅ merge paths
-			merged.paths.putAll(doc.paths);
+			merged.getPaths().putAll(doc.getPaths());
 
 			// ✅ merge schemas
-			Map<String, Object> schemas = (Map<String, Object>) doc.components.get("schemas");
+			Map<String, Object> schemas = (Map<String, Object>) doc.getComponents().get(SCHEMAS_KEY);
 
 			if (schemas != null) {
 				mergedSchemas.putAll(schemas);
 			}
 
 			// ✅ merge tags
-			doc.tags.forEach(tag -> {
+			doc.getTags().forEach(tag -> {
 
-				boolean exists = merged.tags.stream().anyMatch(t -> t.get("name").equals(tag.get("name")));
+				boolean exists = merged.getTags().stream().anyMatch(t -> t.get("name").equals(tag.get("name")));
 
 				if (!exists) {
-					merged.tags.add(tag);
+					merged.getTags().add(tag);
 				}
 			});
 
 			// ✅ merge servers
-			if (doc.servers != null) {
-				merged.servers.addAll(doc.servers);
+			if (doc.getServers() != null) {
+				merged.getServers().addAll(doc.getServers());
 			}
 		});
 

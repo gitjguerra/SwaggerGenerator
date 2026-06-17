@@ -9,7 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,6 +25,7 @@ import com.mercantil.swaggergenerator.component.RequestBuilder;
 import com.mercantil.swaggergenerator.component.ResponseBuilder;
 import com.mercantil.swaggergenerator.component.SchemaBuilder;
 import com.mercantil.swaggergenerator.config.ServiceLoader;
+import com.mercantil.swaggergenerator.exception.ServiceException;
 import com.mercantil.swaggergenerator.model.OpenApiDoc;
 import com.mercantil.swaggergenerator.model.ServiceItem;
 import com.mercantil.swaggergenerator.util.HttpMethodUtil;
@@ -31,25 +33,32 @@ import com.mercantil.swaggergenerator.util.HttpMethodUtil;
 @Service
 public class OpenApiGeneratorService {
 
-	@Autowired
-	private HttpMethodUtil httpMethodUtil;
+	private static final String URL_SEPARATOR = "/";
+	private static final String PROPERTIES = "properties";
+	private static final String STRING = "string";
+	
+	private final HttpMethodUtil httpMethodUtil;
+	private final SchemaBuilder schemaBuilder;
+	private final ExampleGenerator exampleGenerator;
+	private final RequestBuilder requestBuilder;
+	private final ResponseBuilder responseBuilder;
+	private final ClassIndexer classIndexer;
 
-	@Autowired
-	private SchemaBuilder schemaBuilder;
+	public OpenApiGeneratorService(HttpMethodUtil httpMethodUtil, SchemaBuilder schemaBuilder,
+			ExampleGenerator exampleGenerator, RequestBuilder requestBuilder, ResponseBuilder responseBuilder,
+			ClassIndexer classIndexer) {
 
-	@Autowired
-	private ExampleGenerator exampleGenerator;
-
-	@Autowired
-	private RequestBuilder requestBuilder;
-
-	@Autowired
-	private ResponseBuilder responseBuilder;
-
-	@Autowired
-	private ClassIndexer classIndexer;
+		this.httpMethodUtil = httpMethodUtil;
+		this.schemaBuilder = schemaBuilder;
+		this.exampleGenerator = exampleGenerator;
+		this.requestBuilder = requestBuilder;
+		this.responseBuilder = responseBuilder;
+		this.classIndexer = classIndexer;
+	}
 
 	private String currentServiceName;
+
+	private static final Logger log = LogManager.getLogger(OpenApiGeneratorService.class);
 
 	// =========================================================
 	// ✅ SCHEMAS / EXAMPLES
@@ -87,15 +96,11 @@ public class OpenApiGeneratorService {
 	// =========================================================
 	public OpenApiDoc generate(ServiceItem service) {
 
-		System.out.println("\n==============================");
-
-		System.out.println("🚀 Generando servicio: " + service.getName());
-
-		System.out.println("📁 BeansPath: " + service.getBeansPath());
-
-		System.out.println("📁 ControllersPath: " + service.getControllersPath());
-
-		System.out.println("==============================\n");
+		log.info("\n==============================");
+		log.info("Generando servicio: {}", service.getName());
+		log.info("📁 BeansPath: {}", service.getBeansPath());
+		log.info("📁 ControllersPath: {}", service.getControllersPath());
+		log.info("==============================\n");
 
 		OpenApiDoc doc = new OpenApiDoc();
 
@@ -112,17 +117,12 @@ public class OpenApiGeneratorService {
 		this.currentBeansPath = service.getBeansPath();
 		this.currentServiceName = service.getName().toLowerCase().trim();
 
-		doc.security = List.of(Map.of("bearerAuth", List.of()));
+		doc.setSecurity(List.of(Map.of("bearerAuth", List.of())));
 
-		doc.info.setTitle("API " + service.getName());
+		doc.getInfo().setTitle("API " + service.getName());
 
-		doc.servers.add(
-
-				Map.of("url",
-
-						(service.getHost() == null ? "" : service.getHost())
-
-								+ service.getBasePath()));
+		doc.getServers()
+				.add(Map.of("url", (service.getHost() == null ? "" : service.getHost()) + service.getBasePath()));
 
 		// =====================================================
 		// ✅ BACKEND SERVICES
@@ -141,7 +141,7 @@ public class OpenApiGeneratorService {
 		// =====================================================
 		List<File> beanFiles = findJavaFiles(service.getBeansPath());
 
-		System.out.println("📦 Bean files encontrados: " + beanFiles.size());
+		log.info("Bean files encontrados: {}", beanFiles.size());
 
 		// ✅ INDEXAR PRIMERO
 		indexAllClasses(beanFiles);
@@ -159,7 +159,7 @@ public class OpenApiGeneratorService {
 		// =====================================================
 		List<File> controllerFiles = findJavaFiles(service.getControllersPath());
 
-		System.out.println("🎯 Controllers encontrados: " + controllerFiles.size());
+		log.info("Controllers encontrados: {}", controllerFiles.size());
 
 		controllerFiles.forEach(f ->
 
@@ -170,9 +170,9 @@ public class OpenApiGeneratorService {
 		// =====================================================
 		removeEmptySchemas();
 
-		doc.components.put("schemas", schemaMap);
+		doc.getComponents().put("schemas", schemaMap);
 
-		System.out.println("✅ Total endpoints generados: " + doc.paths.size());
+		log.info("Total endpoints generados: {}", doc.getPaths().size());
 
 		return doc;
 	}
@@ -212,7 +212,7 @@ public class OpenApiGeneratorService {
 							return;
 						}
 
-						System.out.println("✅ Controller detectado: " + clazz.getNameAsString());
+						log.info("Controller detectado: {}", clazz.getNameAsString());
 
 						String controllerName = clazz.getNameAsString();
 
@@ -224,13 +224,13 @@ public class OpenApiGeneratorService {
 
 										.replaceAll("([a-z])([A-Z])", "$1 $2");
 
-						if (doc.tags.stream()
+						if (doc.getTags().stream()
 
 								.noneMatch(t ->
 
 								t.get("name").equals(tag))) {
 
-							doc.tags.add(
+							doc.getTags().add(
 
 									Map.of("name", tag, "description", "Operaciones " + tag));
 						}
@@ -244,7 +244,7 @@ public class OpenApiGeneratorService {
 
 		} catch (Exception e) {
 
-			System.out.println("❌ Error procesando controller: " + file.getAbsolutePath());
+			log.info("Error procesando controller: {}", file.getAbsolutePath());
 
 			e.printStackTrace();
 		}
@@ -273,7 +273,7 @@ public class OpenApiGeneratorService {
 
 			httpMethod = "post";
 
-			path = "/" + fallbackPath;
+			path = URL_SEPARATOR + fallbackPath;
 
 		} else {
 
@@ -282,7 +282,7 @@ public class OpenApiGeneratorService {
 			path = httpMapping.get("path");
 		}
 
-		String rawPath = "/" + (basePath == null ? "" : basePath) + "/" + (path == null ? "" : path);
+		String rawPath = URL_SEPARATOR + (basePath == null ? "" : basePath) + URL_SEPARATOR + (path == null ? "" : path);
 
 		// ✅ normalizar path base
 		rawPath = normalizePath(rawPath);
@@ -293,7 +293,7 @@ public class OpenApiGeneratorService {
 		// ✅ construir path final correcto
 		String fullPath = normalizePath(servicePrefix + rawPath);
 
-		if (fullPath.length() > 1 && fullPath.endsWith("/")) {
+		if (fullPath.length() > 1 && fullPath.endsWith(URL_SEPARATOR)) {
 
 			fullPath = fullPath.substring(0, fullPath.length() - 1);
 		}
@@ -325,13 +325,13 @@ public class OpenApiGeneratorService {
 
 		Map<String, Object> pathItem =
 
-				(Map<String, Object>) doc.paths
+				(Map<String, Object>) doc.getPaths()
 
 						.getOrDefault(fullPath, new LinkedHashMap<>());
 
 		pathItem.put(httpMethod, op);
 
-		doc.paths.put(fullPath, pathItem);
+		doc.getPaths().put(fullPath, pathItem);
 	}
 
 	// =========================================================
@@ -363,7 +363,7 @@ public class OpenApiGeneratorService {
 
 						Map<String, Object> schema = schemaBuilder.build(clazz);
 
-						Object propsObj = schema.get("properties");
+						Object propsObj = schema.get(PROPERTIES);
 
 						boolean hasProperties =
 
@@ -424,7 +424,7 @@ public class OpenApiGeneratorService {
 
 		if (!dir.exists()) {
 
-			System.out.println("❌ Ruta NO existe: " + root);
+			log.info("Ruta NO existe: {}", root);
 
 			return files;
 		}
@@ -564,17 +564,17 @@ public class OpenApiGeneratorService {
 
 		Map<String, Object> propsEntrada = new LinkedHashMap<>();
 
-		propsEntrada.put("identificadorUnicoGlobal", Map.of("type", "string", "format", "uuid"));
+		propsEntrada.put("identificadorUnicoGlobal", Map.of("type", STRING, "format", "uuid"));
 
-		propsEntrada.put("identificacionCanal", Map.of("type", "string"));
+		propsEntrada.put("identificacionCanal", Map.of("type", STRING));
 
-		propsEntrada.put("identificacionSubCanal", Map.of("type", "string"));
+		propsEntrada.put("identificacionSubCanal", Map.of("type", STRING));
 
-		propsEntrada.put("siglaAplicacion", Map.of("type", "string"));
+		propsEntrada.put("siglaAplicacion", Map.of("type", STRING));
 
 		propsEntrada.put("cantidadRegistros", Map.of("type", "integer"));
 
-		headerEntrada.put("properties", propsEntrada);
+		headerEntrada.put(PROPERTIES, propsEntrada);
 
 		schemaMap.putIfAbsent("HeaderEntrada", headerEntrada);
 
@@ -584,9 +584,9 @@ public class OpenApiGeneratorService {
 
 		Map<String, Object> propsSalida = new LinkedHashMap<>();
 
-		propsSalida.put("tipoMensaje", Map.of("type", "string"));
+		propsSalida.put("tipoMensaje", Map.of("type", STRING));
 
-		headerSalida.put("properties", propsSalida);
+		headerSalida.put(PROPERTIES, propsSalida);
 
 		schemaMap.putIfAbsent("HeaderSalida", headerSalida);
 	}
@@ -604,20 +604,17 @@ public class OpenApiGeneratorService {
 
 				dir.mkdirs();
 
-				System.out.println("📁 Directorio creado: " + outputDir);
+				log.info("Directorio creado: {}", outputDir);
 			}
 
 			File file = new File(dir, serviceName + ".json");
 
 			mapper.writeValue(file, doc);
 
-			System.out.println("✅ Archivo generado: " + file.getAbsolutePath());
+			log.info("Archivo generado: {}", file.getAbsolutePath());
 
 		} catch (Exception e) {
-
-			System.out.println("❌ Error guardando archivo");
-
-			throw new RuntimeException(e);
+			throw new ServiceException("Error guardando archivo: {}", e);
 		}
 	}
 
@@ -632,7 +629,7 @@ public class OpenApiGeneratorService {
 
 			if (!file.exists()) {
 
-				System.out.println("⚠️ XML no encontrado: " + configPath);
+				log.info("XML no encontrado: {}", configPath);
 
 				return;
 			}
@@ -658,7 +655,7 @@ public class OpenApiGeneratorService {
 						el.getAttribute("endpoint"));
 			}
 
-			System.out.println("✅ Backend services cargados: " + backendServiceMap.size());
+			log.info("Backend services cargados: {}", backendServiceMap.size());
 
 		} catch (Exception e) {
 
@@ -676,13 +673,13 @@ public class OpenApiGeneratorService {
 		String bmHome = System.getenv("BM_HOME");
 
 		if (bmHome == null || bmHome.isBlank()) {
-			throw new RuntimeException("❌ BM_HOME no está configurado en el entorno");
+			throw new ServiceException("BM_HOME no está configurado en el entorno");
 		}
 
 		String serviceName = service.getName();
 
 		if (serviceName == null || serviceName.isBlank()) {
-			throw new RuntimeException("❌ Nombre del servicio inválido");
+			throw new ServiceException("Nombre del servicio inválido");
 		}
 
 		// =====================================================
@@ -694,9 +691,6 @@ public class OpenApiGeneratorService {
 		if (serviceName.startsWith("api-")) {
 			folderName = serviceName;
 		}
-
-		// ✅ si NO viene como api-xxx → usa directo (ej: swagger-generator)
-		// ✅ sin modificar
 
 		// =====================================================
 		// ✅ BUILD PATH PORTABLE
@@ -714,7 +708,7 @@ public class OpenApiGeneratorService {
 	// =========================================================
 	private void indexAllClasses(List<File> files) {
 
-		System.out.println("🔍 Indexando clases...");
+		log.info("Indexando clases...");
 
 		AtomicInteger count = new AtomicInteger(0);
 
@@ -734,12 +728,11 @@ public class OpenApiGeneratorService {
 						});
 
 			} catch (Exception e) {
-
-				System.out.println("⚠️ Error indexando: " + file.getName());
+				log.info("Error indexando: {}", file.getName());
 			}
 		}
 
-		System.out.println("✅ Clases indexadas: " + count.get());
+		log.info("Clases indexadas: {}", count.get());
 	}
 
 	// =========================================================
@@ -754,7 +747,7 @@ public class OpenApiGeneratorService {
 
 					Map<String, Object> schema = entry.getValue();
 
-					Object props = schema.get("properties");
+					Object props = schema.get(PROPERTIES);
 
 					boolean emptyProps =
 
@@ -800,8 +793,8 @@ public class OpenApiGeneratorService {
 			return "";
 		}
 
-		if (!currentServiceName.startsWith("/")) {
-			return "/" + currentServiceName;
+		if (!currentServiceName.startsWith(URL_SEPARATOR)) {
+			return URL_SEPARATOR + currentServiceName;
 		}
 
 		return currentServiceName;
@@ -810,18 +803,18 @@ public class OpenApiGeneratorService {
 	private String normalizePath(String path) {
 
 		if (path == null || path.isBlank()) {
-			return "/";
+			return URL_SEPARATOR;
 		}
 
 		path = path.trim();
 
-		path = path.replaceAll("//+", "/");
+		path = path.replaceAll("//+", URL_SEPARATOR);
 
-		if (!path.startsWith("/")) {
-			path = "/" + path;
+		if (!path.startsWith(URL_SEPARATOR)) {
+			path = URL_SEPARATOR + path;
 		}
 
-		if (path.length() > 1 && path.endsWith("/")) {
+		if (path.length() > 1 && path.endsWith(URL_SEPARATOR)) {
 			path = path.substring(0, path.length() - 1);
 		}
 
@@ -835,10 +828,10 @@ public class OpenApiGeneratorService {
 		String outputDir = System.getProperty("pathOutput");
 
 		if (outputDir == null || outputDir.isBlank()) {
-			throw new RuntimeException("❌ pathOutput no configurado");
+			throw new ServiceException("pathOutput no configurado");
 		}
 
-		System.out.println("🚀 Generando " + services.size() + " servicios...");
+		log.info("Generando {} servicios...", services.size());
 
 		for (ServiceItem service : services) {
 
@@ -850,7 +843,7 @@ public class OpenApiGeneratorService {
 
 			} catch (Exception e) {
 
-				System.out.println("❌ Error generando servicio: " + service.getName());
+				log.info("Error generando servicio: {}", service.getName());
 				e.printStackTrace();
 			}
 		}
