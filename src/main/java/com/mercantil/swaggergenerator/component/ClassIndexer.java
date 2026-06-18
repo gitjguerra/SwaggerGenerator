@@ -38,11 +38,13 @@ public class ClassIndexer {
 
         ClassOrInterfaceDeclaration clazz = classMap.get(name);
 
+        /*
         if (clazz == null) {
             log.info("ClassIndexer no encontró: {}", name);
         } else {
         	log.info("ClassIndexer encontró: {}", name);
         }
+        */
 
         return Optional.ofNullable(clazz);
     }
