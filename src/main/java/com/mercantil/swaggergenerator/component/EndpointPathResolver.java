@@ -13,168 +13,125 @@ import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
 @Component
 public class EndpointPathResolver {
 
-    // =========================================================
-    // ✅ RESOLVE PATH
-    // =========================================================
-    public String resolvePath(
-            String controllerBasePath,
-            MethodDeclaration method) {
+	// =========================================================
+	// ✅ RESOLVE PATH
+	// =========================================================
+	public String resolvePath(String controllerBasePath, MethodDeclaration method) {
 
-        String methodPath =
-                extractMethodPath(method);
+		String methodPath = extractMethodPath(method);
 
-        return normalizePath(
-                controllerBasePath,
-                methodPath);
-    }
+		return normalizePath(controllerBasePath, methodPath);
+	}
 
-    // =========================================================
-    // ✅ EXTRACT METHOD PATH
-    // =========================================================
-    private String extractMethodPath(
-            MethodDeclaration method) {
+	// =========================================================
+	// ✅ EXTRACT METHOD PATH
+	// =========================================================
+	private String extractMethodPath(MethodDeclaration method) {
 
-        for (AnnotationExpr annotation
-                : method.getAnnotations()) {
+		for (AnnotationExpr annotation : method.getAnnotations()) {
 
-            String name =
-                    annotation.getNameAsString();
+			String name = annotation.getNameAsString();
 
-            // =============================================
-            // ✅ MAPPINGS
-            // =============================================
-            if ("PostMapping".equals(name)
-                    || "GetMapping".equals(name)
-                    || "PutMapping".equals(name)
-                    || "DeleteMapping".equals(name)
-                    || "PatchMapping".equals(name)
-                    || "RequestMapping".equals(name)) {
+			// =============================================
+			// ✅ MAPPINGS
+			// =============================================
+			if ("PostMapping".equals(name) || "GetMapping".equals(name) || "PutMapping".equals(name)
+					|| "DeleteMapping".equals(name) || "PatchMapping".equals(name) || "RequestMapping".equals(name)) {
 
-                String value =
-                        extractAnnotationValue(annotation);
+				String value = extractAnnotationValue(annotation);
 
-                if (value != null
-                        && !value.isBlank()) {
+				if (value != null && !value.isBlank()) {
 
-                    return value;
-                }
-            }
-        }
+					return value;
+				}
+			}
+		}
 
-        return "";
-    }
+		return "";
+	}
 
-    // =========================================================
-    // ✅ EXTRACT VALUE
-    // =========================================================
-    private String extractAnnotationValue(
-            AnnotationExpr annotation) {
+	// =========================================================
+	// ✅ EXTRACT VALUE
+	// =========================================================
+	private String extractAnnotationValue(AnnotationExpr annotation) {
 
-        // =============================================
-        // ✅ @PostMapping("/x")
-        // =============================================
-        if (annotation instanceof SingleMemberAnnotationExpr) {
+		// =============================================
+		// ✅ @PostMapping("/x")
+		// =============================================
+		if (annotation instanceof SingleMemberAnnotationExpr) {
 
-            SingleMemberAnnotationExpr single =
-                    (SingleMemberAnnotationExpr) annotation;
+			SingleMemberAnnotationExpr single = (SingleMemberAnnotationExpr) annotation;
 
-            return clean(
-                    single.getMemberValue()
-                            .toString());
-        }
+			return clean(single.getMemberValue().toString());
+		}
 
-        // =============================================
-        // ✅ @RequestMapping(value="/x")
-        // =============================================
-        if (annotation instanceof NormalAnnotationExpr) {
+		// =============================================
+		// ✅ @RequestMapping(value="/x")
+		// =============================================
+		if (annotation instanceof NormalAnnotationExpr) {
 
-            NormalAnnotationExpr normal =
-                    (NormalAnnotationExpr) annotation;
+			NormalAnnotationExpr normal = (NormalAnnotationExpr) annotation;
 
-            Optional<MemberValuePair> pairOpt =
-                    normal.getPairs()
-                            .stream()
+			Optional<MemberValuePair> pairOpt = normal.getPairs().stream()
 
-                            .filter(pair ->
+					.filter(pair ->
 
-                                    "value".equals(
-                                            pair.getNameAsString())
+					"value".equals(pair.getNameAsString())
 
-                                            ||
+							||
 
-                                            "path".equals(
-                                                    pair.getNameAsString()))
+							"path".equals(pair.getNameAsString()))
 
-                            .findFirst();
+					.findFirst();
 
-            if (pairOpt.isPresent()) {
+			if (pairOpt.isPresent()) {
 
-                return clean(
-                        pairOpt.get()
-                                .getValue()
-                                .toString());
-            }
-        }
+				return clean(pairOpt.get().getValue().toString());
+			}
+		}
 
-        return null;
-    }
+		return null;
+	}
 
-    // =========================================================
-    // ✅ NORMALIZE
-    // =========================================================
-    private String normalizePath(
-            String base,
-            String method) {
+	// =========================================================
+	// ✅ NORMALIZE
+	// =========================================================
+	private String normalizePath(String base, String method) {
 
-        String left =
-                base == null
-                        ? ""
-                        : base.trim();
+		String left = base == null ? "" : base.trim();
 
-        String right =
-                method == null
-                        ? ""
-                        : method.trim();
+		String right = method == null ? "" : method.trim();
 
-        if (!left.startsWith("/")) {
+		if (!left.startsWith("/")) {
 
-            left = "/" + left;
-        }
+			left = "/" + left;
+		}
 
-        if (!right.startsWith("/")) {
+		if (!right.startsWith("/")) {
 
-            right = "/" + right;
-        }
+			right = "/" + right;
+		}
 
-        String path =
-                (left + right)
-                        .replaceAll("/+", "/");
+		String path = (left + right).replaceAll("/+", "/");
 
-        if (path.length() > 1
-                && path.endsWith("/")) {
+		if (path.length() > 1 && path.endsWith("/")) {
 
-            path =
-                    path.substring(
-                            0,
-                            path.length() - 1);
-        }
+			path = path.substring(0, path.length() - 1);
+		}
 
-        return path;
-    }
+		return path;
+	}
 
-    // =========================================================
-    // ✅ CLEAN
-    // =========================================================
-    private String clean(
-            String value) {
+	// =========================================================
+	// ✅ CLEAN
+	// =========================================================
+	private String clean(String value) {
 
-        if (value == null) {
+		if (value == null) {
 
-            return null;
-        }
+			return null;
+		}
 
-        return value
-                .replace("\"", "")
-                .trim();
-    }
+		return value.replace("\"", "").trim();
+	}
 }

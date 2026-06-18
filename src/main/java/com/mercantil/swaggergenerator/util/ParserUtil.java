@@ -15,13 +15,16 @@ import com.github.javaparser.ast.expr.AnnotationExpr;
 @Component
 public class ParserUtil {
 
+	private static final String OBJECT = "Object";
+	private static final String JSON_PROPERTY = "JsonProperty";
+	
 	// =========================================================
 	// ✅ JSON PROPERTY
 	// =========================================================
 	public String resolveJsonName(FieldDeclaration field, String defaultName) {
 
 		// ✅ 1. FIELD DIRECTO
-		Optional<AnnotationExpr> annOpt = field.getAnnotationByName("JsonProperty");
+		Optional<AnnotationExpr> annOpt = field.getAnnotationByName(JSON_PROPERTY);
 
 		if (annOpt.isPresent()) {
 
@@ -50,7 +53,7 @@ public class ParserUtil {
 
 								.map(m ->
 
-								m.getAnnotationByName("JsonProperty"))
+								m.getAnnotationByName(JSON_PROPERTY))
 
 								.filter(Optional::isPresent)
 
@@ -96,7 +99,7 @@ public class ParserUtil {
 
 								.map(p ->
 
-								p.getAnnotationByName("JsonProperty"))
+								p.getAnnotationByName(JSON_PROPERTY))
 
 								.filter(Optional::isPresent)
 
@@ -195,7 +198,7 @@ public class ParserUtil {
 
 		if (input == null || !input.contains(",")) {
 
-			return "Object";
+			return OBJECT;
 		}
 
 		int start = input.indexOf("<");
@@ -204,7 +207,7 @@ public class ParserUtil {
 
 		if (start == -1 || end == -1) {
 
-			return "Object";
+			return OBJECT;
 		}
 
 		String inside = input.substring(start + 1, end);
@@ -369,7 +372,7 @@ public class ParserUtil {
 
 					for (AnnotationExpr ann : param.getAnnotations()) {
 
-						if ("JsonProperty".equals(ann.getNameAsString())) {
+						if (JSON_PROPERTY.equals(ann.getNameAsString())) {
 
 							if (ann.isSingleMemberAnnotationExpr()) {
 

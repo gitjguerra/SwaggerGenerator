@@ -3,7 +3,8 @@ package com.mercantil.swaggergenerator.component.special;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 import com.mercantil.swaggergenerator.component.RequestExampleProvider;
@@ -11,8 +12,13 @@ import com.mercantil.swaggergenerator.component.RequestExampleProvider;
 @Component
 public class RifPceHandler implements SpecialRequestHandler {
 
-	@Autowired
-	private RequestExampleProvider requestExampleProvider;
+	private static final Logger log = LogManager.getLogger(RifPceHandler.class);
+
+	private final RequestExampleProvider requestExampleProvider;
+
+	public RifPceHandler(RequestExampleProvider requestExampleProvider) {
+		this.requestExampleProvider = requestExampleProvider;
+	}
 
 	@Override
 	public boolean supports(String endpointPath, boolean hasBody) {
@@ -23,37 +29,29 @@ public class RifPceHandler implements SpecialRequestHandler {
 	@Override
 	public void apply(String endpointPath, Map<String, Object> props, Map<String, Object> example) {
 
-		System.out.println("***** SPECIAL HANDLER: rif-pce");
+		log.info("***** SPECIAL HANDLER: rif-pce");
 
 		// =======================================================
 		// ✅ REQUEST FIX
 		// =======================================================
-		if (example.containsKey("bodyEntradaConsultarRifPce")) {
-
-			example.remove("bodyEntradaConsultarRifPce");
+		example.computeIfPresent("bodyEntradaConsultarRifPce", (key, value) -> {
 
 			Map<String, Object> rif = new LinkedHashMap<>();
 
 			String nacRif = requestExampleProvider.getRuleValue(endpointPath, "rifPce.nacRif");
+
 			String ciRif = requestExampleProvider.getRuleValue(endpointPath, "rifPce.ciRif");
 
 			rif.put("nacRif", requestExampleProvider.parseValuePublic("nacRif", nacRif));
+
 			rif.put("ciRif", requestExampleProvider.parseValuePublic("ciRif", ciRif));
 
-			example.put("bodyEntradaConsultarRifPce", Map.of("rifPce", rif));
-
-			return;
-		}
+			return Map.of("rifPce", rif);
+		});
 
 		// =======================================================
 		// ✅ RESPONSE FIX (CLAVE)
 		// =======================================================
-		if (example.containsKey("bodySalidaConsultarRifPce")) {
-
-			// 🔥 eliminar completamente el body
-			example.remove("bodySalidaConsultarRifPce");
-
-			return;
-		}
+		example.computeIfPresent("bodySalidaConsultarRifPce", (key, value) -> null);
 	}
 }

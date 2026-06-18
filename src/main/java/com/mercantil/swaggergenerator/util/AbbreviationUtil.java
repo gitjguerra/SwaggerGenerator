@@ -1,23 +1,36 @@
 package com.mercantil.swaggergenerator.util;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
-public class AbbreviationUtil {
+public final class AbbreviationUtil {
 
 	private static final Map<String, String> ABBREV_MAP = new LinkedHashMap<>();
+
 	private static final List<Map.Entry<String, String>> SORTED_ENTRIES = new ArrayList<>();
 
+	private AbbreviationUtil() {
+
+		throw new IllegalStateException("Utility class");
+	}
+
 	static {
+
 		loadAbbreviations();
 
-		// ✅ ordenar UNA SOLA VEZ por longitud (mejor matching)
 		SORTED_ENTRIES.addAll(ABBREV_MAP.entrySet());
-		SORTED_ENTRIES.sort((a, b) -> b.getKey().length() - a.getKey().length());
+
+		SORTED_ENTRIES.sort((a, b) -> Integer.compare(b.getKey().length(), a.getKey().length()));
 	}
 
 	// =========================================================
@@ -29,8 +42,8 @@ public class AbbreviationUtil {
 
 			String pathFile = System.getProperty("pathAbbreviations");
 
-			// ✅ TRY WITH RESOURCES — evita leaks
 			try (InputStream is = loadInputStream(pathFile);
+
 					BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
 
 				reader.lines().map(String::trim).filter(line -> !line.isEmpty() && !line.startsWith("#"))
@@ -41,6 +54,7 @@ public class AbbreviationUtil {
 							if (parts.length == 2) {
 
 								String key = parts[0].toLowerCase().trim();
+
 								String value = parts[1].toLowerCase().trim();
 
 								ABBREV_MAP.put(key, value);
@@ -48,20 +62,20 @@ public class AbbreviationUtil {
 						});
 			}
 
-			System.out.println("✅ Abreviaturas cargadas: " + ABBREV_MAP.size());
-
 		} catch (Exception e) {
-			throw new RuntimeException("Error cargando abbreviations.txt", e);
+
+			throw new IllegalStateException("Error cargando abbreviations.txt", e);
 		}
 	}
 
 	// =========================================================
-	// ✅ NORMALIZACIÓN AVANZADA 🔥
+	// ✅ NORMALIZACIÓN
 	// =========================================================
 	public static String normalizeName(String name) {
 
-		if (name == null)
+		if (name == null) {
 			return "";
+		}
 
 		String withSpaces = name.replaceAll("([a-z])([A-Z])", "$1 $2");
 
@@ -84,25 +98,26 @@ public class AbbreviationUtil {
 				normalized = lowerToken;
 			}
 
-			result.append(normalized).append(" ");
+			result.append(normalized).append(' ');
 		}
 
 		return result.toString().trim();
 	}
 
 	// =========================================================
-	// ✅ MATCH INTELIGENTE 🔥
+	// ✅ MATCH INTELIGENTE
 	// =========================================================
 	private static String matchByContains(String token) {
 
 		for (Map.Entry<String, String> entry : SORTED_ENTRIES) {
 
 			if (token.equals(entry.getKey()) || token.contains(entry.getKey())) {
+
 				return entry.getValue();
 			}
 
-			// ✅ match inverso
 			if (token.equals(entry.getValue())) {
+
 				return entry.getKey();
 			}
 		}
@@ -115,8 +130,9 @@ public class AbbreviationUtil {
 	// =========================================================
 	public static List<String> tokenize(String name) {
 
-		if (name == null)
+		if (name == null) {
 			return List.of();
+		}
 
 		String withSpaces = name.replaceAll("([a-z])([A-Z])", "$1 $2");
 
@@ -132,37 +148,33 @@ public class AbbreviationUtil {
 	public static boolean matches(String a, String b) {
 
 		List<String> tokensA = tokenize(a);
+
 		List<String> tokensB = tokenize(b);
 
 		return tokensA.equals(tokensB);
 	}
 
 	public static Map<String, String> getAbbreviations() {
-		return ABBREV_MAP;
+
+		return Collections.unmodifiableMap(ABBREV_MAP);
 	}
 
 	private static InputStream loadInputStream(String pathFile) {
 
 		try {
 
-			InputStream is = new java.io.FileInputStream(pathFile);
-
-			System.out.println("✅ Cargando abbreviations.txt: " + pathFile);
-
-			return is;
+			return new FileInputStream(pathFile);
 
 		} catch (Exception e) {
-
-			System.out.println("⚠️ No se encontró abbreviations externo, usando interno...");
 
 			InputStream is = AbbreviationUtil.class.getClassLoader().getResourceAsStream("abbreviations.txt");
 
 			if (is == null) {
-				throw new RuntimeException("❌ No se encontró abbreviations.txt");
+
+				throw new IllegalStateException("No se encontró abbreviations.txt");
 			}
 
 			return is;
 		}
 	}
-
 }

@@ -3,7 +3,8 @@ package com.mercantil.swaggergenerator.component.special;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 import com.mercantil.swaggergenerator.component.RequestExampleProvider;
@@ -11,8 +12,16 @@ import com.mercantil.swaggergenerator.component.RequestExampleProvider;
 @Component
 public class DisponibilidadPceHandler implements SpecialRequestHandler {
 
-	@Autowired
-	private RequestExampleProvider requestExampleProvider;
+	private static final Logger log = LogManager.getLogger(DisponibilidadPceHandler.class);
+
+	private static final String BODY_ENTRADA = "bodyEntradaConsultarDisponibilidadPce";
+	private static final String TIPO_ID_CLIENTE = "tipoIdClte";
+	private static final String NUM_ID_CLIENTE = "numIdCtle";
+	
+	private final RequestExampleProvider requestExampleProvider;
+	public DisponibilidadPceHandler(RequestExampleProvider requestExampleProvider) {
+		this.requestExampleProvider = requestExampleProvider;
+	}
 
 	@Override
 	public boolean supports(String endpointPath, boolean hasBody) {
@@ -23,27 +32,25 @@ public class DisponibilidadPceHandler implements SpecialRequestHandler {
 	@Override
 	public void apply(String endpointPath, Map<String, Object> props, Map<String, Object> example) {
 
-		System.out.println("***** SPECIAL HANDLER: disponibilidad-pce");
+		log.info("***** SPECIAL HANDLER: disponibilidad-pce");
 
 		// =======================================================
 		// ✅ REQUEST FIX
 		// =======================================================
-		if (example.containsKey("bodyEntradaConsultarDisponibilidadPce")) {
 
-			example.remove("bodyEntradaConsultarDisponibilidadPce");
+		example.computeIfPresent(BODY_ENTRADA, (key, value) -> {
 
 			Map<String, Object> body = new LinkedHashMap<>();
 
-			String tipoId = requestExampleProvider.getRuleValue(endpointPath, "tipoIdClte");
-			String numId = requestExampleProvider.getRuleValue(endpointPath, "numIdCtle");
+			String tipoId = requestExampleProvider.getRuleValue(endpointPath, TIPO_ID_CLIENTE);
 
-			body.put("tipoIdClte", requestExampleProvider.parseValuePublic("tipoIdClte", tipoId));
+			String numId = requestExampleProvider.getRuleValue(endpointPath, NUM_ID_CLIENTE);
 
-			body.put("numIdCtle", requestExampleProvider.parseValuePublic("numIdCtle", numId));
+			body.put(TIPO_ID_CLIENTE, requestExampleProvider.parseValuePublic(TIPO_ID_CLIENTE, tipoId));
 
-			example.put("bodyEntradaConsultarDisponibilidadPce", body);
+			body.put(NUM_ID_CLIENTE, requestExampleProvider.parseValuePublic(NUM_ID_CLIENTE, numId));
 
-			return;
-		}
+			return body;
+		});
 	}
 }

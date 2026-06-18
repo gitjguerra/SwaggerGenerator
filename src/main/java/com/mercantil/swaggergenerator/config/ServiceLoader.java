@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.w3c.dom.Document;
@@ -13,59 +14,97 @@ import org.w3c.dom.NodeList;
 
 import com.mercantil.swaggergenerator.model.ServiceItem;
 
-public class ServiceLoader {
+public final class ServiceLoader {
 
-	public static List<ServiceItem> load() {
+    private ServiceLoader() {
 
-		List<ServiceItem> list = new ArrayList<>();
+        throw new IllegalStateException(
+                "Utility class");
+    }
 
-		try {
+    public static List<ServiceItem> load() {
 
-			String path = System.getProperty("pathServices");
+        List<ServiceItem> list = new ArrayList<>();
 
-			if (path == null || path.isBlank()) {
-				throw new RuntimeException("❌ pathServices no configurado");
-			}
+        try {
 
-			try (InputStream is = new FileInputStream(path)) {
+            String path = System.getProperty("pathServices");
 
-				Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
+            if (path == null || path.isBlank()) {
 
-				NodeList nodes = doc.getElementsByTagName("service");
+                throw new IllegalStateException(
+                        "pathServices no configurado");
+            }
 
-				for (int i = 0; i < nodes.getLength(); i++) {
+            try (InputStream is = new FileInputStream(path)) {
 
-					Element el = (Element) nodes.item(i);
+                DocumentBuilderFactory factory =
+                        DocumentBuilderFactory.newInstance();
 
-					ServiceItem s = new ServiceItem();
+                factory.setFeature(
+                        XMLConstants.FEATURE_SECURE_PROCESSING,
+                        true);
 
-					s.setName(el.getAttribute("name"));
+                Document doc =
+                        factory.newDocumentBuilder().parse(is);
 
-					s.setControllersPath(el.getElementsByTagName("controllersPath").item(0).getTextContent().trim());
+                NodeList nodes =
+                        doc.getElementsByTagName("service");
 
-					// ✅ múltiples beansPath
-					NodeList beanNodes = el.getElementsByTagName("beansPath");
+                for (int i = 0; i < nodes.getLength(); i++) {
 
-					List<String> beanPaths = new ArrayList<>();
+                    Element el =
+                            (Element) nodes.item(i);
 
-					for (int j = 0; j < beanNodes.getLength(); j++) {
-						beanPaths.add(beanNodes.item(j).getTextContent().trim());
-					}
+                    ServiceItem s =
+                            new ServiceItem();
 
-					s.setBeansPath(beanPaths);
+                    s.setName(
+                            el.getAttribute("name"));
 
-					s.setBasePackage(el.getElementsByTagName("basePackage").item(0).getTextContent());
+                    s.setControllersPath(
+                            el.getElementsByTagName("controllersPath")
+                                    .item(0)
+                                    .getTextContent()
+                                    .trim());
 
-					s.setBasePath(el.getElementsByTagName("basePath").item(0).getTextContent());
+                    NodeList beanNodes =
+                            el.getElementsByTagName("beansPath");
 
-					list.add(s);
-				}
-			}
+                    List<String> beanPaths =
+                            new ArrayList<>();
 
-		} catch (Exception e) {
-			throw new RuntimeException("Error cargando services.xml", e);
-		}
+                    for (int j = 0; j < beanNodes.getLength(); j++) {
 
-		return list;
-	}
+                        beanPaths.add(
+                                beanNodes.item(j)
+                                        .getTextContent()
+                                        .trim());
+                    }
+
+                    s.setBeansPath(beanPaths);
+
+                    s.setBasePackage(
+                            el.getElementsByTagName("basePackage")
+                                    .item(0)
+                                    .getTextContent());
+
+                    s.setBasePath(
+                            el.getElementsByTagName("basePath")
+                                    .item(0)
+                                    .getTextContent());
+
+                    list.add(s);
+                }
+            }
+
+        } catch (Exception e) {
+
+            throw new IllegalStateException(
+                    "Error cargando services.xml",
+                    e);
+        }
+
+        return list;
+    }
 }

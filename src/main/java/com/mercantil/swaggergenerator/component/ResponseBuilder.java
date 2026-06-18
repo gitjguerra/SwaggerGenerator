@@ -5,7 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
@@ -15,24 +16,26 @@ import com.mercantil.swaggergenerator.util.ParserUtil;
 @Component
 public class ResponseBuilder {
 
-	@Autowired
-	private HeaderExampleProvider headerProvider;
+	private static final Logger log = LogManager.getLogger(ResponseBuilder.class);
 
-	@Autowired
-	private ParserUtil parserUtil;
+	private final HeaderExampleProvider headerProvider;
+	private final ParserUtil parserUtil;
+	private final ResponseExampleProvider responseExampleProvider;
+	private final RequestResponseResolver requestResponseResolver;
+	private final SpecialRequestDispatcher specialDispatcher;
+	private final SchemaBuilder schemaBuilder;
 
-	@Autowired
-	private ResponseExampleProvider responseExampleProvider;
-
-	@Autowired
-	private RequestResponseResolver requestResponseResolver;
-
-	@Autowired
-	private SpecialRequestDispatcher specialDispatcher;
-
-	// ✅ FIX CRÍTICO
-	@Autowired
-	private SchemaBuilder schemaBuilder;
+	public ResponseBuilder(HeaderExampleProvider headerProvider, ParserUtil parserUtil,
+			ResponseExampleProvider responseExampleProvider,RequestResponseResolver requestResponseResolver,
+			SpecialRequestDispatcher specialDispatcher, SchemaBuilder schemaBuilder) {
+		this.headerProvider = headerProvider;
+		this.parserUtil = parserUtil;
+		this.responseExampleProvider = responseExampleProvider;
+		this.requestResponseResolver = requestResponseResolver;
+		this.specialDispatcher = specialDispatcher;
+		this.schemaBuilder = schemaBuilder;
+		
+	}
 
 	// =========================================================
 	// ✅ BUILD RESPONSE
@@ -119,7 +122,7 @@ public class ResponseBuilder {
 			// =================================================
 			if (!schemaMap.containsKey(bodyType)) {
 
-				System.out.println("⚠️ Schema no encontrado: " + bodyType);
+				log.info("Schema no encontrado: {}", bodyType);
 
 				// ✅ en vez de ignorar → crear fallback
 				schemaMap.put(bodyType, Map.of("type", "object", "properties", new LinkedHashMap<>()));
@@ -137,8 +140,7 @@ public class ResponseBuilder {
 			// =================================================
 			// ✅ RESPONSE EXAMPLE
 			// =================================================
-			Map<String, Object> generated = responseExampleProvider.build(endpointPath, bodyKey, bodyType, schemaMap,
-					exampleMap);
+			Map<String, Object> generated = responseExampleProvider.build(endpointPath, bodyKey, bodyType, exampleMap);
 
 			// =================================================
 			// ✅ BODY REAL
@@ -176,7 +178,7 @@ public class ResponseBuilder {
 			// ✅ generar automáticamente si no existe
 			if (fallback == null) {
 
-				fallback = responseExampleProvider.build(endpointPath, bodyKey, bodyType, schemaMap, exampleMap)
+				fallback = responseExampleProvider.build(endpointPath, bodyKey, bodyType, exampleMap)
 
 						.get(bodyKey);
 			}
@@ -196,7 +198,7 @@ public class ResponseBuilder {
 		boolean handled = specialDispatcher.applyIfMatch(endpointPath, true, propsFinal, responseExample);
 
 		if (handled) {
-			System.out.println("✅ Response manejado por SpecialHandler");
+			log.info("Response manejado por SpecialHandler");
 		}
 
 		// =====================================================

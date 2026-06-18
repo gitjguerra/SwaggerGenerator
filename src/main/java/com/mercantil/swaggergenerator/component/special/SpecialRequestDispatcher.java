@@ -2,15 +2,16 @@ package com.mercantil.swaggergenerator.component.special;
 
 import java.util.List;
 import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class SpecialRequestDispatcher {
 
-    @Autowired
-    private List<SpecialRequestHandler> handlers;
+	private final List<SpecialRequestHandler> handlers;
+
+	public SpecialRequestDispatcher(List<SpecialRequestHandler> handlers) {
+		this.handlers = handlers;
+	}
 
     public boolean applyIfMatch(String endpointPath,
                                 boolean hasBody,

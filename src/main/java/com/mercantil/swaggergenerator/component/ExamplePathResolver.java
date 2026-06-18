@@ -10,235 +10,182 @@ import org.springframework.stereotype.Component;
 @Component
 public class ExamplePathResolver {
 
-    // =========================================================
-    // ✅ SET NESTED VALUE
-    // =========================================================
-    @SuppressWarnings("unchecked")
-    public void setNestedValue(
-            Map<String, Object> root,
-            String path,
-            Object value) {
+	// =========================================================
+	// ✅ SET NESTED VALUE
+	// =========================================================
+	@SuppressWarnings("unchecked")
+	public void setNestedValue(Map<String, Object> root, String path, Object value) {
 
-        if (root == null
-                || path == null
-                || path.isBlank()) {
+		if (root == null || path == null || path.isBlank()) {
 
-            return;
-        }
+			return;
+		}
 
-        String[] parts =
-                path.split("\\.");
+		String[] parts = path.split("\\.");
 
-        Object current =
-                root;
+		Object current = root;
 
-        for (int i = 0; i < parts.length; i++) {
+		for (int i = 0; i < parts.length; i++) {
 
-            String part =
-                    parts[i];
+			String part = parts[i];
 
-            boolean last =
-                    i == parts.length - 1;
+			boolean last = i == parts.length - 1;
 
-            // =================================================
-            // ✅ ARRAY
-            // =================================================
-            if (part.contains("[")
-                    && part.contains("]")) {
+			// =================================================
+			// ✅ ARRAY
+			// =================================================
+			if (part.contains("[") && part.contains("]")) {
 
-                String field =
-                        part.substring(
-                                0,
-                                part.indexOf("["));
+				String field = part.substring(0, part.indexOf("["));
 
-                int index =
-                        Integer.parseInt(
-                                part.substring(
-                                        part.indexOf("[") + 1,
-                                        part.indexOf("]")));
+				int index = Integer.parseInt(part.substring(part.indexOf("[") + 1, part.indexOf("]")));
 
-                Map<String, Object> currentMap =
-                        (Map<String, Object>) current;
+				Map<String, Object> currentMap = (Map<String, Object>) current;
 
-                Object listObj =
-                        currentMap.get(field);
+				Object listObj = currentMap.get(field);
 
-                // ✅ crear lista si no existe
-                if (!(listObj instanceof List)) {
+				// ✅ crear lista si no existe
+				if (!(listObj instanceof List)) {
 
-                    listObj =
-                            new ArrayList<>();
+					listObj = new ArrayList<>();
 
-                    currentMap.put(
-                            field,
-                            listObj);
-                }
+					currentMap.put(field, listObj);
+				}
 
-                List<Object> list =
-                        (List<Object>) listObj;
+				List<Object> list = (List<Object>) listObj;
 
-                // ✅ expandir lista
-                while (list.size() <= index) {
+				// ✅ expandir lista
+				while (list.size() <= index) {
 
-                    list.add(
-                            new LinkedHashMap<String, Object>());
-                }
+					list.add(new LinkedHashMap<String, Object>());
+				}
 
-                // ✅ último nodo
-                if (last) {
+				// ✅ último nodo
+				if (last) {
 
-                    list.set(index, value);
-                    return;
-                }
+					list.set(index, value);
+					return;
+				}
 
-                Object next =
-                        list.get(index);
+				Object next = list.get(index);
 
-                // ✅ asegurar map interno
-                if (!(next instanceof Map)) {
+				// ✅ asegurar map interno
+				if (!(next instanceof Map)) {
 
-                    next =
-                            new LinkedHashMap<String, Object>();
+					next = new LinkedHashMap<String, Object>();
 
-                    list.set(index, next);
-                }
+					list.set(index, next);
+				}
 
-                current =
-                        next;
+				current = next;
 
-                continue;
-            }
+				continue;
+			}
 
-            // =================================================
-            // ✅ NORMAL OBJECT
-            // =================================================
-            Map<String, Object> currentMap =
-                    (Map<String, Object>) current;
+			// =================================================
+			// ✅ NORMAL OBJECT
+			// =================================================
+			Map<String, Object> currentMap = (Map<String, Object>) current;
 
-            // ✅ último nodo
-            if (last) {
+			// ✅ último nodo
+			if (last) {
 
-                currentMap.put(
-                        part,
-                        value);
+				currentMap.put(part, value);
 
-                return;
-            }
+				return;
+			}
 
-            Object next =
-                    currentMap.get(part);
+			Object next = currentMap.get(part);
 
-            // ✅ asegurar map interno
-            if (!(next instanceof Map)) {
+			// ✅ asegurar map interno
+			if (!(next instanceof Map)) {
 
-                next =
-                        new LinkedHashMap<String, Object>();
+				next = new LinkedHashMap<String, Object>();
 
-                currentMap.put(
-                        part,
-                        next);
-            }
+				currentMap.put(part, next);
+			}
 
-            current =
-                    next;
-        }
-    }
+			current = next;
+		}
+	}
 
-    // =========================================================
-    // ✅ PARSE VALUE
-    // =========================================================
-    public Object parseValue(
-            String key,
-            String value) {
+	// =========================================================
+	// ✅ PARSE VALUE
+	// =========================================================
+	public Object parseValue(String key, String value) {
 
-        // =====================================================
-        // ✅ NULL/VACÍO
-        // =====================================================
-        if (value == null
-                || value.isEmpty()) {
+		// =====================================================
+		// ✅ NULL/VACÍO
+		// =====================================================
+		if (value == null || value.isEmpty()) {
 
-            return "";
-        }
+			return "";
+		}
 
-        String lower =
-                key == null
-                        ? ""
-                        : key.toLowerCase();
+		String lower = key == null ? "" : key.toLowerCase();
 
-        // =====================================================
-        // ✅ STRINGS CRÍTICOS
-        // ✅ preservar ceros a la izquierda
-        // =====================================================
-        if (lower.contains("cuenta")
-                || lower.contains("cta")
-                || lower.contains("tarj")
-                || lower.contains("telefono")
-                || lower.contains("telf")
-                || lower.contains("cel")
-                || lower.contains("identificador")
-                || lower.contains("rif")
-                || lower.contains("codpais")
-                || lower.contains("subcanal")
-                || lower.contains("codterm")
-                || lower.contains("codtrans")
-                || lower.contains("serial")
-                || lower.contains("terminal")
-                || lower.contains("referencia")
-                || lower.contains("nro")
-                || value.startsWith("0")) {
+		// =====================================================
+		// ✅ STRINGS CRÍTICOS
+		// ✅ preservar ceros a la izquierda
+		// =====================================================
+		if (lower.contains("cuenta") || lower.contains("cta") || lower.contains("tarj") || lower.contains("telefono")
+				|| lower.contains("telf") || lower.contains("cel") || lower.contains("identificador")
+				|| lower.contains("rif") || lower.contains("codpais") || lower.contains("subcanal")
+				|| lower.contains("codterm") || lower.contains("codtrans") || lower.contains("serial")
+				|| lower.contains("terminal") || lower.contains("referencia") || lower.contains("nro")
+				|| value.startsWith("0")) {
 
-            return value;
-        }
+			return value;
+		}
 
-        // =====================================================
-        // ✅ INTEGER / LONG
-        // =====================================================
-        if (value.matches("-?\\d+")) {
+		// =====================================================
+		// ✅ INTEGER / LONG
+		// =====================================================
+		if (value.matches("-?\\d+")) {
 
-            try {
+			try {
 
-                return Integer.parseInt(value);
+				return Integer.parseInt(value);
 
-            } catch (Exception e) {
+			} catch (Exception e) {
 
-                try {
+				try {
 
-                    return Long.parseLong(value);
+					return Long.parseLong(value);
 
-                } catch (Exception ex) {
+				} catch (Exception ex) {
 
-                    return value;
-                }
-            }
-        }
+					return value;
+				}
+			}
+		}
 
-        // =====================================================
-        // ✅ DECIMAL
-        // =====================================================
-        if (value.matches("-?\\d+\\.\\d+")) {
+		// =====================================================
+		// ✅ DECIMAL
+		// =====================================================
+		if (value.matches("-?\\d+\\.\\d+")) {
 
-            try {
+			try {
 
-                return Double.parseDouble(value);
+				return Double.parseDouble(value);
 
-            } catch (Exception e) {
+			} catch (Exception e) {
 
-                return value;
-            }
-        }
+				return value;
+			}
+		}
 
-        // =====================================================
-        // ✅ BOOLEAN
-        // =====================================================
-        if ("true".equalsIgnoreCase(value)
-                || "false".equalsIgnoreCase(value)) {
+		// =====================================================
+		// ✅ BOOLEAN
+		// =====================================================
+		if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value)) {
 
-            return Boolean.parseBoolean(value);
-        }
+			return Boolean.parseBoolean(value);
+		}
 
-        // =====================================================
-        // ✅ DEFAULT STRING
-        // =====================================================
-        return value;
-    }
+		// =====================================================
+		// ✅ DEFAULT STRING
+		// =====================================================
+		return value;
+	}
 }

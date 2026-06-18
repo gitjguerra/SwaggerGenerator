@@ -4,7 +4,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -19,30 +18,25 @@ import com.mercantil.swaggergenerator.util.TypeUtil;
 @Component
 public class ExampleGenerator {
 
-	@Autowired
-	private TypeUtil typeUtil;
+	private final TypeUtil typeUtil;
+	private final ParserUtil parserUtil;
+	private final HeaderExampleProvider headerProvider;
+	private final ClassIndexer classIndexer;
+	private final RuleEngine ruleEngine;
 
-	@Autowired
-	private ParserUtil parserUtil;
-
-	@Autowired
-	private HeaderExampleProvider headerProvider;
-
-	@Autowired
-	private ClassIndexer classIndexer;
-
-	@Autowired
-	private RuleEngine ruleEngine;
+	public ExampleGenerator(TypeUtil typeUtil, ParserUtil parserUtil, HeaderExampleProvider headerProvider,
+			ClassIndexer classIndexer, RuleEngine ruleEngine) {
+		this.typeUtil = typeUtil;
+		this.parserUtil = parserUtil;
+		this.headerProvider = headerProvider;
+		this.classIndexer = classIndexer;
+		this.ruleEngine = ruleEngine;
+	}
 
 	// =========================================================
 	// ✅ CONTEXTO CONSISTENTE
 	// =========================================================
 	private Map<String, Object> dataContext = new LinkedHashMap<>();
-
-	// =========================================================
-	// ✅ CACHE
-	// =========================================================
-	// private Map<String, Object> exampleMap = new LinkedHashMap<>();
 
 	// =========================================================
 	// ✅ SCHEMAS
@@ -62,7 +56,6 @@ public class ExampleGenerator {
 
 		this.schemaMap = schemaMap;
 
-		// this.exampleMap = new LinkedHashMap<>();
 	}
 
 	// =========================================================
@@ -378,11 +371,6 @@ public class ExampleGenerator {
 			example.put(jsonKey, value != null ? value : "");
 
 		});
-
-		// =====================================================
-		// ✅ CACHE
-		// =====================================================
-		// exampleMap.put(cacheKey, example);
 
 		return example;
 	}

@@ -7,328 +7,320 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class RequestExampleProvider {
 
-    @Autowired
-    private RuleEngine ruleEngine;
+	private final RuleEngine ruleEngine;
+	private final ClassIndexer classIndexer;
+	private final ExamplePathResolver examplePathResolver;
 
-    public String getRuleValue(String endpointPath, String fieldPath) {
-        return ruleEngine.getRequestValue(endpointPath, fieldPath);
-    }
+	public RequestExampleProvider(RuleEngine ruleEngine, ClassIndexer classIndexer,
+			ExamplePathResolver examplePathResolver) {
+		this.ruleEngine = ruleEngine;
+		this.classIndexer = classIndexer;
+		this.examplePathResolver = examplePathResolver;
+	}
 
-    // =========================================================
-    // ✅ EXPOSE PARSE (SIN ROMPER NADA)
-    // =========================================================
-    public Object parseValuePublic(String key, String value) {
-        return parseValue(key, value);
-    }
+	public String getRuleValue(String endpointPath, String fieldPath) {
+		return ruleEngine.getRequestValue(endpointPath, fieldPath);
+	}
 
-    @Autowired
-    private ClassIndexer classIndexer;
+	// =========================================================
+	// ✅ EXPOSE PARSE (SIN ROMPER NADA)
+	// =========================================================
+	public Object parseValuePublic(String key, String value) {
+		return parseValue(key, value);
+	}
 
-    @Autowired
-    private ExamplePathResolver examplePathResolver;
+	// =========================================================
+	// ✅ CACHE
+	// =========================================================
+	private final Map<String, Object> exampleCache = new HashMap<>();
 
-    // =========================================================
-    // ✅ CACHE
-    // =========================================================
-    private final Map<String, Object> exampleCache = new HashMap<>();
+	// =========================================================
+	// ✅ BUILD REQUEST EXAMPLE
+	// =========================================================
+	public Object build(String endpointPath, String bodyType, Map<String, Map<String, Object>> schemaMap,
+			Map<String, Object> exampleMap) {
 
-    // =========================================================
-    // ✅ BUILD REQUEST EXAMPLE
-    // =========================================================
-    public Object build(String endpointPath, String bodyType,
-                        Map<String, Map<String, Object>> schemaMap,
-                        Map<String, Object> exampleMap) {
+		if (bodyType == null) {
+			return new LinkedHashMap<>();
+		}
 
-        if (bodyType == null) {
-            return new LinkedHashMap<>();
-        }
+		Object bodyExample = exampleMap.get(bodyType);
 
-        Object bodyExample = exampleMap.get(bodyType);
+		bodyExample = flattenIfWrapper(bodyExample);
 
-        bodyExample = flattenIfWrapper(bodyExample);
+		if (!(bodyExample instanceof Map) || ((Map<?, ?>) bodyExample).isEmpty()) {
 
-        if (!(bodyExample instanceof Map) || ((Map<?, ?>) bodyExample).isEmpty()) {
+			bodyExample = buildExampleFromSchema(endpointPath, bodyType, schemaMap);
 
-            bodyExample = buildExampleFromSchema(endpointPath, bodyType, schemaMap);
+			bodyExample = flattenIfWrapper(bodyExample);
+		}
 
-            bodyExample = flattenIfWrapper(bodyExample);
-        }
+		return bodyExample;
+	}
 
-        return bodyExample;
-    }
+	// =========================================================
+	// ✅ CACHE + SAFE COPY
+	// =========================================================
+	private Object buildExampleFromSchema(String endpointPath, String type,
+			Map<String, Map<String, Object>> schemaMap) {
 
-    // =========================================================
-    // ✅ CACHE + SAFE COPY
-    // =========================================================
-    @SuppressWarnings("unchecked")
-    private Object buildExampleFromSchema(String endpointPath, String type,
-                                          Map<String, Map<String, Object>> schemaMap) {
+		String cacheKey = endpointPath + "::" + type;
 
-        String cacheKey = endpointPath + "::" + type;
+		if (exampleCache.containsKey(cacheKey)) {
+			return new LinkedHashMap<>((Map<String, Object>) exampleCache.get(cacheKey));
+		}
 
-        if (exampleCache.containsKey(cacheKey)) {
-            return new LinkedHashMap<>((Map<String, Object>) exampleCache.get(cacheKey));
-        }
+		Object result = buildExampleFromSchema(endpointPath, type, schemaMap, new HashSet<>());
 
-        Object result = buildExampleFromSchema(endpointPath, type, schemaMap, new HashSet<>());
+		if (result instanceof Map) {
+			exampleCache.put(cacheKey, new LinkedHashMap<>((Map<String, Object>) result));
+		}
 
-        if (result instanceof Map) {
-            exampleCache.put(cacheKey, new LinkedHashMap<>((Map<String, Object>) result));
-        }
+		return result;
+	}
 
-        return result;
-    }
+	// =========================================================
+	// ✅ BUILD RECURSIVO
+	// =========================================================
+	private Object buildExampleFromSchema(String endpointPath, String type, Map<String, Map<String, Object>> schemaMap,
+			Set<String> visited) {
 
-    // =========================================================
-    // ✅ BUILD RECURSIVO
-    // =========================================================
-    @SuppressWarnings("unchecked")
-    private Object buildExampleFromSchema(String endpointPath,
-                                          String type,
-                                          Map<String, Map<String, Object>> schemaMap,
-                                          Set<String> visited) {
+		if (type == null) {
+			return new LinkedHashMap<>();
+		}
 
-        if (type == null) {
-            return new LinkedHashMap<>();
-        }
+		if (visited.contains(type)) {
+			return "(circular)";
+		}
 
-        if (visited.contains(type)) {
-            return "(circular)";
-        }
+		visited.add(type);
 
-        visited.add(type);
+		Map<String, Object> schema = schemaMap.get(type);
 
-        Map<String, Object> schema = schemaMap.get(type);
+		if (schema == null) {
+			return new LinkedHashMap<>();
+		}
 
-        if (schema == null) {
-            return new LinkedHashMap<>();
-        }
+		Object propsObj = schema.get("properties");
 
-        Object propsObj = schema.get("properties");
+		if (!(propsObj instanceof Map)) {
+			return new LinkedHashMap<>();
+		}
 
-        if (!(propsObj instanceof Map)) {
-            return new LinkedHashMap<>();
-        }
+		Map<String, Object> props = (Map<String, Object>) propsObj;
 
-        Map<String, Object> props = (Map<String, Object>) propsObj;
+		Map<String, Object> example = new LinkedHashMap<>();
 
-        Map<String, Object> example = new LinkedHashMap<>();
+		for (Map.Entry<String, Object> entry : props.entrySet()) {
 
-        for (Map.Entry<String, Object> entry : props.entrySet()) {
+			String fieldName = entry.getKey();
+			String jsonName = resolveJsonName(type, fieldName);
 
-            String fieldName = entry.getKey();
-            String jsonName = resolveJsonName(type, fieldName);
-            Map<String, Object> fieldDef = (Map<String, Object>) entry.getValue();
+			Map<String, Object> fieldDef = (Map<String, Object>) entry.getValue();
 
-            String ruleValue = ruleEngine.getRequestValue(endpointPath, jsonName);
+			String ruleValue = ruleEngine.getRequestValue(endpointPath, jsonName);
 
-            if (fieldDef.containsKey("$ref")) {
+			if (fieldDef.containsKey("$ref")) {
 
-                String ref = fieldDef.get("$ref").toString();
-                String refType = ref.substring(ref.lastIndexOf("/") + 1);
+				String ref = fieldDef.get("$ref").toString();
 
-                example.put(jsonName,
-                        buildExampleFromSchema(endpointPath, refType, schemaMap, visited));
-                continue;
-            }
+				String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
-            if ("array".equals(fieldDef.get("type"))) {
+				example.put(jsonName, buildExampleFromSchema(endpointPath, refType, schemaMap, visited));
 
-                Object items = fieldDef.get("items");
+			} else if ("array".equals(fieldDef.get("type"))) {
 
-                if (items instanceof Map) {
+				Object items = fieldDef.get("items");
 
-                    Map<?, ?> itemMap = (Map<?, ?>) items;
+				if (items instanceof Map) {
 
-                    if (itemMap.containsKey("$ref")) {
+					Map<?, ?> itemMap = (Map<?, ?>) items;
 
-                        String ref = itemMap.get("$ref").toString();
-                        String refType = ref.substring(ref.lastIndexOf("/") + 1);
+					if (itemMap.containsKey("$ref")) {
 
-                        example.put(jsonName,
-                                List.of(buildExampleFromSchema(endpointPath, refType, schemaMap, visited)));
+						String ref = itemMap.get("$ref").toString();
 
-                    } else {
+						String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
-                        example.put(jsonName,
-                                List.of(mockValue((String) itemMap.get("type"))));
-                    }
-                }
+						example.put(jsonName,
+								List.of(buildExampleFromSchema(endpointPath, refType, schemaMap, visited)));
 
-                continue;
-            }
+					} else {
 
-            if (ruleValue != null) {
+						example.put(jsonName, List.of(mockValue((String) itemMap.get("type"))));
+					}
+				}
 
-                examplePathResolver.setNestedValue(
-                        example,
-                        jsonName,
-                        examplePathResolver.parseValue(jsonName, ruleValue)
-                );
+			} else if (ruleValue != null) {
 
-                continue;
-            }
+				examplePathResolver.setNestedValue(example, jsonName,
+						examplePathResolver.parseValue(jsonName, ruleValue));
 
-            example.put(jsonName, mockValue((String) fieldDef.get("type")));
-        }
+			} else {
 
-        if (example.size() == 1) {
+				example.put(jsonName, mockValue((String) fieldDef.get("type")));
+			}
+		}
 
-            Object onlyValue = example.values().iterator().next();
+		if (example.size() == 1) {
 
-            if (onlyValue instanceof Map) {
-                return onlyValue;
-            }
-        }
+			Object onlyValue = example.values().iterator().next();
 
-        return example;
-    }
+			if (onlyValue instanceof Map) {
+				return onlyValue;
+			}
+		}
 
-    // =========================================================
-    // ✅ RESOLVER JSON PROPERTY
-    // =========================================================
-    private String resolveJsonName(String className, String fieldName) {
+		return example;
+	}
 
-        return classIndexer.findClass(className)
+	// =========================================================
+	// ✅ RESOLVER JSON PROPERTY
+	// =========================================================
+	private String resolveJsonName(String className, String fieldName) {
 
-                .map(clazz -> clazz.getConstructors().stream()
-                        .flatMap(c -> c.getParameters().stream())
-                        .filter(param -> {
-                            String p = param.getNameAsString().toLowerCase();
-                            String f = fieldName.toLowerCase();
+		return classIndexer.findClass(className)
 
-                            if (p.equals(f)) return true;
-                            if (p.contains(f)) return true;
-                            if (f.contains(p)) return true;
+				.map(clazz -> clazz.getConstructors().stream().flatMap(c -> c.getParameters().stream())
+						.filter(param -> {
+							String p = param.getNameAsString().toLowerCase();
+							String f = fieldName.toLowerCase();
 
-                            String np = p.replace("codigo", "").replace("numero", "")
-                                    .replace("identificador", "").replace("tipo", "");
+							if (p.equals(f))
+								return true;
+							if (p.contains(f))
+								return true;
+							if (f.contains(p))
+								return true;
 
-                            String nf = f.replace("cod", "").replace("nro", "")
-                                    .replace("id", "").replace("tipo", "");
+							String np = p.replace("codigo", "").replace("numero", "").replace("identificador", "")
+									.replace("tipo", "");
 
-                            return np.equals(nf);
-                        })
+							String nf = f.replace("cod", "").replace("nro", "").replace("id", "").replace("tipo", "");
 
-                        .map(param -> param.getAnnotationByName("JsonProperty"))
-                        .flatMap(java.util.Optional::stream)
-                        .map(ann -> {
+							return np.equals(nf);
+						})
 
-                            if (ann.isSingleMemberAnnotationExpr()) {
-                                return ann.asSingleMemberAnnotationExpr()
-                                        .getMemberValue().toString().replace("\"", "");
-                            }
+						.map(param -> param.getAnnotationByName("JsonProperty")).flatMap(java.util.Optional::stream)
+						.map(ann -> {
 
-                            if (ann.isNormalAnnotationExpr()) {
-                                return ann.asNormalAnnotationExpr().getPairs().stream()
-                                        .filter(pair -> "value".equals(pair.getNameAsString()))
-                                        .map(pair -> pair.getValue().toString().replace("\"", ""))
-                                        .findFirst()
-                                        .orElse(fieldName);
-                            }
+							if (ann.isSingleMemberAnnotationExpr()) {
+								return ann.asSingleMemberAnnotationExpr().getMemberValue().toString().replace("\"", "");
+							}
 
-                            return fieldName;
-                        })
+							if (ann.isNormalAnnotationExpr()) {
+								return ann.asNormalAnnotationExpr().getPairs().stream()
+										.filter(pair -> "value".equals(pair.getNameAsString()))
+										.map(pair -> pair.getValue().toString().replace("\"", "")).findFirst()
+										.orElse(fieldName);
+							}
 
-                        .findFirst()
-                        .orElse(fieldName))
+							return fieldName;
+						})
 
-                .orElse(fieldName);
-    }
+						.findFirst().orElse(fieldName))
 
-    // =========================================================
-    // ✅ MOCK VALUES
-    // =========================================================
-    private Object mockValue(String type) {
+				.orElse(fieldName);
+	}
 
-        if (type == null) {
-            return "";
-        }
+	// =========================================================
+	// ✅ MOCK VALUES
+	// =========================================================
+	private Object mockValue(String type) {
 
-        switch (type) {
-            case "string": return "";
-            case "integer": return 123;
-            case "number": return 123.45;
-            case "boolean": return true;
-            case "array": return new java.util.ArrayList<>();
-            default: return "";
-        }
-    }
+		if (type == null) {
+			return "";
+		}
 
-    // =========================================================
-    // ✅ FLATTEN WRAPPER SIMPLE
-    // =========================================================
-    private Object flattenIfWrapper(Object example) {
+		switch (type) {
+		case "string":
+			return "";
+		case "integer":
+			return 123;
+		case "number":
+			return 123.45;
+		case "boolean":
+			return true;
+		case "array":
+			return new java.util.ArrayList<>();
+		default:
+			return "";
+		}
+	}
 
-        if (!(example instanceof Map)) {
-            return example;
-        }
+	// =========================================================
+	// ✅ FLATTEN WRAPPER SIMPLE
+	// =========================================================
+	private Object flattenIfWrapper(Object example) {
 
-        Map<?, ?> map = (Map<?, ?>) example;
+		if (!(example instanceof Map)) {
+			return example;
+		}
 
-        if (map.size() == 1) {
+		Map<?, ?> map = (Map<?, ?>) example;
 
-            Object onlyValue = map.values().iterator().next();
+		if (map.size() == 1) {
 
-            if (onlyValue instanceof Map) {
-                return onlyValue;
-            }
-        }
+			Object onlyValue = map.values().iterator().next();
 
-        return example;
-    }
+			if (onlyValue instanceof Map) {
+				return onlyValue;
+			}
+		}
 
-    // =========================================================
-    // ✅ NO TOCAR (TU MÉTODO ORIGINAL)
-    // =========================================================
-    private Object parseValue(String key, String value) {
+		return example;
+	}
 
-        if (value == null || value.isEmpty()) {
+	// =========================================================
+	// ✅ NO TOCAR (TU MÉTODO ORIGINAL)
+	// =========================================================
+	private Object parseValue(String key, String value) {
 
-            return "";
-        }
+		if (value == null || value.isEmpty()) {
 
-        String lower = key.toLowerCase();
+			return "";
+		}
 
-        // ✅ SIEMPRE STRING
-        if (lower.contains("cuenta") || lower.contains("cta") || lower.contains("tarj") || lower.contains("card")
-                || lower.contains("identificador") || lower.contains("telf") || lower.contains("telefono")
-                || lower.contains("cel") || value.startsWith("0")) {
+		String lower = key.toLowerCase();
 
-            return value;
-        }
+		// ✅ SIEMPRE STRING
+		if (lower.contains("cuenta") || lower.contains("cta") || lower.contains("tarj") || lower.contains("card")
+				|| lower.contains("identificador") || lower.contains("telf") || lower.contains("telefono")
+				|| lower.contains("cel") || value.startsWith("0")) {
 
-        // ✅ INTEGER
-        if (value.matches("-?\\d+")) {
+			return value;
+		}
 
-            try {
+		// ✅ INTEGER
+		if (value.matches("-?\\d+")) {
 
-                return Integer.parseInt(value);
+			try {
 
-            } catch (Exception e) {
+				return Integer.parseInt(value);
 
-                return Long.parseLong(value);
-            }
-        }
+			} catch (Exception e) {
 
-        // ✅ DECIMAL
-        if (value.matches("-?\\d+\\.\\d+")) {
+				return Long.parseLong(value);
+			}
+		}
 
-            return Double.parseDouble(value);
-        }
+		// ✅ DECIMAL
+		if (value.matches("-?\\d+\\.\\d+")) {
 
-        // ✅ BOOLEAN
-        if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value)) {
+			return Double.parseDouble(value);
+		}
 
-            return Boolean.parseBoolean(value);
-        }
+		// ✅ BOOLEAN
+		if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value)) {
 
-        return value;
-    }
+			return Boolean.parseBoolean(value);
+		}
+
+		return value;
+	}
 }

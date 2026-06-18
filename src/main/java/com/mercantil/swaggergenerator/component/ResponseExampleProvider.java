@@ -3,20 +3,25 @@ package com.mercantil.swaggergenerator.component;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ResponseExampleProvider {
 
-	@Autowired
-	private RuleEngine ruleEngine;
+	private static final Logger log = LogManager.getLogger(ResponseExampleProvider.class);
+	
+	private final RuleEngine ruleEngine;
+	private final ExampleGenerator exampleGenerator;
+	private final ExamplePathResolver examplePathResolver;
 
-	@Autowired
-	private ExampleGenerator exampleGenerator;
+	public ResponseExampleProvider(RuleEngine ruleEngine, ExampleGenerator exampleGenerator,ExamplePathResolver examplePathResolver) {
+		this.ruleEngine = ruleEngine;
+		this.exampleGenerator = exampleGenerator;
+		this.examplePathResolver = examplePathResolver;
+	}
 
-	@Autowired
-	private ExamplePathResolver examplePathResolver;
 
 	// =========================================================
 	// ✅ BUILD RESPONSE EXAMPLE
@@ -25,7 +30,7 @@ public class ResponseExampleProvider {
 	// ✅ evita contaminación por operationName
 	// =========================================================
 	public Map<String, Object> build(String endpointPath, String bodyKey, String bodyType,
-			Map<String, Map<String, Object>> schemaMap, Map<String, Object> exampleMap) {
+			Map<String, Object> exampleMap) {
 
 		Map<String, Object> response = new LinkedHashMap<>();
 
@@ -43,7 +48,7 @@ public class ResponseExampleProvider {
 		// ✅ PATH-BASED LOOKUP
 		// =====================================================
 
-		System.out.println("🔥 endpointPath: " + endpointPath);
+		log.info("endpointPath: {}", endpointPath);
 
 		Map<String, String> rules = ruleEngine.getResponseRules(endpointPath);
 

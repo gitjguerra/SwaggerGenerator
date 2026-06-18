@@ -3,12 +3,19 @@ package com.mercantil.swaggergenerator.util;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.mercantil.swaggergenerator.exception.SmartExampleUtilException;
+
 /**
- * ========================================================= ✅ SMART EXAMPLE
- * UTIL =========================================================
+ * ========================================================= 
+ * ✅ SMART EXAMPLE UTIL 
+ * =========================================================
  *
  * Motor de generación de ejemplos basado en semántica del nombre.
  *
@@ -830,7 +837,7 @@ public class SmartExampleUtil {
 
 		} catch (Exception e) {
 
-			throw new RuntimeException(e);
+			throw new SmartExampleUtilException(e);
 		}
 	}
 }

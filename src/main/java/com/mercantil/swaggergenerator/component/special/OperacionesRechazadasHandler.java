@@ -4,7 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 import com.mercantil.swaggergenerator.component.RequestExampleProvider;
@@ -12,9 +13,15 @@ import com.mercantil.swaggergenerator.component.RequestExampleProvider;
 @Component
 public class OperacionesRechazadasHandler implements SpecialRequestHandler {
 
-    @Autowired
-    private RequestExampleProvider requestExampleProvider;
-
+	private static final Logger log = LogManager.getLogger(OperacionesRechazadasHandler.class);
+	
+	private static final String STRING = "string";
+	
+	private final RequestExampleProvider requestExampleProvider;
+	public OperacionesRechazadasHandler(RequestExampleProvider requestExampleProvider) {
+		this.requestExampleProvider = requestExampleProvider;
+	}
+	
     @Override
     public boolean supports(String endpointPath, boolean hasBody) {
         return "/inversiones/consultar/operaciones-rechazadas"
@@ -27,17 +34,17 @@ public class OperacionesRechazadasHandler implements SpecialRequestHandler {
                       Map<String, Object> requestProps,
                       Map<String, Object> requestExample) {
 
-        System.out.println(" ***** SPECIAL HANDLER: operaciones-rechazadas");
+        log.info(" ***** SPECIAL HANDLER: operaciones-rechazadas");
 
         requestProps.clear();
         requestExample.clear();
 
         // schema
-        requestProps.put("timestamp", Map.of("type", "string"));
-        requestProps.put("transactionType", Map.of("type", "string"));
+        requestProps.put("timestamp", Map.of("type", STRING));
+        requestProps.put("transactionType", Map.of("type", STRING));
         requestProps.put("errorCode", Map.of("type", "number"));
-        requestProps.put("transmissionId", Map.of("type", "string"));
-        requestProps.put("errorMessage", Map.of("type", "string"));
+        requestProps.put("transmissionId", Map.of("type", STRING));
+        requestProps.put("errorMessage", Map.of("type", STRING));
 
         requestProps.put("transactionData",
                 Map.of("$ref", "#/components/schemas/BeanTransactionData"));

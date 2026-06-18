@@ -1,6 +1,7 @@
 package com.mercantil.swaggergenerator.util;
 
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 
@@ -9,54 +10,93 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 @Component
 public class HttpMethodUtil {
 
+	private static final String METHOD = "method";
+	private static final String PATH = "path";
+
+	private static final String POST_MAPPING = "PostMapping";
+	private static final String GET_MAPPING = "GetMapping";
+	private static final String PUT_MAPPING = "PutMapping";
+	private static final String DELETE_MAPPING = "DeleteMapping";
+	private static final String PATCH_MAPPING = "PatchMapping";
+	private static final String REQUEST_MAPPING = "RequestMapping";
+
 	public Map<String, String> detect(MethodDeclaration method) {
 
-		// ✅ POST
-		if (method.getAnnotationByName("PostMapping").isPresent()) {
-			return Map.of("method", "post", "path", extract(method, "PostMapping"));
+		Map<String, String> result;
+
+		result = detectMapping(method, POST_MAPPING, "post");
+		if (!result.isEmpty()) {
+			return result;
 		}
 
-		// ✅ GET
-		if (method.getAnnotationByName("GetMapping").isPresent()) {
-			return Map.of("method", "get", "path", extract(method, "GetMapping"));
+		result = detectMapping(method, GET_MAPPING, "get");
+		if (!result.isEmpty()) {
+			return result;
 		}
 
-		// ✅ PUT
-		if (method.getAnnotationByName("PutMapping").isPresent()) {
-			return Map.of("method", "put", "path", extract(method, "PutMapping"));
+		result = detectMapping(method, PUT_MAPPING, "put");
+		if (!result.isEmpty()) {
+			return result;
 		}
 
-		// ✅ DELETE
-		if (method.getAnnotationByName("DeleteMapping").isPresent()) {
-			return Map.of("method", "delete", "path", extract(method, "DeleteMapping"));
+		result = detectMapping(method, DELETE_MAPPING, "delete");
+		if (!result.isEmpty()) {
+			return result;
 		}
 
-		// ✅ PATCH
-		if (method.getAnnotationByName("PatchMapping").isPresent()) {
-			return Map.of("method", "patch", "path", extract(method, "PatchMapping"));
+		result = detectMapping(method, PATCH_MAPPING, "patch");
+		if (!result.isEmpty()) {
+			return result;
 		}
 
-		// ✅ REQUEST MAPPING
-		if (method.getAnnotationByName("RequestMapping").isPresent()) {
+		return detectRequestMapping(method);
+	}
 
-			String annotation = method.getAnnotationByName("RequestMapping").get().toString();
+	private Map<String, String> detectMapping(MethodDeclaration method, String annotation, String httpMethod) {
 
-			String httpMethod = null;
+		if (method.getAnnotationByName(annotation).isPresent()) {
 
-			if (annotation.contains("RequestMethod.POST"))
-				httpMethod = "post";
-			else if (annotation.contains("RequestMethod.GET"))
-				httpMethod = "get";
-			else if (annotation.contains("RequestMethod.PUT"))
-				httpMethod = "put";
-			else if (annotation.contains("RequestMethod.DELETE"))
-				httpMethod = "delete";
+			return Map.of(METHOD, httpMethod, PATH, extract(method, annotation));
+		}
 
-			String path = extract(method, "RequestMapping");
+		return Map.of();
+	}
 
-			if (httpMethod != null) {
-				return Map.of("method", httpMethod, "path", path);
-			}
+	private Map<String, String> detectRequestMapping(MethodDeclaration method) {
+
+		Optional<?> requestMapping = method.getAnnotationByName(REQUEST_MAPPING);
+
+		if (requestMapping.isEmpty()) {
+			return Map.of();
+		}
+
+		String annotation = requestMapping.get().toString();
+
+		String httpMethod = resolveHttpMethod(annotation);
+
+		if (httpMethod == null) {
+			return Map.of();
+		}
+
+		return Map.of(METHOD, httpMethod, PATH, extract(method, REQUEST_MAPPING));
+	}
+
+	private String resolveHttpMethod(String annotation) {
+
+		if (annotation.contains("RequestMethod.POST")) {
+			return "post";
+		}
+
+		if (annotation.contains("RequestMethod.GET")) {
+			return "get";
+		}
+
+		if (annotation.contains("RequestMethod.PUT")) {
+			return "put";
+		}
+
+		if (annotation.contains("RequestMethod.DELETE")) {
+			return "delete";
 		}
 
 		return null;
@@ -66,23 +106,26 @@ public class HttpMethodUtil {
 
 		return method.getAnnotationByName(name).map(annotation -> {
 
-			// ✅ @PostMapping("/path")
 			if (annotation.isSingleMemberAnnotationExpr()) {
+
 				var value = annotation.asSingleMemberAnnotationExpr().getMemberValue();
 
 				if (value.isStringLiteralExpr()) {
+
 					return value.asStringLiteralExpr().asString();
 				}
 			}
 
-			// ✅ @RequestMapping(value="/path")
 			if (annotation.isNormalAnnotationExpr()) {
 
 				for (var pair : annotation.asNormalAnnotationExpr().getPairs()) {
 
-					if (pair.getNameAsString().equals("value") || pair.getNameAsString().equals("path")) {
+					String pairName = pair.getNameAsString();
+
+					if ("value".equals(pairName) || "path".equals(pairName)) {
 
 						if (pair.getValue().isStringLiteralExpr()) {
+
 							return pair.getValue().asStringLiteralExpr().asString();
 						}
 					}
@@ -92,5 +135,4 @@ public class HttpMethodUtil {
 			return "";
 		}).orElse("");
 	}
-
 }

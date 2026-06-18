@@ -7,74 +7,135 @@ import org.springframework.stereotype.Component;
 @Component
 public class TypeUtil {
 
+    // =========================================================
+    // ✅ CONSTANTES DE TIPOS
+    // =========================================================
+
+    private static final String STRING = "String";
+
+    private static final String INTEGER = "Integer";
+    private static final String INT = "int";
+
+    private static final String LONG = "Long";
+    private static final String LONG_PRIMITIVE = "long";
+
+    private static final String DOUBLE = "Double";
+    private static final String DOUBLE_PRIMITIVE = "double";
+
+    private static final String FLOAT = "Float";
+    private static final String FLOAT_PRIMITIVE = "float";
+
+    private static final String SHORT = "Short";
+    private static final String SHORT_PRIMITIVE = "short";
+
+    private static final String BOOLEAN = "Boolean";
+    private static final String BOOLEAN_PRIMITIVE = "boolean";
+
+    private static final String BYTE = "Byte";
+    private static final String BYTE_PRIMITIVE = "byte";
+
+    private static final String CHARACTER = "Character";
+    private static final String CHAR_PRIMITIVE = "char";
+
+    private static final String BIG_DECIMAL = "BigDecimal";
+    private static final String BIG_INTEGER = "BigInteger";
+
+    private static final String UUID = "UUID";
+
+    private static final String LOCAL_DATE = "LocalDate";
+    private static final String LOCAL_DATE_TIME = "LocalDateTime";
+    private static final String LOCAL_TIME = "LocalTime";
+
+    private static final String DATE = "Date";
+
+    // =========================================================
+    // ✅ TIPOS PRIMITIVOS
+    // =========================================================
+
     private static final Set<String> PRIMITIVES = Set.of(
 
-            "String",
+            STRING,
 
-            "Integer",
-            "int",
+            INTEGER,
+            INT,
 
-            "Long",
-            "long",
+            LONG,
+            LONG_PRIMITIVE,
 
-            "Double",
-            "double",
+            DOUBLE,
+            DOUBLE_PRIMITIVE,
 
-            "Float",
-            "float",
+            FLOAT,
+            FLOAT_PRIMITIVE,
 
-            "Boolean",
-            "boolean",
+            BOOLEAN,
+            BOOLEAN_PRIMITIVE,
 
-            "Byte",
-            "byte",
+            BYTE,
+            BYTE_PRIMITIVE,
 
-            "Short",
-            "short",
+            SHORT,
+            SHORT_PRIMITIVE,
 
-            "Character",
-            "char",
+            CHARACTER,
+            CHAR_PRIMITIVE,
 
-            "BigDecimal",
-            "BigInteger",
+            BIG_DECIMAL,
+            BIG_INTEGER,
 
-            "UUID",
+            UUID,
 
-            "LocalDate",
-            "LocalDateTime",
-            "LocalTime",
+            LOCAL_DATE,
+            LOCAL_DATE_TIME,
+            LOCAL_TIME,
 
-            "Date"
+            DATE
+    );
+
+    // =========================================================
+    // ✅ TIPOS NUMÉRICOS
+    // =========================================================
+
+    private static final Set<String> NUMERIC_TYPES = Set.of(
+
+            INTEGER,
+            INT,
+
+            LONG,
+            LONG_PRIMITIVE,
+
+            DOUBLE,
+            DOUBLE_PRIMITIVE,
+
+            FLOAT,
+            FLOAT_PRIMITIVE,
+
+            SHORT,
+            SHORT_PRIMITIVE,
+
+            BIG_DECIMAL
     );
 
     // =========================================================
     // ✅ IS PRIMITIVE
     // =========================================================
+
     public boolean isPrimitive(String type) {
 
         if (type == null || type.isBlank()) {
-
             return true;
         }
 
-        String clean =
-                type.trim();
+        String clean = type.trim();
 
-        // =====================================================
-        // ✅ OPTIONAL
-        // =====================================================
         if (clean.startsWith("Optional<")
                 && clean.endsWith(">")) {
 
-            clean =
-                    clean.substring(
-                            clean.indexOf("<") + 1,
-                            clean.lastIndexOf(">"));
+            clean = clean.substring(
+                    clean.indexOf('<') + 1,
+                    clean.lastIndexOf('>'));
         }
 
-        // =====================================================
-        // ✅ LIST / SET / MAP NO SON PRIMITIVE
-        // =====================================================
         if (clean.startsWith("List<")
                 || clean.startsWith("Set<")
                 || clean.startsWith("Map<")) {
@@ -82,9 +143,6 @@ public class TypeUtil {
             return false;
         }
 
-        // =====================================================
-        // ✅ BODY / HEADER / BEANS JAMAS SON PRIMITIVE
-        // =====================================================
         if (clean.startsWith("Bean")
                 || clean.startsWith("Body")
                 || clean.startsWith("Header")) {
@@ -92,68 +150,55 @@ public class TypeUtil {
             return false;
         }
 
-        // =====================================================
-        // ✅ CLASES CUSTOM JAVA
-        // PascalCase → probablemente bean
-        // =====================================================
         if (Character.isUpperCase(clean.charAt(0))
                 && !PRIMITIVES.contains(clean)) {
 
             return false;
         }
 
-        // =====================================================
-        // ✅ PRIMITIVE REAL
-        // =====================================================
         return PRIMITIVES.contains(clean);
     }
 
     // =========================================================
     // ✅ MAP TYPE OPENAPI
     // =========================================================
+
     public String mapType(String type) {
 
         if (type == null) {
-
             return "string";
         }
 
         switch (type) {
 
-            case "String":
-            case "UUID":
-            case "LocalDate":
-            case "LocalDateTime":
-            case "LocalTime":
-            case "Date":
-
+            case STRING:
+            case UUID:
+            case LOCAL_DATE:
+            case LOCAL_DATE_TIME:
+            case LOCAL_TIME:
+            case DATE:
                 return "string";
 
-            case "Integer":
-            case "int":
-            case "Long":
-            case "long":
-            case "Short":
-            case "short":
-
+            case INTEGER:
+            case INT:
+            case LONG:
+            case LONG_PRIMITIVE:
+            case SHORT:
+            case SHORT_PRIMITIVE:
                 return "integer";
 
-            case "Double":
-            case "double":
-            case "Float":
-            case "float":
-            case "BigDecimal":
-
+            case DOUBLE:
+            case DOUBLE_PRIMITIVE:
+            case FLOAT:
+            case FLOAT_PRIMITIVE:
+            case BIG_DECIMAL:
                 return "number";
 
-            case "Boolean":
-            case "boolean":
-
-                return "boolean";
+            case BOOLEAN:
+            case BOOLEAN_PRIMITIVE:
+                return BOOLEAN_PRIMITIVE;
 
             default:
-
-                // ✅ custom beans
                 return "object";
         }
     }
@@ -161,23 +206,9 @@ public class TypeUtil {
     // =========================================================
     // ✅ IS NUMERIC TYPE
     // =========================================================
+
     public boolean isNumericType(String type) {
 
-        return "Integer".equals(type)
-                || "int".equals(type)
-
-                || "Long".equals(type)
-                || "long".equals(type)
-
-                || "Double".equals(type)
-                || "double".equals(type)
-
-                || "Float".equals(type)
-                || "float".equals(type)
-
-                || "Short".equals(type)
-                || "short".equals(type)
-
-                || "BigDecimal".equals(type);
+        return NUMERIC_TYPES.contains(type);
     }
 }

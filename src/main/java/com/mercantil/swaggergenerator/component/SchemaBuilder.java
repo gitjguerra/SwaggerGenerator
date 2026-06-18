@@ -9,7 +9,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -23,14 +24,24 @@ import com.mercantil.swaggergenerator.util.TypeUtil;
 @Component
 public class SchemaBuilder {
 
-	@Autowired
-	private TypeUtil typeUtil;
-
-	@Autowired
-	private ParserUtil parserUtil;
-
-	@Autowired
-	private ClassIndexer classIndexer;
+	private static final Logger log = LogManager.getLogger(SchemaBuilder.class);
+	
+	private static final String EXAMPLE = "example";
+	private static final String IS_REQUIRED = "required";
+	private static final String FORMAT = "format";
+	private static final String SCHEMAS = "#/components/schemas/";
+	private static final String STRING = "String";
+	private static final String PROPERTIES = "properties";
+	
+	private final TypeUtil typeUtil;
+	private final ParserUtil parserUtil;
+	private final ClassIndexer classIndexer;
+	
+	public SchemaBuilder(TypeUtil typeUtil, ParserUtil parserUtil,ClassIndexer classIndexer) {
+		this.typeUtil = typeUtil;
+		this.parserUtil = parserUtil;
+		this.classIndexer = classIndexer;
+	}
 
 	private Map<String, Map<String, Object>> schemaMap;
 
@@ -58,7 +69,6 @@ public class SchemaBuilder {
 	// =========================================================
 	// ✅ BUILD PRINCIPAL
 	// =========================================================
-	@SuppressWarnings("unchecked")
 	public Map<String, Object> build(ClassOrInterfaceDeclaration clazz) {
 
 		String className = clazz.getNameAsString();
@@ -74,7 +84,7 @@ public class SchemaBuilder {
 
 					Map.of("type", "object",
 
-							"properties", new LinkedHashMap<>()));
+							PROPERTIES, new LinkedHashMap<>()));
 		}
 
 		processing.add(className);
@@ -92,7 +102,7 @@ public class SchemaBuilder {
 
 			schema.put("type", "object");
 
-			schema.put("properties", properties);
+			schema.put(PROPERTIES, properties);
 
 			schemaMap.put(className, schema);
 
@@ -109,7 +119,7 @@ public class SchemaBuilder {
 
 				Map<String, Object> enumSchema = Map.of(
 
-						"type", "string",
+						"type", STRING,
 
 						"enum", values);
 
@@ -129,7 +139,7 @@ public class SchemaBuilder {
 
 							Map<String, Object> parentSchema = build(parent);
 
-							Object props = parentSchema.get("properties");
+							Object props = parentSchema.get(PROPERTIES);
 
 							if (props instanceof Map) {
 
@@ -155,13 +165,13 @@ public class SchemaBuilder {
 
 								.stream()
 
-								.filter(var ->
+								.filter(vari ->
 
-								!"serialVersionUID".equalsIgnoreCase(var.getNameAsString()))
+								!"serialVersionUID".equalsIgnoreCase(vari.getNameAsString()))
 
-								.forEach(var -> {
+								.forEach(vari -> {
 
-									String name = parserUtil.resolveJsonName(field, var.getNameAsString());
+									String name = parserUtil.resolveJsonName(field, vari.getNameAsString());
 									if (!isWrapperName(name)) {
 										name = normalizeJsonKey(name);
 									}
@@ -174,7 +184,7 @@ public class SchemaBuilder {
 
 									Map<String, Object> prop = new LinkedHashMap<>();
 
-									var typeNode = var.getType();
+									var typeNode = vari.getType();
 
 									String rawType = typeNode.asString();
 
@@ -206,9 +216,9 @@ public class SchemaBuilder {
 										// ✅ byte[]
 										if ("byte".equalsIgnoreCase(elementType)) {
 
-											prop.put("type", "string");
+											prop.put("type", STRING);
 
-											prop.put("format", "byte");
+											prop.put(FORMAT, "byte");
 										}
 
 										// ✅ arrays normales
@@ -336,15 +346,15 @@ public class SchemaBuilder {
 										boolean flattened = false;
 
 										// ✅ String especial
-										if ("String".equals(resolved) || "byte".equalsIgnoreCase(resolved)) {
+										if (STRING.equals(resolved) || "byte".equalsIgnoreCase(resolved)) {
 
-											prop.put("type", "string");
+											prop.put("type", STRING);
 										}
 
 										// ✅ NO flatten si el campo tiene JsonProperty (estructura explícita)
 										boolean hasExplicitJsonName = field.getAnnotationByName("JsonProperty")
 												.isPresent()
-												|| parserUtil.resolveJsonName(field, var.getNameAsString()) != null;
+												|| parserUtil.resolveJsonName(field, vari.getNameAsString()) != null;
 
 										if (shouldFlatten(resolved) && !hasExplicitJsonName) {
 											flattenSchemaProperties(resolved, properties);
@@ -356,7 +366,7 @@ public class SchemaBuilder {
 
 											ensureEnumSchema(resolved);
 
-											prop.put("$ref", "#/components/schemas/" + resolved);
+											prop.put("$ref", SCHEMAS + resolved);
 										}
 
 										// ✅ objeto normal
@@ -409,7 +419,7 @@ public class SchemaBuilder {
 			// =================================================
 			if (!required.isEmpty()) {
 
-				schema.put("required", required);
+				schema.put(IS_REQUIRED, required);
 			}
 
 			return schema;
@@ -444,9 +454,9 @@ public class SchemaBuilder {
 
 				.flatMap(f -> f.getVariables().stream())
 
-				.allMatch(var -> {
+				.allMatch(vari -> {
 
-					String rawType = var.getType().asString();
+					String rawType = vari.getType().asString();
 
 					// ❌ si es lista o map → NO flatten
 					if (rawType.contains("List<") || rawType.contains("Map<")) {
@@ -458,7 +468,7 @@ public class SchemaBuilder {
 					String resolved = parserUtil.resolveFinalType(cleanType);
 
 					// ✅ SOLO flatten si TODOS son primitivos
-					return typeUtil.isPrimitive(resolved) || "String".equals(resolved) || "Integer".equals(resolved)
+					return typeUtil.isPrimitive(resolved) || STRING.equals(resolved) || "Integer".equals(resolved)
 							|| "Long".equals(resolved);
 				});
 	}
@@ -466,7 +476,6 @@ public class SchemaBuilder {
 	// =========================================================
 	// ✅ FLATTEN RECURSIVO
 	// =========================================================
-	@SuppressWarnings("unchecked")
 	private void flattenSchemaProperties(String typeName, Map<String, Object> targetProperties) {
 
 		Optional<ClassOrInterfaceDeclaration> childOpt = classIndexer.findClass(typeName);
@@ -478,7 +487,7 @@ public class SchemaBuilder {
 
 		Map<String, Object> childSchema = build(childOpt.get());
 
-		Object propsObj = childSchema.get("properties");
+		Object propsObj = childSchema.get(PROPERTIES);
 
 		if (!(propsObj instanceof Map)) {
 
@@ -518,7 +527,7 @@ public class SchemaBuilder {
 	// =========================================================
 	// ✅ ENSURE SCHEMA
 	// =========================================================
-	private void ensureSchemaWithParsing(String type, ClassOrInterfaceDeclaration context) {
+	private void ensureSchemaWithParsing(String type) {
 
 		if (type == null || type.isBlank()) {
 
@@ -535,7 +544,7 @@ public class SchemaBuilder {
 			return;
 		}
 
-		if ("String".equals(type)) {
+		if (STRING.equals(type)) {
 
 			return;
 		}
@@ -635,7 +644,7 @@ public class SchemaBuilder {
 
 		Map<String, Object> schema = new LinkedHashMap<>();
 
-		schema.put("type", "string");
+		schema.put("type", STRING);
 
 		schema.put("enum", values);
 
@@ -697,22 +706,22 @@ public class SchemaBuilder {
 
 		if ("UUID".equals(type)) {
 
-			prop.put("format", "uuid");
+			prop.put(FORMAT, "uuid");
 		}
 
 		if ("LocalDate".equals(type)) {
 
-			prop.put("format", "date");
+			prop.put(FORMAT, "date");
 		}
 
 		if ("LocalDateTime".equals(type) || "Date".equals(type)) {
 
-			prop.put("format", "date-time");
+			prop.put(FORMAT, "date-time");
 		}
 
 		if ("BigDecimal".equals(type)) {
 
-			prop.put("format", "double");
+			prop.put(FORMAT, "double");
 		}
 	}
 
@@ -737,7 +746,7 @@ public class SchemaBuilder {
 
 					return ann.asNormalAnnotationExpr().getPairs().stream().anyMatch(p ->
 
-					p.getNameAsString().equals("required")
+					p.getNameAsString().equals(IS_REQUIRED)
 
 							&& p.getValue().toString().equals("true"));
 				}
@@ -766,7 +775,7 @@ public class SchemaBuilder {
 		// ✅ schemas enterprise
 		if (registerKnownExternalSchema(type)) {
 
-			return Map.of("$ref", "#/components/schemas/" + type);
+			return Map.of("$ref", SCHEMAS + type);
 		}
 
 		// ✅ buscar clase real
@@ -777,13 +786,13 @@ public class SchemaBuilder {
 		// ✅ clase encontrada
 		if (target.isPresent()) {
 
-			ensureSchemaWithParsing(type, context);
+			ensureSchemaWithParsing(type);
 
-			return Map.of("$ref", "#/components/schemas/" + type);
+			return Map.of("$ref", SCHEMAS + type);
 		}
 
 		// ✅ fallback seguro
-		System.out.println("⚠️ Clase externa/no accesible detectada: " + type);
+		log.info("Clase externa/no accesible detectada: {}", type);
 
 		return Map.of("type", "object");
 	}
@@ -791,7 +800,6 @@ public class SchemaBuilder {
 	// =========================================================
 	// ✅ COMMON ENTERPRISE SCHEMAS
 	// =========================================================
-	@SuppressWarnings("unchecked")
 	public boolean registerKnownExternalSchema(String type) {
 
 		// =====================================================
@@ -802,7 +810,7 @@ public class SchemaBuilder {
 			// ✅ validar si existe vacío
 			if (schemaMap.containsKey(type)) {
 
-				Object existingProps = schemaMap.get(type).get("properties");
+				Object existingProps = schemaMap.get(type).get(PROPERTIES);
 
 				// ✅ ya válido
 				if (existingProps instanceof Map && !((Map<?, ?>) existingProps).isEmpty()) {
@@ -816,29 +824,29 @@ public class SchemaBuilder {
 
 			Map<String, Object> props = new LinkedHashMap<>();
 
-			props.put("identificadorUnicoGlobal", Map.of("type", "string"));
+			props.put("identificadorUnicoGlobal", Map.of("type", STRING));
 
-			props.put("identificacionCanal", Map.of("type", "string"));
+			props.put("identificacionCanal", Map.of("type", STRING));
 
-			props.put("identificacionSubCanal", Map.of("type", "string"));
+			props.put("identificacionSubCanal", Map.of("type", STRING));
 
 			props.put("siglaAplicacion",
 
-					Map.of("type", "string", "minLength", 1, "maxLength", 4));
+					Map.of("type", STRING, "minLength", 1, "maxLength", 4));
 
-			props.put("identificacionUsuario", Map.of("type", "string"));
+			props.put("identificacionUsuario", Map.of("type", STRING));
 
-			props.put("direccionIpConsumidor", Map.of("type", "string"));
+			props.put("direccionIpConsumidor", Map.of("type", STRING));
 
-			props.put("direccionIpCliente", Map.of("type", "string"));
+			props.put("direccionIpCliente", Map.of("type", STRING));
 
-			props.put("fechaEnvioMensaje", Map.of("type", "string"));
+			props.put("fechaEnvioMensaje", Map.of("type", STRING));
 
-			props.put("horaEnvioMensaje", Map.of("type", "string"));
+			props.put("horaEnvioMensaje", Map.of("type", STRING));
 
-			props.put("atributoPagineo", Map.of("type", "string"));
+			props.put("atributoPagineo", Map.of("type", STRING));
 
-			props.put("claveBusqueda", Map.of("type", "string"));
+			props.put("claveBusqueda", Map.of("type", STRING));
 
 			props.put("cantidadRegistros", Map.of("type", "integer"));
 
@@ -848,9 +856,9 @@ public class SchemaBuilder {
 
 			schema.put("description", "Header corporativo de entrada Mercantil");
 
-			schema.put("properties", props);
+			schema.put(PROPERTIES, props);
 
-			schema.put("required",
+			schema.put(IS_REQUIRED,
 
 					List.of("identificadorUnicoGlobal", "identificacionCanal", "identificacionSubCanal",
 							"siglaAplicacion", "direccionIpConsumidor", "direccionIpCliente", "fechaEnvioMensaje",
@@ -869,7 +877,7 @@ public class SchemaBuilder {
 			// ✅ validar si existe vacío
 			if (schemaMap.containsKey(type)) {
 
-				Object existingProps = schemaMap.get(type).get("properties");
+				Object existingProps = schemaMap.get(type).get(PROPERTIES);
 
 				// ✅ ya válido
 				if (existingProps instanceof Map && !((Map<?, ?>) existingProps).isEmpty()) {
@@ -885,31 +893,31 @@ public class SchemaBuilder {
 
 			props.put("tipoMensaje",
 
-					Map.of("type", "string", "example", "F"));
+					Map.of("type", STRING, EXAMPLE, "F"));
 
 			props.put("mensajeProgramadorSistema",
 
-					Map.of("type", "string", "example", "OPERACION EXITOSA"));
+					Map.of("type", STRING, EXAMPLE, "OPERACION EXITOSA"));
 
 			props.put("codigoMensajeProgramador",
 
-					Map.of("type", "string", "example", "0000"));
+					Map.of("type", STRING, EXAMPLE, "0000"));
 
 			props.put("mensajeUsuario",
 
-					Map.of("type", "string", "example", "TRANSACCION EXITOSA"));
+					Map.of("type", STRING, EXAMPLE, "TRANSACCION EXITOSA"));
 
 			props.put("codigoMensajeUsuario",
 
-					Map.of("type", "string", "example", "0000"));
+					Map.of("type", STRING, EXAMPLE, "0000"));
 
 			props.put("fechaSalidaMensaje",
 
-					Map.of("type", "string", "example", "20250609"));
+					Map.of("type", STRING, EXAMPLE, "20250609"));
 
 			props.put("horaSalidaMensaje",
 
-					Map.of("type", "string", "example", "102530"));
+					Map.of("type", STRING, EXAMPLE, "102530"));
 
 			Map<String, Object> schema = new LinkedHashMap<>();
 
@@ -917,9 +925,9 @@ public class SchemaBuilder {
 
 			schema.put("description", "Header corporativo de salida Mercantil");
 
-			schema.put("properties", props);
+			schema.put(PROPERTIES, props);
 
-			schema.put("required",
+			schema.put(IS_REQUIRED,
 
 					List.of("tipoMensaje", "mensajeProgramadorSistema", "codigoMensajeProgramador", "mensajeUsuario",
 							"codigoMensajeUsuario", "fechaSalidaMensaje", "horaSalidaMensaje"));

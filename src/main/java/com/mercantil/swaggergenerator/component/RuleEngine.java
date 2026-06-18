@@ -1,5 +1,6 @@
 package com.mercantil.swaggergenerator.component;
 
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -8,13 +9,22 @@ import java.util.Map;
 import javax.annotation.PostConstruct;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import com.mercantil.swaggergenerator.exception.RuleEngineException;
+
 @Component
 public class RuleEngine {
+
+	private static final Logger log = LogManager.getLogger(RuleEngine.class);
+
+	private static final String SLASH = "/";
+	private static final String FIELD = "field";
 
 	// =========================================================
 	// ✅ LEGACY (compatibilidad)
@@ -34,7 +44,6 @@ public class RuleEngine {
 	// =========================================================
 	// ✅ LOAD RULES
 	// =========================================================
-	@SuppressWarnings("resource")
 	@PostConstruct
 	public void loadRules() {
 
@@ -66,7 +75,7 @@ public class RuleEngine {
 					}
 
 					if (apiKey == null || apiKey.isBlank()) {
-						System.out.println("⚠️ API ignorada sin name/path");
+						log.info("API ignorada sin name/path");
 						continue;
 					}
 
@@ -84,7 +93,7 @@ public class RuleEngine {
 					if (requestNodes.getLength() > 0) {
 
 						Element request = (Element) requestNodes.item(0);
-						NodeList fieldNodes = request.getElementsByTagName("field");
+						NodeList fieldNodes = request.getElementsByTagName(FIELD);
 
 						for (int j = 0; j < fieldNodes.getLength(); j++) {
 
@@ -102,7 +111,7 @@ public class RuleEngine {
 					if (responseNodes.getLength() > 0) {
 
 						Element response = (Element) responseNodes.item(0);
-						NodeList fieldNodes = response.getElementsByTagName("field");
+						NodeList fieldNodes = response.getElementsByTagName(FIELD);
 
 						for (int j = 0; j < fieldNodes.getLength(); j++) {
 
@@ -159,39 +168,37 @@ public class RuleEngine {
 				// =====================================================
 				// ✅ DEBUG
 				// =====================================================
-				System.out.println("✅ Request rules cargadas:");
-				requestRules.keySet().forEach(k -> System.out.println("   ➜ " + k));
+				log.info("Request rules cargadas:");
+				requestRules.keySet().forEach(k -> log.info("   - {}", k));
 
-				System.out.println("✅ Response rules cargadas:");
-				responseRules.keySet().forEach(k -> System.out.println("   ➜ " + k));
+				log.info("Response rules cargadas:");
+				responseRules.keySet().forEach(k -> log.info("   - {}", k));
 			}
 
 		} catch (Exception e) {
-			throw new RuntimeException("❌ Error cargando rules.xml", e);
+			throw new RuleEngineException("Error cargando rules.xml", e);
 		}
 	}
 
 	// =========================================================
-	// ✅ MÉTODO AUXILIAR (CORREGIDO)
+	// ✅ MÉTODO AUXILIAR
 	// =========================================================
 	private static InputStream loadInputStream(String pathFile) {
 
 		try {
 
-			InputStream is = new java.io.FileInputStream(pathFile);
+			log.info("Cargando rules.xml: {}", pathFile);
 
-			System.out.println("✅ Cargando rules.xml: " + pathFile);
-
-			return is;
+			return new FileInputStream(pathFile);
 
 		} catch (Exception e) {
 
-			System.out.println("⚠️ No se encontró rules.xml externo, usando interno...");
+			log.info("No se encontró rules.xml externo, usando interno...");
 
 			InputStream is = RuleEngine.class.getClassLoader().getResourceAsStream("rules.xml");
 
 			if (is == null) {
-				throw new RuntimeException("❌ No se encontró rules.xml");
+				throw new RuleEngineException("No se encontró rules.xml");
 			}
 
 			return is;
@@ -216,36 +223,72 @@ public class RuleEngine {
 
 	private String getFieldValue(Map<String, Map<String, String>> source, String apiKey, String fieldName) {
 
-		if (apiKey == null || fieldName == null)
+		if (apiKey == null || fieldName == null) {
 			return null;
+		}
 
 		String normalizedKey = normalizePath(apiKey);
+
+		Map<String, String> fields = resolveFields(source, normalizedKey);
+
+		if (fields.isEmpty()) {
+			return null;
+		}
+
+		String exactValue = findExactField(fields, fieldName);
+
+		if (exactValue != null) {
+			return exactValue;
+		}
+
+		return findSuffixField(fields, fieldName);
+	}
+
+	private Map<String, String> resolveFields(Map<String, Map<String, String>> source, String normalizedKey) {
+
 		Map<String, String> fields = source.get(normalizedKey);
 
-		if (fields == null) {
-			for (String key : source.keySet()) {
-				if (normalizePath(key).equalsIgnoreCase(normalizedKey)) {
-					fields = source.get(key);
-					break;
-				}
+		if (fields != null) {
+			return fields;
+		}
+
+		for (Map.Entry<String, Map<String, String>> entry : source.entrySet()) {
+
+			if (normalizePath(entry.getKey()).equalsIgnoreCase(normalizedKey)) {
+
+				return entry.getValue();
 			}
 		}
 
-		if (fields == null)
-			return null;
+		return Map.of();
+	}
 
-		if (fields.containsKey(fieldName)) {
-			return fields.get(fieldName);
+	private String findExactField(Map<String, String> fields, String fieldName) {
+
+		String value = fields.get(fieldName);
+
+		if (value != null) {
+			return value;
 		}
 
 		for (Map.Entry<String, String> entry : fields.entrySet()) {
+
 			if (entry.getKey().equalsIgnoreCase(fieldName)) {
 				return entry.getValue();
 			}
 		}
 
+		return null;
+	}
+
+	private String findSuffixField(Map<String, String> fields, String fieldName) {
+
+		String lowerFieldName = fieldName.toLowerCase();
+
 		for (Map.Entry<String, String> entry : fields.entrySet()) {
-			if (fieldName.toLowerCase().endsWith(entry.getKey().toLowerCase())) {
+
+			if (lowerFieldName.endsWith(entry.getKey().toLowerCase())) {
+
 				return entry.getValue();
 			}
 		}
@@ -278,12 +321,12 @@ public class RuleEngine {
 		if (path == null || path.isBlank())
 			return "";
 
-		path = path.trim().replace("\\", "/").replaceAll("//+", "/");
+		path = path.trim().replace("\\", SLASH).replaceAll("//+", SLASH);
 
-		if (!path.startsWith("/"))
-			path = "/" + path;
+		if (!path.startsWith(SLASH))
+			path = SLASH + path;
 
-		if (path.length() > 1 && path.endsWith("/")) {
+		if (path.length() > 1 && path.endsWith(SLASH)) {
 			path = path.substring(0, path.length() - 1);
 		}
 

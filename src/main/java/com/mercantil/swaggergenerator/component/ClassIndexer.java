@@ -4,12 +4,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 
 @Component
 public class ClassIndexer {
+
+	private static final Logger log = LogManager.getLogger(ClassIndexer.class);
 
     // ✅ mapa de clases por nombre simple
     private final Map<String, ClassOrInterfaceDeclaration> classMap = new HashMap<>();
@@ -22,7 +26,7 @@ public class ClassIndexer {
         String name = clazz.getNameAsString();
 
         // 🔥 LOG
-        ///System.out.println("📌 Registrando clase: " + name);
+        log.info("Registrando clase: {}", name);
 
         classMap.put(name, clazz);
     }
@@ -35,9 +39,9 @@ public class ClassIndexer {
         ClassOrInterfaceDeclaration clazz = classMap.get(name);
 
         if (clazz == null) {
-            //System.out.println("❌ ClassIndexer no encontró: " + name);
+            log.info("ClassIndexer no encontró: {}", name);
         } else {
-            //System.out.println("✅ ClassIndexer encontró: " + name);
+        	log.info("ClassIndexer encontró: {}", name);
         }
 
         return Optional.ofNullable(clazz);

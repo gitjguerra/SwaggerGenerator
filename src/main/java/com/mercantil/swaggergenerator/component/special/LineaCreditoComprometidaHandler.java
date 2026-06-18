@@ -3,7 +3,8 @@ package com.mercantil.swaggergenerator.component.special;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 import com.mercantil.swaggergenerator.component.RequestExampleProvider;
@@ -11,8 +12,15 @@ import com.mercantil.swaggergenerator.component.RequestExampleProvider;
 @Component
 public class LineaCreditoComprometidaHandler implements SpecialRequestHandler {
 
-    @Autowired
-    private RequestExampleProvider requestExampleProvider;
+	private static final Logger log = LogManager.getLogger(LineaCreditoComprometidaHandler.class);
+	
+	private static final String BODY_ENTRADA = "bodyEntradaConsultarLineaCreditoComprometida";
+	private static final String TIPO_CONSULTA = "tipoConsulta";
+	
+	private final RequestExampleProvider requestExampleProvider;
+	public LineaCreditoComprometidaHandler(RequestExampleProvider requestExampleProvider) {
+		this.requestExampleProvider = requestExampleProvider;
+	}
 
     @Override
     public boolean supports(String endpointPath, boolean hasBody) {
@@ -21,19 +29,18 @@ public class LineaCreditoComprometidaHandler implements SpecialRequestHandler {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void apply(String endpointPath,
                       Map<String, Object> props,
                       Map<String, Object> example) {
 
-        System.out.println("***** SPECIAL HANDLER: linea-credito-comprometida");
+        log.info("***** SPECIAL HANDLER: linea-credito-comprometida");
 
-        if (!example.containsKey("bodyEntradaConsultarLineaCreditoComprometida")) {
+        if (!example.containsKey(BODY_ENTRADA)) {
             return;
         }
 
         // 🔥 eliminar body generado incorrecto
-        example.remove("bodyEntradaConsultarLineaCreditoComprometida");
+        example.remove(BODY_ENTRADA);
 
         // =====================================================
         // ✅ construir estructura correcta manualmente
@@ -42,7 +49,7 @@ public class LineaCreditoComprometidaHandler implements SpecialRequestHandler {
 
         // ✅ valores desde rules.xml
         String tipoConsulta =
-                requestExampleProvider.getRuleValue(endpointPath, "tipoConsulta");
+                requestExampleProvider.getRuleValue(endpointPath, TIPO_CONSULTA);
 
         String numPer =
                 requestExampleProvider.getRuleValue(endpointPath, "gruposEmpresasLineasCreditosComprometida[0].numPer");
@@ -56,8 +63,8 @@ public class LineaCreditoComprometidaHandler implements SpecialRequestHandler {
                         "gruposEmpresasLineasCreditosComprometida[0].id.numCiRif");
 
         // ✅ defaults si no vienen del rule
-        body.put("tipoConsulta",
-                requestExampleProvider.parseValuePublic("tipoConsulta",
+        body.put(TIPO_CONSULTA,
+                requestExampleProvider.parseValuePublic(TIPO_CONSULTA,
                         tipoConsulta != null ? tipoConsulta : "1"));
 
         Map<String, Object> id = new LinkedHashMap<>();
@@ -79,6 +86,6 @@ public class LineaCreditoComprometidaHandler implements SpecialRequestHandler {
         body.put("gruposEmpresasLineasCreditosComprometida",
                 new Object[]{grupo});
 
-        example.put("bodyEntradaConsultarLineaCreditoComprometida", body);
+        example.put(BODY_ENTRADA, body);
     }
 }
