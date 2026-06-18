@@ -26,7 +26,7 @@ public class ClassIndexer {
         String name = clazz.getNameAsString();
 
         // 🔥 LOG
-        log.info("Registrando clase: {}", name);
+        //log.info("Registrando clase: {}", name);
 
         classMap.put(name, clazz);
     }
