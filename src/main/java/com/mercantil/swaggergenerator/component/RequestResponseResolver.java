@@ -11,286 +11,218 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 @Component
 public class RequestResponseResolver {
 
-    // =========================================================
-    // ✅ RESOLVE REQUEST
-    // =========================================================
-    @SuppressWarnings("unchecked")
-    public Map<String, String> resolveRequestBodies(
-            MethodDeclaration method,
-            Map<String, Map<String, Object>> schemaMap) {
-
-        Map<String, String> result =
-                new LinkedHashMap<>();
-
-        String requestType = null;
-        String bodyType = null;
-        String bodyFieldName = null;
-
-        // =====================================================
-        // ✅ BUSCAR REQUEST<T>
-        // =====================================================
-        Optional<String> requestOpt =
-                method.getParameters()
-                        .stream()
-                        .map(p -> p.getType().asString())
-                        .filter(t -> t.startsWith("Request"))
-                        .findFirst();
-
-        if (requestOpt.isPresent()) {
-
-            requestType = requestOpt.get();
-
-            Map<String, Object> reqSchema =
-                    schemaMap.get(requestType);
-
-            // =================================================
-            // ✅ KEY NORMALIZADO DESDE REQUEST TYPE
-            // 👉 Evita ambigüedad entre Venta / Inversion
-            // =================================================
-            String endpointKey = requestType
-                    .replace("Request", "")
-                    .replace("BodyEntrada", "")
-                    .replaceAll("([a-z])([A-Z])", "$1-$2")
-                    .replace("-", "")
-                    .toLowerCase();
-
-            // =================================================
-            // ✅ BUSCAR bodyEntrada*
-            // =================================================
-            if (reqSchema != null) {
-
-                Object propsObj =
-                        reqSchema.get("properties");
-
-                if (propsObj instanceof Map) {
-
-                    Map<String, Object> props =
-                            (Map<String, Object>) propsObj;
-
-                    for (Map.Entry<String, Object> entry
-                            : props.entrySet()) {
-
-                        String key =
-                                entry.getKey();
-
-                        if (!key.toLowerCase()
-                                .startsWith("bodyentrada")) {
-
-                            continue;
-                        }
-
-                        Object value =
-                                entry.getValue();
-
-                        if (!(value instanceof Map)) {
-
-                            continue;
-                        }
-
-                        Map<String, Object> refObj =
-                                (Map<String, Object>) value;
-
-                        if (!refObj.containsKey("$ref")) {
-
-                            continue;
-                        }
-
-                        String ref =
-                                refObj.get("$ref")
-                                        .toString();
+	// =========================================================
+	// ✅ RESOLVE REQUEST
+	// =========================================================
+	@SuppressWarnings("unchecked")
+	public Map<String, String> resolveRequestBodies(MethodDeclaration method,
+			Map<String, Map<String, Object>> schemaMap) {
 
-                        String refType =
-                                ref.substring(
-                                        ref.lastIndexOf("/") + 1);
+		Map<String, String> result = new LinkedHashMap<>();
 
-                        // =================================================
-                        // ✅ ✅ FILTRO CRÍTICO (FIX REAL)
-                        // =================================================
-                        String normalizedRef =
-                                refType
-                                        .replace("BodyEntrada", "")
-                                        .replaceAll("([a-z])([A-Z])", "$1-$2")
-                                        .replace("-", "")
-                                        .toLowerCase();
+		String requestType = null;
+		String bodyType = null;
+		String bodyFieldName = null;
 
-                        if (!normalizedRef.endsWith(endpointKey)) {
-                            continue;
-                        }
+		// =====================================================
+		// ✅ BUSCAR REQUEST<T>
+		// =====================================================
+		Optional<String> requestOpt = method.getParameters().stream().map(p -> p.getType().asString())
+				.filter(t -> t.startsWith("Request")).findFirst();
 
-                        bodyType = refType;
-                        bodyFieldName = key;
+		if (requestOpt.isPresent()) {
 
-                        break;
-                    }
-                }
-            }
-        }
+			requestType = requestOpt.get();
 
-        // =====================================================
-        // ✅ FALLBACK REQUEST
-        // =====================================================
-        if (bodyType == null
-                && requestType != null) {
+			Map<String, Object> reqSchema = schemaMap.get(requestType);
 
-            bodyType =
-                    requestType.replace(
-                            "Request",
-                            "BodyEntrada");
+			// =================================================
+			// ✅ KEY NORMALIZADO DESDE REQUEST TYPE
+			// 👉 Evita ambigüedad entre Venta / Inversion
+			// =================================================
+			String endpointKey = requestType.replace("Request", "").replace("BodyEntrada", "")
+					.replaceAll("([a-z])([A-Z])", "$1-$2").replace("-", "").toLowerCase();
 
-            bodyFieldName =
-                    decapitalize(bodyType);
-        }
+			// =================================================
+			// ✅ BUSCAR bodyEntrada*
+			// =================================================
+			if (reqSchema != null) {
 
-        // =====================================================
-        // ✅ RESULT
-        // =====================================================
-        if (bodyFieldName != null
-                && bodyType != null) {
+				Object propsObj = reqSchema.get("properties");
 
-            result.put(
-                    bodyFieldName,
-                    bodyType);
-        }
+				if (propsObj instanceof Map) {
 
-        return result;
-    }
+					Map<String, Object> props = (Map<String, Object>) propsObj;
 
-    // =========================================================
-    // ✅ RESOLVE RESPONSE
-    // ✅ FIX CONTAMINACIÓN ENTRE ENDPOINTS
-    // =========================================================
-    @SuppressWarnings("unchecked")
-    public Map<String, String> resolveResponseBodies(
-            String responseType,
-            String operationName,
-            Map<String, Map<String, Object>> schemaMap) {
+					for (Map.Entry<String, Object> entry : props.entrySet()) {
 
-        Map<String, String> bodies =
-                new LinkedHashMap<>();
+						String key = entry.getKey();
 
-        Map<String, Object> responseSchema =
-                schemaMap.get(responseType);
+						if (!key.toLowerCase().startsWith("bodyentrada")) {
 
-        if (responseSchema != null) {
+							continue;
+						}
 
-            Object propsObj =
-                    responseSchema.get("properties");
+						Object value = entry.getValue();
 
-            if (propsObj instanceof Map) {
+						if (!(value instanceof Map)) {
 
-                Map<String, Object> props =
-                        (Map<String, Object>) propsObj;
+							continue;
+						}
 
-                for (Map.Entry<String, Object> entry
-                        : props.entrySet()) {
+						Map<String, Object> refObj = (Map<String, Object>) value;
 
-                    String key =
-                            entry.getKey();
+						if (!refObj.containsKey("$ref")) {
 
-                    if (!key.toLowerCase()
-                            .startsWith("bodysalida")) {
+							continue;
+						}
 
-                        continue;
-                    }
+						String ref = refObj.get("$ref").toString();
 
-                    Object value =
-                            entry.getValue();
+						String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
-                    if (!(value instanceof Map)) {
+						// =================================================
+						// ✅ ✅ FILTRO CRÍTICO (FIX REAL)
+						// =================================================
+						String normalizedRef = refType.replace("BodyEntrada", "").replaceAll("([a-z])([A-Z])", "$1-$2")
+								.replace("-", "").toLowerCase();
 
-                        continue;
-                    }
+						if (!normalizedRef.endsWith(endpointKey)) {
+							continue;
+						}
 
-                    Map<String, Object> refObj =
-                            (Map<String, Object>) value;
+						bodyType = refType;
+						bodyFieldName = key;
 
-                    if (!refObj.containsKey("$ref")) {
+						break;
+					}
+				}
+			}
+		}
 
-                        continue;
-                    }
+		// =====================================================
+		// ✅ FALLBACK REQUEST
+		// =====================================================
+		if (bodyType == null && requestType != null) {
 
-                    String ref =
-                            refObj.get("$ref")
-                                    .toString();
+			bodyType = requestType.replace("Request", "BodyEntrada");
 
-                    String refType =
-                            ref.substring(
-                                    ref.lastIndexOf("/") + 1);
+			bodyFieldName = decapitalize(bodyType);
+		}
 
-                    bodies.put(
-                            key,
-                            refType);
-                }
-            }
-        }
+		// =====================================================
+		// ✅ RESULT
+		// =====================================================
+		if (bodyFieldName != null && bodyType != null) {
 
-        // =====================================================
-        // ✅ FALLBACK CONTROLADO
-        // =====================================================
-        if (bodies.isEmpty()
-                && responseSchema == null) {
+			result.put(bodyFieldName, bodyType);
+		}
 
-            String cleanedOperation =
-                    capitalize(operationName);
+		return result;
+	}
 
-            String bodyClass =
-                    "BodySalida"
-                            + cleanedOperation;
+	// =========================================================
+	// ✅ RESOLVE RESPONSE
+	// ✅ FIX CONTAMINACIÓN ENTRE ENDPOINTS
+	// =========================================================
+	@SuppressWarnings("unchecked")
+	public Map<String, String> resolveResponseBodies(String responseType, String operationName,
+			Map<String, Map<String, Object>> schemaMap) {
 
-            String bodyField =
-                    decapitalize(bodyClass);
+		Map<String, String> bodies = new LinkedHashMap<>();
 
-            bodies.put(
-                    bodyField,
-                    bodyClass);
+		Map<String, Object> responseSchema = schemaMap.get(responseType);
 
-            schemaMap.computeIfAbsent(
+		if (responseSchema != null) {
 
-                    bodyClass,
+			Object propsObj = responseSchema.get("properties");
 
-                    k -> Map.of(
+			if (propsObj instanceof Map) {
 
-                            "type",
-                            "object",
+				Map<String, Object> props = (Map<String, Object>) propsObj;
 
-                            "properties",
-                            new LinkedHashMap<>()));
-        }
+				for (Map.Entry<String, Object> entry : props.entrySet()) {
 
-        return bodies;
-    }
+					String key = entry.getKey();
 
-    // =========================================================
-    // ✅ CAPITALIZE
-    // =========================================================
-    private String capitalize(
-            String str) {
+					if (!key.toLowerCase().startsWith("bodysalida")) {
 
-        if (str == null
-                || str.isBlank()) {
+						continue;
+					}
 
-            return "";
-        }
+					Object value = entry.getValue();
 
-        return Character.toUpperCase(
-                str.charAt(0))
-                + str.substring(1);
-    }
+					if (!(value instanceof Map)) {
 
-    // =========================================================
-    // ✅ DECAPITALIZE
-    // =========================================================
-    private String decapitalize(
-            String str) {
+						continue;
+					}
 
-        if (str == null
-                || str.isBlank()) {
+					Map<String, Object> refObj = (Map<String, Object>) value;
 
-            return "";
-        }
+					if (!refObj.containsKey("$ref")) {
 
-        return Character.toLowerCase(
-                str.charAt(0))
-                + str.substring(1);
-    }
+						continue;
+					}
+
+					String ref = refObj.get("$ref").toString();
+
+					String refType = ref.substring(ref.lastIndexOf("/") + 1);
+
+					bodies.put(key, refType);
+				}
+			}
+		}
+
+		// =====================================================
+		// ✅ FALLBACK CONTROLADO
+		// =====================================================
+		if (bodies.isEmpty() && responseSchema == null) {
+
+			String cleanedOperation = capitalize(operationName);
+
+			String bodyClass = "BodySalida" + cleanedOperation;
+
+			String bodyField = decapitalize(bodyClass);
+
+			bodies.put(bodyField, bodyClass);
+
+			schemaMap.computeIfAbsent(
+
+					bodyClass,
+
+					k -> Map.of(
+
+							"type", "object",
+
+							"properties", new LinkedHashMap<>()));
+		}
+
+		return bodies;
+	}
+
+	// =========================================================
+	// ✅ CAPITALIZE
+	// =========================================================
+	private String capitalize(String str) {
+
+		if (str == null || str.isBlank()) {
+
+			return "";
+		}
+
+		return Character.toUpperCase(str.charAt(0)) + str.substring(1);
+	}
+
+	// =========================================================
+	// ✅ DECAPITALIZE
+	// =========================================================
+	private String decapitalize(String str) {
+
+		if (str == null || str.isBlank()) {
+
+			return "";
+		}
+
+		return Character.toLowerCase(str.charAt(0)) + str.substring(1);
+	}
 }

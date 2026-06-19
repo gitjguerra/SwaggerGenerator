@@ -50,72 +50,6 @@
 
 	</api>
 
-	<api path="/persona/consultar/autorizaciones-cliente">
-
-		<!-- ===================================================== -->
-		<!-- ✅ REQUEST -->
-		<!-- ===================================================== -->
-		<request>
-
-			<field name="codPais" value="VEN" />
-			<field name="tipoId" value="V" />
-			<field name="nroId" value="6820968" />
-			<field name="nroPer" value="0" />
-			<field name="tipoAutori" value="2" />
-			<field name="codProduc" value="24094552" />
-			<field name="codTipoProduc" value="CTAHO" />
-
-		</request>
-
-		<!-- ===================================================== -->
-		<!-- ✅ RESPONSE -->
-		<!-- ===================================================== -->
-		<response>
-
-			<field name="bodySalidaAutorizacionesCliente.nroAutori"
-				value="14117765" />
-
-			<field name="bodySalidaAutorizacionesCliente.fchFinAutori"
-				value="0" />
-
-			<field name="bodySalidaAutorizacionesCliente.idAutori"
-				value="" />
-
-			<field name="bodySalidaAutorizacionesCliente.fchSolicAutori"
-				value="20260422" />
-
-			<field name="bodySalidaAutorizacionesCliente.codTipoAutori"
-				value="2" />
-
-			<field name="bodySalidaAutorizacionesCliente.fchInicioAutori"
-				value="0" />
-
-			<field name="bodySalidaAutorizacionesCliente.carnetFnarioCapt"
-				value="9999999999" />
-
-			<field name="bodySalidaAutorizacionesCliente.statusAutori"
-				value="" />
-
-			<field name="bodySalidaAutorizacionesCliente.unidadOrgCapt"
-				value="999999" />
-
-			<field name="bodySalidaAutorizacionesCliente.indicAutoriClte"
-				value="1" />
-
-			<field name="bodySalidaAutorizacionesCliente.fchActualiz"
-				value="0" />
-
-			<field name="bodySalidaAutorizacionesCliente.codCanalAutori"
-				value="6" />
-
-			<!-- Arrays vacíos -->
-			<!-- autorizaciones[] -->
-			<!-- paisesDestinos[] -->
-
-		</response>
-
-	</api>
-
 	<!-- ===================================================== -->
 	<!-- ✅ CONSULTAR SALDO SAFE -->
 	<!-- ===================================================== -->
@@ -1269,6 +1203,171 @@
 			<field name="bodySalidaConsultarGrupoEconomico.codUnidadNeg" value="0"/>
 
 		</response>
+
+	</api>
+
+    <!-- ===================================================== -->
+    <!-- ✅ PERSONA - CONSULTAR DATOS EMPLEADO -->
+    <!-- ===================================================== -->
+    <api path="/persona/consultar/datos-empleado">
+
+        <request>
+
+            <field name="carnetEmpl" value="716316"/>
+
+        </request>
+
+        <response>
+
+            <!-- ✅ BODY -->
+            <field name="bodySalidaConsultarDatosEmpleado.nomEmpresaEmpl"
+                value="BANCO MERCANTIL"/>
+
+            <field name="bodySalidaConsultarDatosEmpleado.nomCargoEmpl"
+                value="EJECUTIVO DE RELACION"/>
+
+            <field name="bodySalidaConsultarDatosEmpleado.codUnidadSuper"
+                value="4130"/>
+
+            <field name="bodySalidaConsultarDatosEmpleado.rolEmpl"
+                value="P"/>
+
+            <field name="bodySalidaConsultarDatosEmpleado.estatusEmpl"
+                value="1"/>
+
+            <field name="bodySalidaConsultarDatosEmpleado.codUnidadEmpl"
+                value="4151"/>
+
+            <field name="bodySalidaConsultarDatosEmpleado.nomEmpl"
+                value="LO BOSCO FALASCHI,GIANNI PIERO"/>
+
+            <field name="bodySalidaConsultarDatosEmpleado.nomUnidadEmpl"
+                value="COORD. CORPORATIVA II"/>
+
+            <field name="bodySalidaConsultarDatosEmpleado.numIdEmpl"
+                value="10353046"/>
+
+            <field name="bodySalidaConsultarDatosEmpleado.tipoIdEmpl"
+                value="V"/>
+
+            <field name="bodySalidaConsultarDatosEmpleado.codCargoEmpl"
+                value="7509"/>
+
+            <field name="bodySalidaConsultarDatosEmpleado.carnetRespbUnidad"
+                value="0"/>
+
+            <field name="bodySalidaConsultarDatosEmpleado.codDepto"
+                value="4133"/>
+
+            <field name="bodySalidaConsultarDatosEmpleado.carnetRespbUnidadSup"
+                value="228737"/>
+
+            <field name="bodySalidaConsultarDatosEmpleado.codEmpresaEmpl"
+                value="1"/>
+
+        </response>
+
+    </api>
+
+
+   <!-- ===================================================== -->
+    <!-- ✅ PERSONA - CONSULTAR AUTORIZACIONES CLIENTE -->
+    <!-- ===================================================== -->
+    <api path="/persona/consultar/autorizaciones-cliente">
+
+        <request>
+
+            <field name="codPais" value="VEN"/>
+            <field name="tipoId" value="V"/>
+            <field name="nroId" value="6820968"/>
+            <field name="nroPer" value="0"/>
+            <field name="tipoAutori" value="2"/>
+            <field name="codProduc" value="24094552"/>
+            <field name="codTipoProduc" value="CTAHO"/>
+
+        </request>
+
+        <response>
+
+            <field name="bodySalidaAutorizacionesCliente.nroAutori"
+                value="14117765"/>
+
+            <field name="bodySalidaAutorizacionesCliente.fchFinAutori"
+                value="0"/>
+
+            <field name="bodySalidaAutorizacionesCliente.idAutori"
+                value=""/>
+
+            <field name="bodySalidaAutorizacionesCliente.fchSolicAutori"
+                value="20260422"/>
+
+            <field name="bodySalidaAutorizacionesCliente.codTipoAutori"
+                value="2"/>
+
+            <field name="bodySalidaAutorizacionesCliente.fchInicioAutori"
+                value="0"/>
+
+            <field name="bodySalidaAutorizacionesCliente.carnetFnarioCapt"
+                value="9999999999"/>
+
+            <field name="bodySalidaAutorizacionesCliente.statusAutori"
+                value=""/>
+
+            <field name="bodySalidaAutorizacionesCliente.unidadOrgCapt"
+                value="999999"/>
+
+            <field name="bodySalidaAutorizacionesCliente.indicAutoriClte"
+                value="1"/>
+
+            <field name="bodySalidaAutorizacionesCliente.fchActualiz"
+                value="0"/>
+
+            <field name="bodySalidaAutorizacionesCliente.codCanalAutori"
+                value="6"/>
+
+            <!-- autorizaciones[] -->
+            <!-- paisesDestinos[] -->
+
+        </response>
+
+    </api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ PERSONA - ANULAR AUTORIZACIONES CLIENTE -->
+	<!-- ===================================================== -->
+	<api path="/persona/anular/autorizaciones-cliente">
+
+		<request>
+
+			<field name="codPais" value="VEN"/>
+			<field name="tipoId" value="V"/>
+			<field name="nroId" value="12892355"/>
+			<field name="nroPer" value="0"/>
+			<field name="tipoAutori" value="7"/>
+			<field name="nroAutori" value="12659169"/>
+
+		</request>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ PERSONA - ACTUALIZAR LOCALIZACION NACIONAL COMPACTADA -->
+	<!-- ===================================================== -->	
+	<api path="/persona/actualizar/localizacion-nacional-compactada">
+
+		<request>
+
+			<field name="codPais" value="VEN"/>
+			<field name="tipoId" value="V"/>
+			<field name="nroId" value="25401493"/>
+			<field name="nroPer" value="9816720"/>
+			<field name="codLocaliza" value="3472"/>
+			<field name="tipoLocaliza" value="1"/>
+			<field name="medio" value="1"/>
+
+			<field name="direccCompact[0]" value="123"/>
+
+		</request>
 
 	</api>
 

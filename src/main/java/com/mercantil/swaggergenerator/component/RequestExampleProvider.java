@@ -87,6 +87,7 @@ public class RequestExampleProvider {
 	// =========================================================
 	// ✅ BUILD RECURSIVO
 	// =========================================================
+
 	private Object buildExampleFromSchema(String endpointPath, String type, Map<String, Map<String, Object>> schemaMap,
 			Set<String> visited) {
 
@@ -152,7 +153,17 @@ public class RequestExampleProvider {
 
 					} else {
 
-						example.put(jsonName, List.of(mockValue((String) itemMap.get("type"))));
+						// ✅ NUEVO: buscar valor definido en rules.xml
+						String arrayRuleValue = ruleEngine.getRequestValue(endpointPath, jsonName + "[0]");
+
+						if (arrayRuleValue != null) {
+
+							example.put(jsonName, List.of(arrayRuleValue));
+
+						} else {
+
+							example.put(jsonName, List.of(mockValue((String) itemMap.get("type"))));
+						}
 					}
 				}
 

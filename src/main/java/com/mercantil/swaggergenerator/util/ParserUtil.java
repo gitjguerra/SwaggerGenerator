@@ -17,7 +17,7 @@ public class ParserUtil {
 
 	private static final String OBJECT = "Object";
 	private static final String JSON_PROPERTY = "JsonProperty";
-	
+
 	// =========================================================
 	// ✅ JSON PROPERTY
 	// =========================================================
@@ -81,25 +81,21 @@ public class ParserUtil {
 
 								.stream()
 
-								.filter(c ->
+								.filter(c -> c.getAnnotationByName("JsonCreator").isPresent())
 
-								c.getAnnotationByName("JsonCreator")
+								.flatMap(c -> c.getParameters().stream())
 
-										.isPresent())
+								.filter(p -> {
 
-								.flatMap(c ->
+									String paramName = p.getNameAsString().toLowerCase();
 
-								c.getParameters()
+									String fieldName = defaultName.toLowerCase();
 
-										.stream())
+									return paramName.equals(fieldName) || paramName.contains(fieldName)
+											|| fieldName.contains(paramName);
+								})
 
-								.filter(p ->
-
-								p.getNameAsString().equals(defaultName))
-
-								.map(p ->
-
-								p.getAnnotationByName(JSON_PROPERTY))
+								.map(p -> p.getAnnotationByName(JSON_PROPERTY))
 
 								.filter(Optional::isPresent)
 
@@ -112,6 +108,7 @@ public class ParserUtil {
 								.findFirst());
 
 		return constructorValue.orElse(defaultName);
+
 	}
 
 	// =========================================================
