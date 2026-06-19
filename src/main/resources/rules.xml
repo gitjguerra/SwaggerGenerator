@@ -1394,14 +1394,14 @@
 			<field name="tipoId" value="V"/>
 			<field name="nroId" value="6820968"/>
 			<field name="nroPer" value="0"/>
-
-			<field name="bodySalidaActualizarTelefonoCliente.telefonos.tipoTelf" value="1"/>
-			<field name="bodySalidaActualizarTelefonoCliente.telefonos.codArea" value="00580212"/>
-			<field name="bodySalidaActualizarTelefonoCliente.telefonos.nroTelf" value="0008529685"/>
-			<field name="bodySalidaActualizarTelefonoCliente.telefonos.nroExt" value=""/>
-			<field name="bodySalidaActualizarTelefonoCliente.telefonos.nroSuc" value="0"/>
-			<field name="bodySalidaActualizarTelefonoCliente.telefonos.codAreaPais" value="0058"/>
-			<field name="bodySalidaActualizarTelefonoCliente.telefonos.codLocalizaTelf" value="14345566"/>
+						
+			<field name="tipoTelf" value="1"/>
+			<field name="codArea" value="00580212"/>
+			<field name="nroTelf" value="0008529685"/>
+			<field name="nroExt" value=""/>
+			<field name="nroSuc" value="0"/>
+			<field name="codAreaPais" value="0058"/>
+			<field name="codLocalizaTelf" value="14345566"/>
 
 		</request>
 
