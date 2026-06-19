@@ -193,22 +193,26 @@ public class RequestExampleProvider {
 	// =========================================================
 	// ✅ RESOLVER JSON PROPERTY
 	// =========================================================
+
 	private String resolveJsonName(String className, String fieldName) {
 
 		return classIndexer.findClass(className)
 
-				.map(clazz -> clazz.getConstructors().stream().flatMap(c -> c.getParameters().stream())
+				.map(clazz -> clazz.getConstructors().stream()
+
+						.flatMap(c -> c.getParameters().stream())
+
 						.filter(param -> {
+
 							String p = param.getNameAsString().toLowerCase();
 							String f = fieldName.toLowerCase();
 
-							if (p.equals(f))
+							// ✅ Match exacto
+							if (p.equals(f)) {
 								return true;
-							if (p.contains(f))
-								return true;
-							if (f.contains(p))
-								return true;
+							}
 
+							// ✅ Match normalizado
 							String np = p.replace("codigo", "").replace("numero", "").replace("identificador", "")
 									.replace("tipo", "");
 
@@ -217,14 +221,19 @@ public class RequestExampleProvider {
 							return np.equals(nf);
 						})
 
-						.map(param -> param.getAnnotationByName("JsonProperty")).flatMap(java.util.Optional::stream)
+						.map(param -> param.getAnnotationByName("JsonProperty"))
+
+						.flatMap(java.util.Optional::stream)
+
 						.map(ann -> {
 
 							if (ann.isSingleMemberAnnotationExpr()) {
+
 								return ann.asSingleMemberAnnotationExpr().getMemberValue().toString().replace("\"", "");
 							}
 
 							if (ann.isNormalAnnotationExpr()) {
+
 								return ann.asNormalAnnotationExpr().getPairs().stream()
 										.filter(pair -> "value".equals(pair.getNameAsString()))
 										.map(pair -> pair.getValue().toString().replace("\"", "")).findFirst()
@@ -234,7 +243,9 @@ public class RequestExampleProvider {
 							return fieldName;
 						})
 
-						.findFirst().orElse(fieldName))
+						.findFirst()
+
+						.orElse(fieldName))
 
 				.orElse(fieldName);
 	}

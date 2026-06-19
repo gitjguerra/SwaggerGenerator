@@ -226,6 +226,12 @@ public class ExampleGenerator {
 		// =====================================================
 		Map<String, Object> props = (Map<String, Object>) propsObj;
 
+
+if ("BodyEntradaActualizarRoles".equals(type)) {
+    System.out.println("PROPS = " + props.keySet());
+}
+
+
 		props.forEach((key, val) -> {
 
 			if (!(val instanceof Map)) {
@@ -235,7 +241,7 @@ public class ExampleGenerator {
 			Map<String, Object> prop = (Map<String, Object>) val;
 
 			// ✅ CLAVE: normalizar el key del schema directamente
-			String jsonKey = normalizeJsonKey(key);
+			String jsonKey = key != null ? key : "";
 
 			// =================================================
 			// ✅ FULL PATH
@@ -493,7 +499,10 @@ public class ExampleGenerator {
 							// ✅ 2. resolver base
 							String base = parserUtil.resolveJsonName(f, fieldName);
 
-							// ✅ 3. FORZAR NORMALIZACIÓN SIEMPRE
+							if (!base.equals(fieldName)) {
+								return base;
+							}
+
 							return normalizeJsonKey(base);
 
 						}).orElse(normalizeJsonKey(fieldName)))
@@ -735,20 +744,8 @@ public class ExampleGenerator {
 				// =====================================================
 				// ✅ MATCH FLEXIBLE (CRÍTICO)
 				// =====================================================
-				String normalizedF = f.replace("cod", "").replace("nro", "").replace("num", "").replace("id", "")
-						.replace("tipo", "")
-						// ✅ FIX CRÍTICO
-						.replace("banco", "bco").trim();
-
-				String normalizedP = p.replace("codigo", "").replace("numero", "").replace("identificador", "")
-						.replace("tipo", "")
-						// ✅ FIX CRÍTICO
-						.replace("banco", "bco").trim();
-
-				boolean match = normalizedF.equals(normalizedP)
-						|| normalizedF.replace("bco", "").equals(normalizedP.replace("bco", ""))
-						|| normalizedF.contains(normalizedP) || normalizedP.contains(normalizedF) || f.equals(p);
-
+				boolean match = f.equals(p);
+				
 				if (!match) {
 					continue;
 				}
@@ -791,7 +788,6 @@ public class ExampleGenerator {
 			return name;
 		}
 
-		// ✅ SPLIT ROBUSTO (MUY IMPORTANTE)
 		String[] tokens = name.replaceAll("([A-Z])", " $1").trim().toLowerCase().split("\\s+");
 
 		StringBuilder result = new StringBuilder();
@@ -802,14 +798,20 @@ public class ExampleGenerator {
 
 			String normalized = AbbreviationUtil.getAbbreviations().getOrDefault(token, token);
 
-			if (i == 0) {
+			if (normalized == null || normalized.isBlank()) {
+				continue;
+			}
+
+			if (result.length() == 0) {
 				result.append(normalized);
 			} else {
 				result.append(Character.toUpperCase(normalized.charAt(0))).append(normalized.substring(1));
 			}
 		}
 
-		return result.toString();
+		String finalName = result.toString();
+
+		return finalName.isBlank() ? name : finalName;
 	}
 
 }

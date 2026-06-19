@@ -91,8 +91,7 @@ public class ParserUtil {
 
 									String fieldName = defaultName.toLowerCase();
 
-									return paramName.equals(fieldName) || paramName.contains(fieldName)
-											|| fieldName.contains(paramName);
+									return paramName.equals(fieldName);
 								})
 
 								.map(p -> p.getAnnotationByName(JSON_PROPERTY))

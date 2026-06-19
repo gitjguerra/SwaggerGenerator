@@ -25,19 +25,19 @@ import com.mercantil.swaggergenerator.util.TypeUtil;
 public class SchemaBuilder {
 
 	private static final Logger log = LogManager.getLogger(SchemaBuilder.class);
-	
+
 	private static final String EXAMPLE = "example";
 	private static final String IS_REQUIRED = "required";
 	private static final String FORMAT = "format";
 	private static final String SCHEMAS = "#/components/schemas/";
 	private static final String STRING = "String";
 	private static final String PROPERTIES = "properties";
-	
+
 	private final TypeUtil typeUtil;
 	private final ParserUtil parserUtil;
 	private final ClassIndexer classIndexer;
-	
-	public SchemaBuilder(TypeUtil typeUtil, ParserUtil parserUtil,ClassIndexer classIndexer) {
+
+	public SchemaBuilder(TypeUtil typeUtil, ParserUtil parserUtil, ClassIndexer classIndexer) {
 		this.typeUtil = typeUtil;
 		this.parserUtil = parserUtil;
 		this.classIndexer = classIndexer;
@@ -172,14 +172,17 @@ public class SchemaBuilder {
 								.forEach(vari -> {
 
 									String name = parserUtil.resolveJsonName(field, vari.getNameAsString());
-									if (!isWrapperName(name)) {
-										name = normalizeJsonKey(name);
-									}
 
-									// ✅ evitar propiedades inválidas
-									if (name == null || name.isBlank()) {
+									boolean hasExplicitJsonName = field.getAnnotationByName("SerializedName")
+											.isPresent() || field.getAnnotationByName("JsonProperty").isPresent();
 
-										return;
+									if (!hasExplicitJsonName && !isWrapperName(name)) {
+
+										String normalized = normalizeJsonKey(name);
+
+										if (!normalized.isBlank()) {
+											name = normalized;
+										}
 									}
 
 									Map<String, Object> prop = new LinkedHashMap<>();
@@ -352,7 +355,7 @@ public class SchemaBuilder {
 										}
 
 										// ✅ NO flatten si el campo tiene JsonProperty (estructura explícita)
-										boolean hasExplicitJsonName = field.getAnnotationByName("JsonProperty")
+										hasExplicitJsonName = field.getAnnotationByName("JsonProperty")
 												.isPresent()
 												|| parserUtil.resolveJsonName(field, vari.getNameAsString()) != null;
 
@@ -959,14 +962,20 @@ public class SchemaBuilder {
 
 			String normalized = AbbreviationUtil.getAbbreviations().getOrDefault(token, token);
 
-			if (i == 0) {
+			if (normalized == null || normalized.isBlank()) {
+				continue;
+			}
+
+			if (result.length() == 0) {
 				result.append(normalized);
 			} else {
 				result.append(Character.toUpperCase(normalized.charAt(0))).append(normalized.substring(1));
 			}
 		}
 
-		return result.toString();
+		String finalName = result.toString();
+
+		return finalName.isBlank() ? name : finalName;
 	}
 
 	private boolean isWrapperName(String name) {

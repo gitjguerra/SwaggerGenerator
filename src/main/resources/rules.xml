@@ -1371,4 +1371,48 @@
 
 	</api>
 
+	<!-- ===================================================== -->
+	<!-- ✅ PERSONA - ACTUALIZAR ROLES -->
+	<!-- ===================================================== -->
+	<api path="/persona/actualizar/roles">
+
+		<request>
+
+			<field name="codPais" value="VEN"/>
+			<field name="tipoAccion" value="1"/>
+			<field name="tipoId" value="V"/>
+			<field name="nroId" value="6174167"/>
+			<field name="nroPer" value="0"/>
+			<field name="rol" value="7087"/>
+			<field name="tipAccion" value="2"/>
+			<field name="codTrans" value="0"/>
+			<field name="fchRolIni" value="0"/>
+			<field name="fchRolFin" value="20240315"/>
+
+		</request>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ PERSONA - actualizar referido -->
+	<!-- ===================================================== -->
+	<api path="/persona/actualizar/rj-referido">
+
+		<request>
+
+			<field name="tipoSolic">2</field>
+			<field name="codPais">VEN</field>
+			<field name="tipoId">J</field>
+			<field name="nroId">411473529</field>
+			<field name="nroCta">1699225788</field>
+			<field name="codSegm">J4</field>
+			<field name="codSubSegm">1</field>
+			<field name="codCartera">13</field>
+			<field name="carnetEjecutRel">484512</field>
+			<field name="codGrupoClte">1624</field>
+
+		</request>
+
+	</api>
+
 </rules>
