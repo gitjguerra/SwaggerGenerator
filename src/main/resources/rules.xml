@@ -36,14 +36,14 @@
 			<field name="bodySalidaConsultarDatosBasicos.segundoNom"
 				value="Carlos" />
 
-			<field name="bodyEntradaConsultarDatosBasicos.nroPer" value="0" />
+			<field name="bodySalidaConsultarDatosBasicos.nroPer" value="0" />
 
-			<field name="bodyEntradaConsultarDatosBasicos.codPais"
+			<field name="bodySalidaConsultarDatosBasicos.codPais"
 				value="VEN" />
 
-			<field name="bodyEntradaConsultarDatosBasicos.tipoId" value="V" />
+			<field name="bodySalidaConsultarDatosBasicos.tipoId" value="V" />
 
-			<field name="bodyEntradaConsultarDatosBasicos.nroId"
+			<field name="bodySalidaConsultarDatosBasicos.nroId"
 				value="15518542" />
 
 		</response>
@@ -623,19 +623,6 @@
 
 		</request>
 
-		<!-- ✅ ✅ NUEVO RESPONSE -->
-		<response>
-
-			<field name="headerSalida.tipoMensaje" value="I"/>
-			<field name="headerSalida.mensajeProgramadorSistema" value="OK"/>
-			<field name="headerSalida.codigoMensajeProgramador" value="0000"/>
-			<field name="headerSalida.mensajeUsuario" value="OK"/>
-			<field name="headerSalida.codigoMensajeUsuario" value="0000"/>
-			<field name="headerSalida.fechaSalidaMensaje" value="20260612"/>
-			<field name="headerSalida.horaSalidaMensaje" value="082944"/>
-
-		</response>
-
 	</api>
 	
 	<!-- ===================================================== -->
@@ -660,15 +647,6 @@
 		<!-- ✅ RESPONSE -->
 		<!-- ================================================= -->
 		<response>
-
-			<!-- ✅ HEADER SALIDA -->
-			<field name="headerSalida.tipoMensaje" value="I"/>
-			<field name="headerSalida.mensajeProgramadorSistema" value="TRANSACCION SATISFACTORIA"/>
-			<field name="headerSalida.codigoMensajeProgramador" value="0000"/>
-			<field name="headerSalida.mensajeUsuario" value="TRANSACCION SATISFACTORIA"/>
-			<field name="headerSalida.codigoMensajeUsuario" value="0000"/>
-			<field name="headerSalida.fechaSalidaMensaje" value="20260612"/>
-			<field name="headerSalida.horaSalidaMensaje" value="910413"/>
 
 			<!-- ✅ BODY SALIDA -->
 			<field name="bodySalidaConsultarIndiceInversion.mtoUnidadValorCdtoSalida" value="2.0385072"/>
@@ -1085,17 +1063,7 @@
 
 		</request>
 
-		<!-- ✅ ✅ RESPONSE -->
 		<response>
-
-			<!-- ✅ HEADER SALIDA -->
-			<field name="headerSalida.tipoMensaje" value="W"/>
-			<field name="headerSalida.mensajeProgramadorSistema" value="OPERACION EXITOSA"/>
-			<field name="headerSalida.codigoMensajeProgramador" value="0000"/>
-			<field name="headerSalida.mensajeUsuario" value="TRANSACCION REALIZADA SATISFACTORIAMENTE"/>
-			<field name="headerSalida.codigoMensajeUsuario" value="0000"/>
-			<field name="headerSalida.fechaSalidaMensaje" value="20260615"/>
-			<field name="headerSalida.horaSalidaMensaje" value="104610"/>
 
 			<!-- ✅ BODY -->
 			<field name="bodySalidaValidarClienteCompraVentaDivisas.factorCambioDolar" value="587.4059"/>
@@ -1119,18 +1087,18 @@
 		<request>
 
 			<!-- ✅ NIVEL ROOT BODY -->
-			<field name="bodyEntradaConsultarLineaCreditoComprometida.tipoConsulta"
+			<field name="tipoConsulta"
 				   value="1"/>
 
 			<!-- ✅ ARRAY -->
-			<field name="bodyEntradaConsultarLineaCreditoComprometida.gruposEmpresasLineasCreditosComprometida[0].numPer"
+			<field name="gruposEmpresasLineasCreditosComprometida[0].numPer"
 				   value="3148421"/>
 
 			<!-- ✅ OBJETO ANIDADO -->
-			<field name="bodyEntradaConsultarLineaCreditoComprometida.gruposEmpresasLineasCreditosComprometida[0].id.nacRifGrupo"
+			<field name="gruposEmpresasLineasCreditosComprometida[0].id.nacRifGrupo"
 				   value="V"/>
 
-			<field name="bodyEntradaConsultarLineaCreditoComprometida.gruposEmpresasLineasCreditosComprometida[0].id.numCiRif"
+			<field name="gruposEmpresasLineasCreditosComprometida[0].id.numCiRif"
 				   value="4321456"/>
 
 		</request>
@@ -1371,28 +1339,28 @@
 
 	</api>
 
-	<!-- ===================================================== -->
-	<!-- ✅ PERSONA - ACTUALIZAR ROLES -->
-	<!-- ===================================================== -->
-	<api path="/persona/actualizar/roles">
+		<!-- ===================================================== -->
+		<!-- ✅ PERSONA - ACTUALIZAR ROLES -->
+		<!-- ===================================================== -->
+		<api path="/persona/actualizar/roles">
 
-		<request>
+			<request>
 
-			<field name="codPais" value="VEN"/>
-			<field name="tipoAccion" value="1"/>
-			<field name="tipoId" value="V"/>
-			<field name="nroId" value="6174167"/>
-			<field name="nroPer" value="0"/>
-			<field name="rol" value="7087"/>
-			<field name="tipAccion" value="2"/>
-			<field name="codTrans" value="0"/>
-			<field name="fchRolIni" value="0"/>
-			<field name="fchRolFin" value="20240315"/>
+				<field name="codPais" value="VEN"/>
+				<field name="tipoAccion" value="1"/>
+				<field name="tipoId" value="V"/>
+				<field name="nroId" value="6174167"/>
+				<field name="nroPer" value="0"/>
+				<field name="rol" value="7087"/>
+				<field name="tipAccion" value="2"/>
+				<field name="codTrans" value="0"/>
+				<field name="fchRolIni" value="0"/>
+				<field name="fchRolFin" value="20240315"/>
 
-		</request>
+			</request>
 
 	</api>
-
+		
 	<!-- ===================================================== -->
 	<!-- ✅ PERSONA - actualizar referido -->
 	<!-- ===================================================== -->
@@ -1400,16 +1368,40 @@
 
 		<request>
 
-			<field name="tipoSolic">2</field>
-			<field name="codPais">VEN</field>
-			<field name="tipoId">J</field>
-			<field name="nroId">411473529</field>
-			<field name="nroCta">1699225788</field>
-			<field name="codSegm">J4</field>
-			<field name="codSubSegm">1</field>
-			<field name="codCartera">13</field>
-			<field name="carnetEjecutRel">484512</field>
-			<field name="codGrupoClte">1624</field>
+			<field name="tipoSolic" value="2"/>
+			<field name="codPais" value="VEN"/>
+			<field name="tipoId" value="J"/>
+			<field name="nroId" value="411473529"/>
+			<field name="nroCta" value="1699225788"/>
+			<field name="codSegm" value="J4"/>
+			<field name="codSubSegm" value="1"/>
+			<field name="codCartera" value="13"/>
+			<field name="carnetEjecutRel" value="484512"/>
+			<field name="codGrupoClte" value="1624"/>
+
+		</request>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ PERSONA - actualizar telefono-cliente -->
+	<!-- ===================================================== -->
+	<api path="/persona/actualizar/telefono-cliente">
+
+		<request>
+
+			<field name="codPais" value="VEN"/>
+			<field name="tipoId" value="V"/>
+			<field name="nroId" value="6820968"/>
+			<field name="nroPer" value="0"/>
+
+			<field name="bodySalidaActualizarTelefonoCliente.telefonos.tipoTelf" value="1"/>
+			<field name="bodySalidaActualizarTelefonoCliente.telefonos.codArea" value="00580212"/>
+			<field name="bodySalidaActualizarTelefonoCliente.telefonos.nroTelf" value="0008529685"/>
+			<field name="bodySalidaActualizarTelefonoCliente.telefonos.nroExt" value=""/>
+			<field name="bodySalidaActualizarTelefonoCliente.telefonos.nroSuc" value="0"/>
+			<field name="bodySalidaActualizarTelefonoCliente.telefonos.codAreaPais" value="0058"/>
+			<field name="bodySalidaActualizarTelefonoCliente.telefonos.codLocalizaTelf" value="14345566"/>
 
 		</request>
 

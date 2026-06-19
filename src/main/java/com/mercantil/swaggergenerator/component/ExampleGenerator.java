@@ -226,12 +226,6 @@ public class ExampleGenerator {
 		// =====================================================
 		Map<String, Object> props = (Map<String, Object>) propsObj;
 
-
-if ("BodyEntradaActualizarRoles".equals(type)) {
-    System.out.println("PROPS = " + props.keySet());
-}
-
-
 		props.forEach((key, val) -> {
 
 			if (!(val instanceof Map)) {
