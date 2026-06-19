@@ -14,8 +14,10 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
+import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.mercantil.swaggergenerator.util.AbbreviationUtil;
 import com.mercantil.swaggergenerator.util.ParserUtil;
@@ -172,6 +174,13 @@ public class SchemaBuilder {
 								.forEach(vari -> {
 
 									String name = parserUtil.resolveJsonName(field, vari.getNameAsString());
+
+									String ctorJsonName = resolveWrapperJsonPropertyFromConstructor(clazz,
+											vari.getNameAsString(), vari.getType().asString());
+
+									if (ctorJsonName != null && !ctorJsonName.isBlank()) {
+										name = ctorJsonName;
+									}
 
 									boolean hasExplicitJsonName = field.getAnnotationByName("SerializedName")
 											.isPresent() || field.getAnnotationByName("JsonProperty").isPresent();
@@ -355,8 +364,7 @@ public class SchemaBuilder {
 										}
 
 										// ✅ NO flatten si el campo tiene JsonProperty (estructura explícita)
-										hasExplicitJsonName = field.getAnnotationByName("JsonProperty")
-												.isPresent()
+										hasExplicitJsonName = field.getAnnotationByName("JsonProperty").isPresent()
 												|| parserUtil.resolveJsonName(field, vari.getNameAsString()) != null;
 
 										if (shouldFlatten(resolved) && !hasExplicitJsonName) {
@@ -410,6 +418,11 @@ public class SchemaBuilder {
 									if (isRequired(field)) {
 
 										required.add(name);
+									}
+
+									if (clazz.getNameAsString().contains("ActualizarLocalizacionNacionalCompactada")) {
+										System.out.println(clazz.getNameAsString() + " -> " + vari.getNameAsString()
+												+ " -> " + name);
 									}
 
 									// ✅ agregar propiedad
@@ -986,6 +999,51 @@ public class SchemaBuilder {
 
 		return name.startsWith("bodyEntrada") || name.startsWith("bodySalida") || name.startsWith("headerEntrada")
 				|| name.startsWith("headerSalida");
+	}
+
+	private String resolveWrapperJsonPropertyFromConstructor(ClassOrInterfaceDeclaration clazz, String fieldName,
+			String fieldType) {
+
+		// ✅ Sólo aplica a wrappers conocidos
+		if (!"bodyEntrada".equals(fieldName) && !"bodySalida".equals(fieldName) && !"headerEntrada".equals(fieldName)
+				&& !"headerSalida".equals(fieldName)) {
+
+			return null;
+		}
+
+		for (ConstructorDeclaration ctor : clazz.getConstructors()) {
+
+			for (Parameter param : ctor.getParameters()) {
+
+				// ✅ mismo tipo = mismo wrapper
+				if (!fieldType.equals(param.getType().asString())) {
+					continue;
+				}
+
+				for (AnnotationExpr ann : param.getAnnotations()) {
+
+					if (!"JsonProperty".equals(ann.getNameAsString())) {
+						continue;
+					}
+
+					// @JsonProperty("nombre")
+					if (ann.isSingleMemberAnnotationExpr()) {
+
+						return ann.asSingleMemberAnnotationExpr().getMemberValue().toString().replace("\"", "");
+					}
+
+					// @JsonProperty(value="nombre", required=true)
+					if (ann.isNormalAnnotationExpr()) {
+
+						return ann.asNormalAnnotationExpr().getPairs().stream()
+								.filter(pair -> "value".equals(pair.getNameAsString()))
+								.map(pair -> pair.getValue().toString().replace("\"", "")).findFirst().orElse(null);
+					}
+				}
+			}
+		}
+
+		return null;
 	}
 
 }
