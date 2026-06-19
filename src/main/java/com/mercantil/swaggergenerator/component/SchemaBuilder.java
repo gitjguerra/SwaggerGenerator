@@ -420,11 +420,6 @@ public class SchemaBuilder {
 										required.add(name);
 									}
 
-									if (clazz.getNameAsString().contains("ActualizarLocalizacionNacionalCompactada")) {
-										System.out.println(clazz.getNameAsString() + " -> " + vari.getNameAsString()
-												+ " -> " + name);
-									}
-
 									// ✅ agregar propiedad
 									properties.put(name, prop);
 								});
