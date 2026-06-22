@@ -1794,49 +1794,49 @@
 
 		<response>
 
-			<field name="snroPer" value="4022118"/>
-			<field name="sregConsultados" value="19"/>
-			<field name="sproximaClave" value=""/>
-			<field name="scodGrupo" value="0"/>
-			<field name="sotraPagina" value="N"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.snroPer" value="4022118"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.sregConsultados" value="19"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.sproximaClave" value=""/>
+			<field name="bodySalidaConsultarServiciosAfiliados.scodGrupo" value="0"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.sotraPagina" value="N"/>
 
-			<field name="proxClv" value=""/>
-			<field name="codGrupo" value="0"/>
-			<field name="otraPag" value="N"/>
-			<field name="regConsultados" value="19"/>
-			<field name="nroPer" value="4022118"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.proxClv" value=""/>
+			<field name="bodySalidaConsultarServiciosAfiliados.codGrupo" value="0"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.otraPag" value="N"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.regConsultados" value="19"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.nroPer" value="4022118"/>
 
 			<!-- Primer elemento afiliaciones -->
 
-			<field name="afiliaciones[0].isn" value="149135364"/>
-			<field name="afiliaciones[0].codBco" value="105"/>
-			<field name="afiliaciones[0].codCanal" value="06"/>
-			<field name="afiliaciones[0].codServProduc" value="20"/>
-			<field name="afiliaciones[0].tipoServProd" value="1"/>
-			<field name="afiliaciones[0].tipoIdBenefi" value="J"/>
-			<field name="afiliaciones[0].nroIdBenefi" value="306368981"/>
-			<field name="afiliaciones[0].nomBenefi" value="INVERSIONES ALFA VIII CA"/>
-			<field name="afiliaciones[0].descripServProduc" value="INVERSIONES ALFA VIII CA"/>
-			<field name="afiliaciones[0].emailBenefi" value="fotopielavilagmailcom"/>
-			<field name="afiliaciones[0].nroPerAfili" value="4022118"/>
-			<field name="afiliaciones[0].nroPerBenefi" value="0"/>
-			<field name="afiliaciones[0].fchAfili" value="20250902"/>
-			<field name="afiliaciones[0].fchUltActualiz" value="20250902"/>
-			<field name="afiliaciones[0].mtoLimMin" value="0"/>
-			<field name="afiliaciones[0].mtoLimMax" value="1000000.00"/>
-			<field name="afiliaciones[0].responseCurrency" value="VEB"/>
-			<field name="afiliaciones[0].nroServProduc" value="0001050018421018555803"/>
-			<field name="afiliaciones[0].codTipoProducRecept" value="CTCTE"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].isn" value="149135364"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].codBco" value="105"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].codCanal" value="06"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].codServProduc" value="20"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].tipoServProd" value="1"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].tipoIdBenefi" value="J"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].nroIdBenefi" value="306368981"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].nomBenefi" value="INVERSIONES ALFA VIII CA"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].descripServProduc" value="INVERSIONES ALFA VIII CA"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].emailBenefi" value="fotopielavilagmailcom"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].nroPerAfili" value="4022118"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].nroPerBenefi" value="0"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].fchAfili" value="20250902"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].fchUltActualiz" value="20250902"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].mtoLimMin" value="0"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].mtoLimMax" value="1000000.00"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].responseCurrency" value="VEB"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].nroServProduc" value="0001050018421018555803"/>
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].codTipoProducRecept" value="CTCTE"/>
 
 			<!-- datosTransferencias -->
 
-			<field name="afiliaciones[0].datosTransferencias.limDiario"
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].datosTransferencias.limDiario"
 				   value="000000035000000,00"/>
 
-			<field name="afiliaciones[0].datosTransferencias.pagoMinimo"
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].datosTransferencias.pagoMinimo"
 				   value=""/>
 
-			<field name="afiliaciones[0].datosTransferencias.balanActual"
+			<field name="bodySalidaConsultarServiciosAfiliados.afiliaciones[0].datosTransferencias.balanActual"
 				   value=""/>
 
 		</response>
