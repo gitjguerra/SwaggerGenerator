@@ -79,7 +79,7 @@ public class RequestExampleProvider {
 			return new LinkedHashMap<>((Map<String, Object>) exampleCache.get(cacheKey));
 		}
 
-		Object result = buildExampleFromSchema(endpointPath, type, schemaMap, new HashSet<>());
+		Object result = buildExampleFromSchema(endpointPath, type, "", schemaMap, new HashSet<>());
 
 		if (result instanceof Map) {
 			exampleCache.put(cacheKey, new LinkedHashMap<>((Map<String, Object>) result));
@@ -90,10 +90,18 @@ public class RequestExampleProvider {
 
 	// =========================================================
 	// ✅ BUILD RECURSIVO
+	// ✅ FIX:
+	// ✅ Conserva contexto para objetos anidados
+	// ✅ Conserva contexto para arrays
+	// ✅ Soporta rules.xml tipo:
+	//	    regAfili[0].idNac
+	//	    regAfili[0].nroId
+	//	    grupos[0].id.valor
+	// ✅ Sin romper detección de ciclos
 	// =========================================================
-
-	private Object buildExampleFromSchema(String endpointPath, String type, Map<String, Map<String, Object>> schemaMap,
-			Set<String> visited) {
+	@SuppressWarnings("unchecked")
+	private Object buildExampleFromSchema(String endpointPath, String type, String currentPath,
+			Map<String, Map<String, Object>> schemaMap, Set<String> visited) {
 
 		if (type == null) {
 			return new LinkedHashMap<>();
@@ -105,94 +113,141 @@ public class RequestExampleProvider {
 
 		visited.add(type);
 
-		Map<String, Object> schema = schemaMap.get(type);
+		try {
 
-		if (schema == null) {
-			return new LinkedHashMap<>();
-		}
+			Map<String, Object> schema = schemaMap.get(type);
 
-		Object propsObj = schema.get("properties");
+			if (schema == null) {
+				return new LinkedHashMap<>();
+			}
 
-		if (!(propsObj instanceof Map)) {
-			return new LinkedHashMap<>();
-		}
+			Object propsObj = schema.get("properties");
 
-		Map<String, Object> props = (Map<String, Object>) propsObj;
+			if (!(propsObj instanceof Map)) {
+				return new LinkedHashMap<>();
+			}
 
-		Map<String, Object> example = new LinkedHashMap<>();
+			Map<String, Object> props = (Map<String, Object>) propsObj;
 
-		for (Map.Entry<String, Object> entry : props.entrySet()) {
+			Map<String, Object> example = new LinkedHashMap<>();
 
-			
-			String fieldName = entry.getKey();
-			String jsonName = resolveJsonName(type, fieldName);
+			for (Map.Entry<String, Object> entry : props.entrySet()) {
 
-			Map<String, Object> fieldDef = (Map<String, Object>) entry.getValue();
+				String fieldName = entry.getKey();
 
-			String ruleValue = ruleEngine.getRequestValue(endpointPath, jsonName);
+				String jsonName = resolveJsonName(type, fieldName);
 
-			if (fieldDef.containsKey("$ref")) {
+				Map<String, Object> fieldDef = (Map<String, Object>) entry.getValue();
 
-				String ref = fieldDef.get("$ref").toString();
+				// =============================================
+				// ✅ PATH COMPLETO
+				// =============================================
+				String fieldPath = (currentPath == null || currentPath.isBlank()) ? jsonName
+						: currentPath + "." + jsonName;
 
-				String refType = ref.substring(ref.lastIndexOf("/") + 1);
+				String ruleValue = ruleEngine.getRequestValue(endpointPath, fieldPath);
 
-				example.put(jsonName, buildExampleFromSchema(endpointPath, refType, schemaMap, visited));
+				// =============================================
+				// ✅ OBJETO ANIDADO
+				// =============================================
+				if (fieldDef.containsKey("$ref")) {
 
-			} else if ("array".equals(fieldDef.get("type"))) {
+					String ref = fieldDef.get("$ref").toString();
 
-				Object items = fieldDef.get("items");
+					String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
-				if (items instanceof Map) {
+					example.put(jsonName, buildExampleFromSchema(endpointPath, refType, fieldPath, schemaMap, visited));
 
-					Map<?, ?> itemMap = (Map<?, ?>) items;
-
-					if (itemMap.containsKey("$ref")) {
-
-						String ref = itemMap.get("$ref").toString();
-
-						String refType = ref.substring(ref.lastIndexOf("/") + 1);
-
-						example.put(jsonName,
-								List.of(buildExampleFromSchema(endpointPath, refType, schemaMap, visited)));
-
-					} else {
-
-						// ✅ NUEVO: buscar valor definido en rules.xml
-						String arrayRuleValue = ruleEngine.getRequestValue(endpointPath, jsonName + "[0]");
-
-						if (arrayRuleValue != null) {
-
-							example.put(jsonName, List.of(arrayRuleValue));
-
-						} else {
-
-							example.put(jsonName, List.of(mockValue((String) itemMap.get("type"))));
-						}
-					}
+					continue;
 				}
 
-			} else if (ruleValue != null) {
+				// =============================================
+				// ✅ ARRAY
+				// =============================================
+				if ("array".equals(fieldDef.get("type"))) {
 
-				examplePathResolver.setNestedValue(example, jsonName,
-						examplePathResolver.parseValue(jsonName, ruleValue));
+					Object items = fieldDef.get("items");
 
-			} else {
+					if (items instanceof Map) {
 
-				example.put(jsonName, mockValue((String) fieldDef.get("type")));
+						Map<?, ?> itemMap = (Map<?, ?>) items;
+
+						// =====================================
+						// ✅ ARRAY DE OBJETOS
+						// =====================================
+						if (itemMap.containsKey("$ref")) {
+
+							String ref = itemMap.get("$ref").toString();
+
+							String refType = ref.substring(ref.lastIndexOf("/") + 1);
+
+							example.put(jsonName, List.of(buildExampleFromSchema(endpointPath, refType,
+									fieldPath + "[0]", schemaMap, visited)));
+
+						}
+
+						// =====================================
+						// ✅ ARRAY DE PRIMITIVOS
+						// =====================================
+						else {
+
+							String arrayRuleValue = ruleEngine.getRequestValue(endpointPath, fieldPath + "[0]");
+
+							if (arrayRuleValue != null) {
+
+								example.put(jsonName,
+										List.of(examplePathResolver.parseValue(fieldPath + "[0]", arrayRuleValue)));
+
+							} else {
+
+								example.put(jsonName, List.of(mockValue((String) itemMap.get("type"))));
+							}
+						}
+					}
+
+					continue;
+				}
+
+				// =============================================
+				// ✅ CAMPO SIMPLE CON RULE
+				// =============================================
+				if (ruleValue != null) {
+
+					example.put(jsonName, examplePathResolver.parseValue(fieldPath, ruleValue));
+
+				}
+
+				// =============================================
+				// ✅ CAMPO SIMPLE SIN RULE
+				// =============================================
+				else {
+
+					example.put(jsonName, mockValue((String) fieldDef.get("type")));
+				}
 			}
-		}
 
-		if (example.size() == 1) {
+			// =============================================
+			// ✅ FLATTEN SIMPLE
+			// =============================================
+			if (example.size() == 1) {
 
-			Object onlyValue = example.values().iterator().next();
+				Object onlyValue = example.values().iterator().next();
 
-			if (onlyValue instanceof Map) {
-				return onlyValue;
+				if (onlyValue instanceof Map) {
+					return onlyValue;
+				}
 			}
-		}
 
-		return example;
+			return example;
+
+		} finally {
+
+			// =============================================
+			// ✅ LIBERAR TIPO AL SALIR
+			// Evita falsos "(circular)"
+			// =============================================
+			visited.remove(type);
+		}
 	}
 
 	// =========================================================
