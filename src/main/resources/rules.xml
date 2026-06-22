@@ -1339,25 +1339,25 @@
 
 	</api>
 
-		<!-- ===================================================== -->
-		<!-- ✅ PERSONA - ACTUALIZAR ROLES -->
-		<!-- ===================================================== -->
-		<api path="/persona/actualizar/roles">
+	<!-- ===================================================== -->
+	<!-- ✅ PERSONA - ACTUALIZAR ROLES -->
+	<!-- ===================================================== -->
+	<api path="/persona/actualizar/roles">
 
-			<request>
+		<request>
 
-				<field name="codPais" value="VEN"/>
-				<field name="tipoAccion" value="1"/>
-				<field name="tipoId" value="V"/>
-				<field name="nroId" value="6174167"/>
-				<field name="nroPer" value="0"/>
-				<field name="rol" value="7087"/>
-				<field name="tipAccion" value="2"/>
-				<field name="codTrans" value="0"/>
-				<field name="fchRolIni" value="0"/>
-				<field name="fchRolFin" value="20240315"/>
+			<field name="codPais" value="VEN"/>
+			<field name="tipoAccion" value="1"/>
+			<field name="tipoId" value="V"/>
+			<field name="nroId" value="6174167"/>
+			<field name="nroPer" value="0"/>
+			<field name="rol" value="7087"/>
+			<field name="tipAccion" value="2"/>
+			<field name="codTrans" value="0"/>
+			<field name="fchRolIni" value="0"/>
+			<field name="fchRolFin" value="20240315"/>
 
-			</request>
+		</request>
 
 	</api>
 		
@@ -1395,7 +1395,7 @@
 			<field name="nroId" value="6820968"/>
 			<field name="nroPer" value="0"/>
 						
-			<field name="tipoTelf" value="1"/>
+			<field name="tipoTelf" value="0"/>
 			<field name="codArea" value="00580212"/>
 			<field name="nroTelf" value="0008529685"/>
 			<field name="nroExt" value=""/>
@@ -1404,6 +1404,88 @@
 			<field name="codLocalizaTelf" value="14345566"/>
 
 		</request>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ PERSONA - CONSULTAR DETALLE PRODUCTO CLIENTE -->
+	<!-- ===================================================== -->
+	<api path="/persona/consultar/detalle-producto-cliente">
+
+		<request>
+
+			<field name="codProduc" value="501878200099474803"/>
+
+			<field name="codTipoProductos[0]" value=""/>
+
+		</request>
+
+		<response>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].codUsoProduc"
+				   value="0"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].mtoPromMtoCta"
+				   value="0.00"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].fchInic"
+				   value="0"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].codSitProduc"
+				   value="VG"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].idProducRel"
+				   value="0"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].fchActualizExpe"
+				   value="20210816"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].tipoExo"
+				   value="0"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].nomComProduc"
+				   value=""/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].codProducRelacionados"
+				   value="0"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].indicCtaMenor"
+				   value="0"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].tipoExento"
+				   value="0"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].codFirma"
+				   value="0"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].indicCtaNomina"
+				   value="0"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].fchNacMenor"
+				   value="0"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].codEmpresaRel"
+				   value="BM001"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].fchFinRel"
+				   value="0"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].rolPer"
+				   value="6090"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].nroSuc"
+				   value="0"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].fchUltActReg"
+				   value="0"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].codGrupo"
+				   value="0"/>
+
+			<field name="bodySalidaDetalleProductoCliente.detalleClienteProductos[0].nroPer"
+				   value="4292532"/>
+
+		</response>
 
 	</api>
 

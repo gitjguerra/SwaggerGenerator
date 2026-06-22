@@ -127,13 +127,6 @@ public class RequestExampleProvider {
 			String fieldName = entry.getKey();
 			String jsonName = resolveJsonName(type, fieldName);
 
-
-System.out.println(
-    "type=" + type +
-    " field=" + fieldName +
-    " jsonName=" + jsonName
-);
-
 			Map<String, Object> fieldDef = (Map<String, Object>) entry.getValue();
 
 			String ruleValue = ruleEngine.getRequestValue(endpointPath, jsonName);

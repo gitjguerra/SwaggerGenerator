@@ -143,6 +143,11 @@ public class ExamplePathResolver {
 		// =====================================================
 		if (value.matches("-?\\d+")) {
 
+			// ✅ preservar números largos exactamente como vienen en rules.xml
+			if (value.matches("-?\\d+") && value.length() > 15) {
+			    return value;
+			}
+
 			try {
 
 				return Integer.parseInt(value);
