@@ -9,7 +9,6 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 
 @Component
@@ -356,31 +355,15 @@ public class ParserUtil {
 
 	public String resolveJsonNameFromConstructor(ClassOrInterfaceDeclaration clazz, String fieldName) {
 
-		for (ConstructorDeclaration ctor : clazz.getConstructors()) {
+		return clazz.getFields().stream()
 
-			for (Parameter param : ctor.getParameters()) {
+				.filter(f -> f.getVariables().stream().anyMatch(v -> fieldName.equals(v.getNameAsString())))
 
-				String paramName = param.getNameAsString();
+				.findFirst()
 
-				// ✅ Match field semántico
-				if (fieldName.equalsIgnoreCase(paramName) || fieldName.contains(paramName)
-						|| paramName.contains(fieldName)) {
+				.map(f -> resolveJsonName(f, fieldName))
 
-					for (AnnotationExpr ann : param.getAnnotations()) {
-
-						if (JSON_PROPERTY.equals(ann.getNameAsString())) {
-
-							if (ann.isSingleMemberAnnotationExpr()) {
-
-								return ann.asSingleMemberAnnotationExpr().getMemberValue().toString().replace("\"", "");
-							}
-						}
-					}
-				}
-			}
-		}
-
-		return fieldName;
+				.orElse(fieldName);
 	}
 
 }

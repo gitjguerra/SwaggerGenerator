@@ -9,18 +9,22 @@ import java.util.Set;
 
 import org.springframework.stereotype.Component;
 
+import com.mercantil.swaggergenerator.util.ParserUtil;
+
 @Component
 public class RequestExampleProvider {
 
 	private final RuleEngine ruleEngine;
 	private final ClassIndexer classIndexer;
 	private final ExamplePathResolver examplePathResolver;
+	private final ParserUtil parserUtil;
 
 	public RequestExampleProvider(RuleEngine ruleEngine, ClassIndexer classIndexer,
-			ExamplePathResolver examplePathResolver) {
+			ExamplePathResolver examplePathResolver, ParserUtil parserUtil) {
 		this.ruleEngine = ruleEngine;
 		this.classIndexer = classIndexer;
 		this.examplePathResolver = examplePathResolver;
+		this.parserUtil = parserUtil;
 	}
 
 	public String getRuleValue(String endpointPath, String fieldPath) {
@@ -119,8 +123,16 @@ public class RequestExampleProvider {
 
 		for (Map.Entry<String, Object> entry : props.entrySet()) {
 
+			
 			String fieldName = entry.getKey();
 			String jsonName = resolveJsonName(type, fieldName);
+
+
+System.out.println(
+    "type=" + type +
+    " field=" + fieldName +
+    " jsonName=" + jsonName
+);
 
 			Map<String, Object> fieldDef = (Map<String, Object>) entry.getValue();
 
@@ -193,59 +205,20 @@ public class RequestExampleProvider {
 	// =========================================================
 	// ✅ RESOLVER JSON PROPERTY
 	// =========================================================
-
 	private String resolveJsonName(String className, String fieldName) {
 
 		return classIndexer.findClass(className)
 
-				.map(clazz -> clazz.getConstructors().stream()
+				.flatMap(clazz ->
 
-						.flatMap(c -> c.getParameters().stream())
+				clazz.getFields().stream()
 
-						.filter(param -> {
-
-							String p = param.getNameAsString().toLowerCase();
-							String f = fieldName.toLowerCase();
-
-							// ✅ Match exacto
-							if (p.equals(f)) {
-								return true;
-							}
-
-							// ✅ Match normalizado
-							String np = p.replace("codigo", "").replace("numero", "").replace("identificador", "")
-									.replace("tipo", "");
-
-							String nf = f.replace("cod", "").replace("nro", "").replace("id", "").replace("tipo", "");
-
-							return np.equals(nf);
-						})
-
-						.map(param -> param.getAnnotationByName("JsonProperty"))
-
-						.flatMap(java.util.Optional::stream)
-
-						.map(ann -> {
-
-							if (ann.isSingleMemberAnnotationExpr()) {
-
-								return ann.asSingleMemberAnnotationExpr().getMemberValue().toString().replace("\"", "");
-							}
-
-							if (ann.isNormalAnnotationExpr()) {
-
-								return ann.asNormalAnnotationExpr().getPairs().stream()
-										.filter(pair -> "value".equals(pair.getNameAsString()))
-										.map(pair -> pair.getValue().toString().replace("\"", "")).findFirst()
-										.orElse(fieldName);
-							}
-
-							return fieldName;
-						})
+						.filter(field -> field.getVariables().stream()
+								.anyMatch(v -> fieldName.equals(v.getNameAsString())))
 
 						.findFirst()
 
-						.orElse(fieldName))
+						.map(field -> parserUtil.resolveJsonName(field, fieldName)))
 
 				.orElse(fieldName);
 	}
