@@ -407,174 +407,126 @@
 	</api>
 
 	<!-- ===================================================== -->
-	<!-- ✅ TRANSFERIR OTROS BANCOS NACIONALES -->
+	<!-- ✅ SIMF - TRANSFERIR OTROS BANCOS NACIONALES -->
 	<!-- ===================================================== -->
-	<api path="/simf/transferir-otros-bancos-nacionales">
+	<api path="/simf/transferir/otros-bancos-nacionales">
 
 		<request>
 
-			<!-- ✅ ROOT -->
-			<field name="codSubCanal" value="01" />
-			<field name="flagDna" value="" />
-			<field name="fchHh" value="" />
+			<field name="codSubCanal" value="01"/>
+			<field name="flagDna" value=""/>
+			<field name="fechHh" value=""/>
 
-			<field name="separadorEntrada" value="" />
-			<field name="nroPer" value="0" />
-			<field name="nroTarj" value="" />
-			<field name="digSegu" value="" />
+			<field name="datosBeneficiario.tipoCta" value=""/>
+			<field name="datosBeneficiario.codBco" value="108"/>
+			<field name="datosBeneficiario.nroCta" value="0001080571610100098127"/>
+			<field name="datosBeneficiario.nroTelf" value=""/>
+			<field name="datosBeneficiario.correoBenef" value=""/>
+			<field name="datosBeneficiario.nroId" value="18881376"/>
+			<field name="datosBeneficiario.nomBenef" value="Cliente OB"/>
+			<field name="datosBeneficiario.alias" value=""/>
+			<field name="datosBeneficiario.tipoId" value="V"/>
 
-			<field name="datosAdicEntrada" value="" />
+			<field name="separadorEntrada" value=""/>
 
-			<!-- ✅ BENEFICIARIO -->
-			<field name="datosBeneficiario.tipoCta" value="" />
+			<field name="nroPer" value="0"/>
+			<field name="nroTarj" value=""/>
+			<field name="digSegu" value=""/>
 
-			<field name="datosBeneficiario.codBco" value="108" />
+			<field name="datosTransferencia.concept" value="pago"/>
+			<field name="datosTransferencia.codMoneda2" value=""/>
+			<field name="datosTransferencia.mto1" value="277005.06"/>
+			<field name="datosTransferencia.codMoneda1" value="VES"/>
+			<field name="datosTransferencia.mto2" value=""/>
+			<field name="datosTransferencia.mtoTasaDolares" value=""/>
 
-			<field name="datosBeneficiario.nroCta"
-				value="0001080571610100098127" />
+			<field name="notaLarga.notaLargaDbto" value=""/>
+			<field name="notaLarga.separadorNotaDbto" value=""/>
+			<field name="notaLarga.separadorNotaCdto" value=""/>
+			<field name="notaLarga.notaLargaCdto" value=""/>
+			<field name="notaLarga.datosAdicionalesNota" value=""/>
 
-			<field name="datosBeneficiario.nroTelf" value="" />
+			<field name="datosOrdenante.tipoCtaOr" value=""/>
+			<field name="datosOrdenante.codBcoOr" value="105"/>
+			<field name="datosOrdenante.nroCtaOr" value="001606000721"/>
+			<field name="datosOrdenante.nroTlfOr" value=""/>
+			<field name="datosOrdenante.nroIdOr" value="6876427"/>
+			<field name="datosOrdenante.correoOrigenOr" value=""/>
+			<field name="datosOrdenante.aliasOr" value=""/>
+			<field name="datosOrdenante.tipoIdOr" value="V"/>
 
-			<field name="datosBeneficiario.correoBenef" value="" />
+			<field name="datosAgendamiento.flagAgendamiento" value=""/>
+			<field name="datosAgendamiento.idTrans" value=""/>
+			<field name="datosAgendamiento.fchAgendamiento" value=""/>
+			<field name="datosAgendamiento.codBcoAg" value="0"/>
 
-			<field name="datosBeneficiario.nroId" value="18881376" />
+			<field name="datosAdicionales.datosPago[0].datoNom" value=""/>
+			<field name="datosAdicionales.datosPago[0].datoValor" value=""/>
 
-			<field name="datosBeneficiario.nomBenef" value="Cliente OB" />
+			<field name="datosAdicionales.idAplic" value=""/>
+			<field name="datosAdicionales.viaTransfer" value=""/>
+			<field name="datosAdicionales.nroPagina" value="0"/>
+			<field name="datosAdicionales.nomTransaccion" value=""/>
+			<field name="datosAdicionales.tipoClv" value=""/>
+			<field name="datosAdicionales.fchValor" value="20261112"/>
+			<field name="datosAdicionales.tipoPago" value=""/>
+			<field name="datosAdicionales.indicInstrum" value=""/>
+			<field name="datosAdicionales.modo" value=""/>
+			<field name="datosAdicionales.nombCabecera" value=""/>
 
-			<field name="datosBeneficiario.alias" value="" />
-
-			<field name="datosBeneficiario.tipoId" value="V" />
-
-			<!-- ✅ TRANSFERENCIA -->
-			<field name="datosTransferencia.concept" value="pago" />
-
-			<field name="datosTransferencia.codMoneda2" value="" />
-
-			<field name="datosTransferencia.mto1" value="277005.06" />
-
-			<field name="datosTransferencia.codMoneda1" value="VES" />
-
-			<field name="datosTransferencia.mto2" value="" />
-
-			<field name="datosTransferencia.mtoTasaDolares" value="" />
-
-			<!-- ✅ NOTA LARGA -->
-			<field name="notaLarga.notaLargaDbto" value="" />
-
-			<field name="notaLarga.separadorNotaDbto" value="" />
-
-			<field name="notaLarga.separadorNotaCdto" value="" />
-
-			<field name="notaLarga.notaLargaCdto" value="" />
-
-			<field name="notaLarga.datosAdicionalesNota" value="" />
-
-			<!-- ✅ ORDENANTE -->
-			<field name="datosOrdenante.tipoCtaOr" value="" />
-
-			<field name="datosOrdenante.codBcoOr" value="105" />
-
-			<field name="datosOrdenante.nroCtaOr" value="001606000721" />
-
-			<field name="datosOrdenante.nroTlfOr" value="" />
-
-			<field name="datosOrdenante.nroIdOr" value="6876427" />
-
-			<field name="datosOrdenante.correoOrigenOr" value="" />
-
-			<field name="datosOrdenante.aliasOr" value="" />
-
-			<field name="datosOrdenante.tipoIdOr" value="V" />
-
-			<!-- ✅ AGENDAMIENTO -->
-			<field name="datosAgendamiento.flagAgendamiento" value="" />
-
-			<field name="datosAgendamiento.idTrans" value="" />
-
-			<field name="datosAgendamiento.fchAgendamiento" value="" />
-
-			<field name="datosAgendamiento.codBcoAg" value="0" />
-
-			<!-- ✅ DATOS ADICIONALES -->
-			<field name="datosAdicionales.idAplic" value="" />
-
-			<field name="datosAdicionales.viaTransfer" value="" />
-
-			<field name="datosAdicionales.nroPagina" value="0" />
-
-			<field name="datosAdicionales.nomTransaccion" value="" />
-
-			<field name="datosAdicionales.tipoClv" value="" />
-
-			<field name="datosAdicionales.fchValor" value="20251112" />
-
-			<field name="datosAdicionales.tipoPago" value="" />
-
-			<field name="datosAdicionales.indicInstrum" value="" />
-
-			<field name="datosAdicionales.modo" value="" />
-
-			<field name="datosAdicionales.nombCabecera" value="" />
-
-			<!-- ✅ DATOS PAGO -->
-			<field name="datosAdicionales.datosPago[0].datoNom" value="" />
-
-			<field name="datosAdicionales.datosPago[0].datoValor" value="" />
+			<field name="datosAdicEntrada" value=""/>
 
 		</request>
 
 		<response>
 
 			<field name="bodySalidaTransferirOtrosBancosNacionales.descrip"
-				value="" />
+				   value=""/>
 
 			<field name="bodySalidaTransferirOtrosBancosNacionales.flag"
-				value="" />
+				   value=""/>
 
-			<field
-				name="bodySalidaTransferirOtrosBancosNacionales.correoOrd" value="" />
+			<field name="bodySalidaTransferirOtrosBancosNacionales.correoOrd"
+				   value=""/>
 
 			<field name="bodySalidaTransferirOtrosBancosNacionales.nroCta"
-				value="0" />
+				   value="0"/>
 
-			<field
-				name="bodySalidaTransferirOtrosBancosNacionales.mtoComis"
-				value="0.00" />
+			<field name="bodySalidaTransferirOtrosBancosNacionales.mtoComis"
+				   value="0.00"/>
 
-			<field
-				name="bodySalidaTransferirOtrosBancosNacionales.codMoneda" value="" />
+			<field name="bodySalidaTransferirOtrosBancosNacionales.codMoneda"
+				   value=""/>
 
-			<field
-				name="bodySalidaTransferirOtrosBancosNacionales.saldoDisp" value="" />
+			<field name="bodySalidaTransferirOtrosBancosNacionales.saldoDisp"
+				   value=""/>
 
 			<field name="bodySalidaTransferirOtrosBancosNacionales.confir"
-				value="00142087" />
+				   value="00003234"/>
 
 			<field name="bodySalidaTransferirOtrosBancosNacionales.idTrans"
-				value="" />
+				   value=""/>
 
 			<field name="bodySalidaTransferirOtrosBancosNacionales.codUsu"
-				value="" />
+				   value=""/>
 
 			<field name="bodySalidaTransferirOtrosBancosNacionales.mtoLim"
-				value="" />
+				   value=""/>
 
 			<field name="bodySalidaTransferirOtrosBancosNacionales.codBco"
-				value="0" />
+				   value="0"/>
 
 			<field name="bodySalidaTransferirOtrosBancosNacionales.msje"
-				value="" />
+				   value=""/>
 
-			<field
-				name="bodySalidaTransferirOtrosBancosNacionales.saldoAct" value="" />
+			<field name="bodySalidaTransferirOtrosBancosNacionales.saldoAct"
+				   value=""/>
 
-			<field
-				name="bodySalidaTransferirOtrosBancosNacionales.correoBenef"
-				value="" />
+			<field name="bodySalidaTransferirOtrosBancosNacionales.correoBenef"
+				   value=""/>
 
-			<field
-				name="bodySalidaTransferirOtrosBancosNacionales.observacion"
-				value="" />
+			<field name="bodySalidaTransferirOtrosBancosNacionales.observacion"
+				   value=""/>
 
 		</response>
 
@@ -2212,6 +2164,21 @@
 		<request>
 
 			<field name="nroTarj" value="5467040014738495"/>
+
+		</request>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ TARJETA - CONSULTAR TARJETAS DE CREDITO ACTIVAS -->
+	<!-- ===================================================== -->
+	<api path="/tarjeta/consultar/tarjeta-de-credito-activas">
+
+		<request>
+
+			<field name="codPais" value="VEN"/>
+			<field name="tipoId" value="V"/>
+			<field name="nroId" value="23652965"/>
 
 		</request>
 
