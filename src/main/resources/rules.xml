@@ -1489,4 +1489,97 @@
 
 	</api>
 
+	<!-- ===================================================== -->
+	<!-- ✅ PERSONA - CONSULTAR PERSONA PEP -->
+	<!-- ===================================================== -->
+	<api path="/persona/consultar/persona-pep">
+
+		<request>
+
+			<field name="tipoConsul" value=""/>
+
+			<field name="nroPer" value="0"/>
+
+			<field name="paisId" value="VEN"/>
+
+			<field name="tipoId" value="V"/>
+
+			<field name="numId" value="12414725"/>
+
+			<field name="codPaisClte" value=""/>
+
+		</request>
+
+		<response>
+
+			<field name="bodySalidaConsultarPersonaPEP.tipoPep"
+				   value=""/>
+
+			<field name="bodySalidaConsultarPersonaPEP.enteAdscripcion"
+				   value=""/>
+
+			<field name="bodySalidaConsultarPersonaPEP.indicTelf"
+				   value=""/>
+
+			<field name="bodySalidaConsultarPersonaPEP.nomCorporacion"
+				   value=""/>
+
+			<field name="bodySalidaConsultarPersonaPEP.indicDireccPostal"
+				   value=""/>
+
+			<field name="bodySalidaConsultarPersonaPEP.codPaisNacAlterna"
+				   value=""/>
+
+			<field name="bodySalidaConsultarPersonaPEP.nomPepAsociado"
+				   value=""/>
+
+			<field name="bodySalidaConsultarPersonaPEP.indicDirecc"
+				   value=""/>
+
+			<field name="bodySalidaConsultarPersonaPEP.indicTransfer"
+				   value=""/>
+
+			<field name="bodySalidaConsultarPersonaPEP.indicResd"
+				   value=""/>
+
+			<field name="bodySalidaConsultarPersonaPEP.indicClasifEmpresa"
+				   value=""/>
+
+			<field name="bodySalidaConsultarPersonaPEP.codigPaisConstit"
+				   value=""/>
+
+			<field name="bodySalidaConsultarPersonaPEP.codPartdoPolitico"
+				   value="0"/>
+
+			<field name="bodySalidaConsultarPersonaPEP.codPaisCorporacion"
+				   value=""/>
+
+			<field name="bodySalidaConsultarPersonaPEP.fchInicIndicios"
+				   value="0"/>
+
+			<field name="bodySalidaConsultarPersonaPEP.fchRenuncia2Nac"
+				   value="0"/>
+
+			<field name="bodySalidaConsultarPersonaPEP.codCargoEnGob"
+				   value="0"/>
+
+			<field name="bodySalidaConsultarPersonaPEP.codCargoEnPartdoPolitico"
+				   value="0"/>
+
+			<field name="bodySalidaConsultarPersonaPEP.tipoPer"
+				   value="N"/>
+
+			<field name="bodySalidaConsultarPersonaPEP.nomPaisConstit"
+				   value=""/>
+
+			<field name="bodySalidaConsultarPersonaPEP.indicApoder"
+				   value=""/>
+
+			<field name="bodySalidaConsultarPersonaPEP.fchActualIndicios"
+				   value="0"/>
+
+		</response>
+
+	</api>
+
 </rules>
