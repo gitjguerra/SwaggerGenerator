@@ -1582,4 +1582,72 @@
 
 	</api>
 
+	<!-- ===================================================== -->
+	<!-- ✅ SAFE - CONSULTAR AFILIACION -->
+	<!-- ===================================================== -->
+	<api path="/safe/consultar/afiliacion">
+	
+	    <request>
+	
+	        <field name="codTransac" value=""/>
+	
+	        <field name="codSubCanal" value=""/>
+	
+	        <field name="nroPer" value="0"/>
+	
+	        <field name="codServProduc" value="0"/>
+	
+	        <field name="codGrupo" value="0"/>
+	
+	        <field name="idNac" value="V"/>
+	
+	        <field name="idNum" value="23652965"/>
+	
+	        <field name="numServicio" value=""/>
+	
+	        <field name="tipoServProd" value="1"/>
+	
+	    </request>
+	
+	    <response>
+	
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.otraPag" value="S"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.proxClv" value="0009644689000027"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.nroPer" value="9644689"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.codGrupo" value="0"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.regConsult" value="20"/>
+	
+	        <!-- afiliaciones[0] -->
+	
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].frec" value=""/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].mtoLimMin" value="0.00"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroCtaRecept" value="0"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].codServProduc" value="1"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].codCanal" value=""/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].fchProxCobro" value="0"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].codBco" value="0"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].mtoLimMax" value="0.00"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroCtaComis" value="0"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroLocalizaEmail" value="0"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nomBenefi" value=""/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroServProduc" value="0000000000042604874821"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].statusAfil" value="0"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroPerBenefi" value="0"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].maxAfilClte" value="29"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].tipoIdBenefi" value=""/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroIdBenefi" value="0"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].consec" value="01"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].isn" value="4902336"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].emailBenefi" value=""/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].codTipoProducRecept" value=""/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].descripServProduc" value="VANESSA"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].fchAfil" value="20140215"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].fchUltActualiz" value="20140215"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nomServProd" value="CANTV Y TV SATELITAL"/>
+	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].tipoServProd" value="1"/>
+	
+	    </response>
+	
+	</api>
+
 </rules>

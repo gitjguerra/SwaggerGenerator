@@ -150,6 +150,18 @@ public class SchemaBuilder {
 						});
 			});
 
+			if (isBodyWrapper(clazz)) {
+
+				if (buildPropertiesFromJsonCreator(clazz, properties, required)) {
+
+					if (!required.isEmpty()) {
+						schema.put(IS_REQUIRED, required);
+					}
+
+					return schema;
+				}
+			}
+
 			// =================================================
 			// ✅ CAMPOS
 			// =================================================
@@ -1039,6 +1051,84 @@ public class SchemaBuilder {
 		}
 
 		return null;
+	}
+
+	private Optional<ConstructorDeclaration> findJsonCreatorConstructor(ClassOrInterfaceDeclaration clazz) {
+
+		return clazz.getConstructors().stream().filter(c -> c.getAnnotationByName("JsonCreator").isPresent())
+				.findFirst();
+	}
+
+	private boolean isBodyWrapper(ClassOrInterfaceDeclaration clazz) {
+
+		String className = clazz.getNameAsString();
+
+		return (className.startsWith("BodyEntrada") || className.startsWith("BodySalida"))
+				&& findJsonCreatorConstructor(clazz).isPresent();
+	}
+
+	private boolean buildPropertiesFromJsonCreator(ClassOrInterfaceDeclaration clazz, Map<String, Object> properties,
+			List<String> required) {
+
+		Optional<ConstructorDeclaration> ctorOpt = findJsonCreatorConstructor(clazz);
+
+		if (ctorOpt.isEmpty()) {
+			return false;
+		}
+
+		ConstructorDeclaration ctor = ctorOpt.get();
+
+		for (Parameter param : ctor.getParameters()) {
+
+			Optional<AnnotationExpr> jsonPropOpt = param.getAnnotationByName("JsonProperty");
+
+			if (jsonPropOpt.isEmpty()) {
+				continue;
+			}
+
+			String jsonName = null;
+
+			AnnotationExpr ann = jsonPropOpt.get();
+
+			if (ann.isSingleMemberAnnotationExpr()) {
+
+				jsonName = ann.asSingleMemberAnnotationExpr().getMemberValue().toString().replace("\"", "");
+			}
+
+			else if (ann.isNormalAnnotationExpr()) {
+
+				jsonName = ann.asNormalAnnotationExpr().getPairs().stream()
+						.filter(p -> "value".equals(p.getNameAsString()))
+						.map(p -> p.getValue().toString().replace("\"", "")).findFirst()
+						.orElse(param.getNameAsString());
+			}
+
+			if (jsonName == null || jsonName.isBlank()) {
+				jsonName = param.getNameAsString();
+			}
+
+			Map<String, Object> prop = new LinkedHashMap<>();
+
+			String typeName = parserUtil.resolveFinalType(param.getType().asString());
+
+			if (typeUtil.isPrimitive(typeName)) {
+
+				prop.put("type", typeUtil.mapType(typeName));
+
+				applyFormat(prop, typeName);
+			}
+
+			else {
+
+				String resolved = extractSimpleName(resolveFullType(typeName, clazz));
+
+				prop.putAll(buildSafeSchemaReference(resolved, clazz));
+			}
+
+			properties.put(jsonName, prop);
+		}
+
+		return !properties.isEmpty();
 	}
 
 }
