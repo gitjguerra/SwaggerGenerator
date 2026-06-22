@@ -1843,4 +1843,378 @@
 
 	</api>
 
+	<!-- ===================================================== -->
+	<!-- ✅ PERSONA - CONSULTAR INDICADORES ACTUALIZACION PERSONAS -->
+	<!-- ===================================================== -->
+	<api path="/persona/consultar/indicadores-actualizacion-personas">
+
+		<request>
+
+			<field name="nroPer" value="0"/>
+			<field name="codPais" value="VEN"/>
+			<field name="tipoId" value="V"/>
+			<field name="nroId" value="23652965"/>
+
+		</request>
+
+		<response>
+
+			<field name="bodySalidaConsultarIndicadoresActualizacionPersonas.codFormaUnif"
+				   value="M.604"/>
+
+			<field name="bodySalidaConsultarIndicadoresActualizacionPersonas.indExpedActualizado"
+				   value="NO"/>
+
+			<field name="bodySalidaConsultarIndicadoresActualizacionPersonas.indEsClte"
+				   value="SI"/>
+
+			<field name="bodySalidaConsultarIndicadoresActualizacionPersonas.fchUltActExped"
+				   value="20240415"/>
+
+			<field name="bodySalidaConsultarIndicadoresActualizacionPersonas.tipoPer"
+				   value="N"/>
+
+			<field name="bodySalidaConsultarIndicadoresActualizacionPersonas.fchActMelp"
+				   value="0"/>
+
+			<field name="bodySalidaConsultarIndicadoresActualizacionPersonas.tipoPep"
+				   value=""/>
+
+			<field name="bodySalidaConsultarIndicadoresActualizacionPersonas.codSeg"
+				   value="N2"/>
+
+			<field name="bodySalidaConsultarIndicadoresActualizacionPersonas.fchActRecaUnif"
+				   value="20240415"/>
+
+			<field name="bodySalidaConsultarIndicadoresActualizacionPersonas.oficEntregRecaUnif"
+				   value="9217"/>
+
+			<field name="bodySalidaConsultarIndicadoresActualizacionPersonas.fchProxActExped"
+				   value="20251015"/>
+
+		</response>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ TARJETA - AFILIAR MOSAIC ASOCIADOS -->
+	<!-- ===================================================== -->
+	<api path="/tarjeta/afiliar/mosaic-asociados">
+
+		<request>
+
+			<field name="nroCta" value="1014660556"/>
+			<field name="tipoTrans" value="P2C"/>
+			<field name="tipoRIF" value="V"/>
+			<field name="nroRIF" value="9880622"/>
+			<field name="codAsociado" value="A0001"/>
+			<field name="codArea" value="0058"/>
+			<field name="nroTelf" value="4123676269"/>
+			<field name="email" value=""/>
+
+		</request>
+
+		<response>
+
+			<field name="bodySalidaAfiliarMosaicAsociados.telf.codArea"
+				   value="0058"/>
+
+			<field name="bodySalidaAfiliarMosaicAsociados.telf.nroTelf"
+				   value="4123676269"/>
+
+			<field name="bodySalidaAfiliarMosaicAsociados.fchProcesa"
+				   value="20260622"/>
+
+			<field name="bodySalidaAfiliarMosaicAsociados.msje"
+				   value="177421"/>
+
+			<field name="bodySalidaAfiliarMosaicAsociados.cod"
+				   value="177421"/>
+
+			<field name="bodySalidaAfiliarMosaicAsociados.codTrader"
+				   value="177421"/>
+
+		</response>
+
+	</api>
+	
+	<!-- ===================================================== -->
+	<!-- ✅ TARJETA - CONSULTAR AFILIACION TPAGO -->
+	<!-- ===================================================== -->
+	<api path="/tarjeta/consultar/afiliacion-tpago">
+
+		<request>
+		
+			<field name="codServProd" value="511283"/>
+			<field name="tipoOper" value="2"/>
+			<field name="nroTelf" value="04122078513"/>
+
+		</request>
+
+		<response>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.codEstab"
+				   value="0"/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.codEmailEstab"
+				   value=""/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.direccHabCodPais"
+				   value="0"/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.descripDisp"
+				   value=""/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.comercioId"
+				   value="N"/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.establecimiento.codEstab"
+				   value=""/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.establecimiento.nroCodEstab"
+				   value="0"/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.nomEstab"
+				   value=""/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.nroCtaDisp"
+				   value=""/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.codComisMerca"
+				   value="0.000"/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.nomEstado"
+				   value=""/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.codEstado"
+				   value=""/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.nroPer"
+				   value="0"/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.fchAfilia"
+				   value="0"/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.cantMaxDisp"
+				   value="0"/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.mtoMaxDisp"
+				   value="0"/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.deCodPais"
+				   value=""/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.codApi"
+				   value=""/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.formaPago"
+				   value="0"/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.direccCompact"
+				   value=""/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.codComisInter"
+				   value="0.000"/>
+
+			<field name="bodySalidaConsultarAfiliacionTPago.codSic"
+				   value=""/>
+
+		</response>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ TARJETA - SOLICITAR CLAVE TEMPORAL COMPRA -->
+	<!-- ===================================================== -->
+	<api path="/tarjeta/solicitar/clave-temporal-compra">
+
+		<request>
+
+			<field name="codReq" value="01"/>
+			<field name="tipoProd" value="MELE0"/>
+			<field name="nroPer" value="3148421"/>
+			<field name="nroCelular" value="4143069258"/>
+			<field name="tipoId" value="V"/>
+			<field name="nroId" value="6059690"/>
+			<field name="claseCom" value=""/>
+
+		</request>
+
+		<response>
+
+			<field name="bodySalidaSolicitarClaveTemporalCompra.fchVig"
+				   value="20260622"/>
+
+			<field name="bodySalidaSolicitarClaveTemporalCompra.cantCom"
+				   value="0"/>
+
+			<field name="bodySalidaSolicitarClaveTemporalCompra.fchSolic"
+				   value="20260622"/>
+
+			<field name="bodySalidaSolicitarClaveTemporalCompra.hhVig"
+				   value="203501"/>
+
+			<field name="bodySalidaSolicitarClaveTemporalCompra.claseCom"
+				   value="63164625"/>
+
+			<field name="bodySalidaSolicitarClaveTemporalCompra.hhSolic"
+				   value="143501"/>
+
+		</response>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ TARJETA - CONSULTAR GLOBAL ESTABLECIMIENTOS -->
+	<!-- ===================================================== -->
+	<api path="/tarjeta/consultar/global-establecimiento">
+
+		<request>
+
+			<field name="tipoId" value="J"/>
+			<field name="nroId" value="202001"/>
+			<field name="codTipoServ" value="C2P"/>
+
+		</request>
+
+		<response>
+
+			<field name="bodySalidaConsultarGlobalEstablecimientos.cantRegSalida"
+				   value="3"/>
+
+			<!-- detalleEstablecimiento[0] -->
+
+			<field name="bodySalidaConsultarGlobalEstablecimientos.detalleEstablecimiento[0].codEstab"
+				   value="109112"/>
+
+			<field name="bodySalidaConsultarGlobalEstablecimientos.detalleEstablecimiento[0].nroPer"
+				   value="970056"/>
+
+			<field name="bodySalidaConsultarGlobalEstablecimientos.detalleEstablecimiento[0].nomEstab"
+				   value="FARMATODO PUNTA DE MATA TAE"/>
+
+			<field name="bodySalidaConsultarGlobalEstablecimientos.detalleEstablecimiento[0].indicAfiliTPago"
+				   value="N"/>
+
+			<field name="bodySalidaConsultarGlobalEstablecimientos.detalleEstablecimiento[0].arregloProductosAfiliados[0].statusAfiliTPago"
+				   value="N"/>
+
+			<field name="bodySalidaConsultarGlobalEstablecimientos.detalleEstablecimiento[0].arregloProductosAfiliados[0].indicAfili"
+				   value="N"/>
+
+			<field name="bodySalidaConsultarGlobalEstablecimientos.detalleEstablecimiento[0].arregloProductosAfiliados[0].codTipoMoneda"
+				   value="928"/>
+
+		</response>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ TARJETA - CONSULTAR DETALLE COMERCIO AFILIADO -->
+	<!-- ===================================================== -->
+	<api path="/tarjeta/consultar/detalle-comercio-afiliado">
+
+		<request>
+
+			<field name="codTipoServ" value="P2C"/>
+			<field name="tipoId" value="J"/>
+			<field name="nroId" value="405381310"/>
+			<field name="codEstab" value="200231"/>
+			<field name="nroPer" value="0"/>
+
+		</request>
+
+		<response>
+
+			<field name="bodySalidaConsultarDetalleComercioAfiliado.codTipoServ"
+				   value="P2C"/>
+
+			<field name="bodySalidaConsultarDetalleComercioAfiliado.nomEstab"
+				   value="EMPRESA QA"/>
+
+			<!-- monedas[0] -->
+
+			<field name="bodySalidaConsultarDetalleComercioAfiliado.monedas[0].codMoneda"
+				   value="928"/>
+
+			<field name="bodySalidaConsultarDetalleComercioAfiliado.monedas[0].fchAfiliTpago"
+				   value="20200624"/>
+
+			<field name="bodySalidaConsultarDetalleComercioAfiliado.monedas[0].indicAfiliTpago"
+				   value="S"/>
+
+			<field name="bodySalidaConsultarDetalleComercioAfiliado.monedas[0].nroCtaRecept"
+				   value="1734133198"/>
+
+			<field name="bodySalidaConsultarDetalleComercioAfiliado.monedas[0].cantMaxima"
+				   value="0"/>
+
+			<field name="bodySalidaConsultarDetalleComercioAfiliado.monedas[0].emailEstab"
+				   value="nellyslunar1968@hotmail.com"/>
+
+			<field name="bodySalidaConsultarDetalleComercioAfiliado.monedas[0].mtoMax"
+				   value="1"/>
+
+			<!-- monedas[0].celulares[0] -->
+
+			<field name="bodySalidaConsultarDetalleComercioAfiliado.monedas[0].celulares[0].descrip"
+				   value=""/>
+
+			<field name="bodySalidaConsultarDetalleComercioAfiliado.monedas[0].celulares[0].nroTelf"
+				   value="584148648543"/>
+
+		</response>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ TARJETA - CONSULTAR TRANSACCION TPAGO -->
+	<!-- ===================================================== -->
+	<api path="/tarjeta/consultar/transaccion-tpago">
+
+		<request>
+
+			<field name="longClv" value="4"/>
+			<field name="clvFchTrans" value="20250912"/>
+			<field name="clvNroRef" value="1001"/>
+			<field name="clvCodMoneda" value="928"/>
+			<field name="clvMovilOri" value="584124586123"/>
+			<field name="clvMovilDest" value="584165784236"/>
+			<field name="clvMtoTrans" value="150000"/>
+
+		</request>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ TARJETA - ELIMINAR COMERCIO AFILIADO AMPLIADO -->
+	<!-- ===================================================== -->
+	<api path="/tarjeta/eliminar/comercio-afiliado-ampliado">
+
+		<request>
+
+			<field name="codComerc" value="2000"/>
+			<field name="codTipoServ" value="2"/>
+			<field name="codMoneda" value="928"/>
+
+			<field name="nroTelf[0]"
+				   value="4165247856"/>
+
+		</request>
+
+	</api>
+
+	<!-- ===================================================== -->
+	<!-- ✅ TARJETA - CONSULTAR EMISOR TARJETA TDC -->
+	<!-- ===================================================== -->
+	<api path="/tarjeta/consultar/emisor-tarjeta-tdc">
+
+		<request>
+
+			<field name="nroTarj" value="5467040014738495"/>
+
+		</request>
+
+	</api>
+
 </rules>
