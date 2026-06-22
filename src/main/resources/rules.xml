@@ -1586,68 +1586,190 @@
 	<!-- ✅ SAFE - CONSULTAR AFILIACION -->
 	<!-- ===================================================== -->
 	<api path="/safe/consultar/afiliacion">
-	
-	    <request>
-	
-	        <field name="codTransac" value=""/>
-	
-	        <field name="codSubCanal" value=""/>
-	
-	        <field name="nroPer" value="0"/>
-	
-	        <field name="codServProduc" value="0"/>
-	
-	        <field name="codGrupo" value="0"/>
-	
-	        <field name="idNac" value="V"/>
-	
-	        <field name="idNum" value="23652965"/>
-	
-	        <field name="numServicio" value=""/>
-	
-	        <field name="tipoServProd" value="1"/>
-	
-	    </request>
-	
-	    <response>
-	
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.otraPag" value="S"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.proxClv" value="0009644689000027"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.nroPer" value="9644689"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.codGrupo" value="0"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.regConsult" value="20"/>
-	
-	        <!-- afiliaciones[0] -->
-	
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].frec" value=""/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].mtoLimMin" value="0.00"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroCtaRecept" value="0"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].codServProduc" value="1"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].codCanal" value=""/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].fchProxCobro" value="0"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].codBco" value="0"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].mtoLimMax" value="0.00"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroCtaComis" value="0"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroLocalizaEmail" value="0"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nomBenefi" value=""/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroServProduc" value="0000000000042604874821"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].statusAfil" value="0"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroPerBenefi" value="0"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].maxAfilClte" value="29"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].tipoIdBenefi" value=""/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroIdBenefi" value="0"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].consec" value="01"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].isn" value="4902336"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].emailBenefi" value=""/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].codTipoProducRecept" value=""/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].descripServProduc" value="VANESSA"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].fchAfil" value="20140215"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].fchUltActualiz" value="20140215"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nomServProd" value="CANTV Y TV SATELITAL"/>
-	        <field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].tipoServProd" value="1"/>
-	
-	    </response>
-	
+
+		<request>
+
+			<field name="codTransac" value=""/>
+
+			<field name="codSubCanal" value=""/>
+
+			<field name="nroPer" value="0"/>
+
+			<field name="codServProduc" value="0"/>
+
+			<field name="codGrupo" value="0"/>
+
+			<field name="idNac" value="V"/>
+
+			<field name="idNum" value="23652965"/>
+
+			<field name="numServicio" value=""/>
+
+			<field name="tipoServProd" value="1"/>
+
+		</request>
+
+		<response>
+
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.otraPag" value="S"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.proxClv" value="0009644689000027"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.nroPer" value="9644689"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.codGrupo" value="0"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.regConsult" value="20"/>
+
+			<!-- afiliaciones[0] -->
+
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].frec" value=""/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].mtoLimMin" value="0.00"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroCtaRecept" value="0"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].codServProduc" value="1"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].codCanal" value=""/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].fchProxCobro" value="0"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].codBco" value="0"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].mtoLimMax" value="0.00"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroCtaComis" value="0"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroLocalizaEmail" value="0"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nomBenefi" value=""/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroServProduc" value="0000000000042604874821"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].statusAfil" value="0"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroPerBenefi" value="0"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].maxAfilClte" value="29"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].tipoIdBenefi" value=""/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nroIdBenefi" value="0"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].consec" value="01"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].isn" value="4902336"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].emailBenefi" value=""/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].codTipoProducRecept" value=""/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].descripServProduc" value="VANESSA"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].fchAfil" value="20140215"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].fchUltActualiz" value="20140215"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].nomServProd" value="CANTV Y TV SATELITAL"/>
+			<field name="bodySalidaConsultarAfiliacion.afiliaciones.afiliaciones[0].tipoServProd" value="1"/>
+
+		</response>
+
 	</api>
+
+	<!-- ===================================================== -->
+    <!-- ✅ SAFE - AFILIAR SERVICIOS AMPLIADOS -->
+    <!-- ===================================================== -->
+    <api path="/safe/afiliar/servicios-ampliados">
+
+        <request>
+
+            <field name="codTrans" value=""/>
+
+            <field name="codSubCanal" value="01"/>
+
+            <field name="indicAccion" value="P"/>
+
+            <!-- ✅ regAfili[0] -->
+
+            <field name="regAfili[0].idNac" value="V"/>
+
+            <field name="regAfili[0].nroId" value="19546854"/>
+
+            <field name="regAfili[0].nroPer" value="0"/>
+
+            <field name="regAfili[0].codGrupo" value="0"/>
+
+            <field name="regAfili[0].codServProduc" value="27"/>
+
+            <field name="regAfili[0].descripServProduc"
+                value="AFILIACION T PAGO"/>
+
+            <field name="regAfili[0].nroServProduc"
+                value="4121234778"/>
+
+            <field name="regAfili[0].fchAfili"
+                value="20260415"/>
+
+            <field name="regAfili[0].fchUltActualiz"
+                value="0"/>
+
+            <field name="regAfili[0].statusAfili"
+                value="0"/>
+
+            <field name="regAfili[0].nroPerBenefi"
+                value="0"/>
+
+            <field name="regAfili[0].tipoIdBenef"
+                value=""/>
+
+            <field name="regAfili[0].nroIdBenef"
+                value="0"/>
+
+            <field name="regAfili[0].nomBenef"
+                value="PRUEBAS QA CALIDAD QA"/>
+
+            <field name="regAfili[0].emailBenef"
+                value="6054.BANCOMERCANTIL@GMAIL.COM"/>
+
+            <field name="regAfili[0].consec"
+                value=""/>
+
+            <field name="regAfili[0].tipoLocaliza"
+                value="6"/>
+
+            <field name="regAfili[0].frec"
+                value=""/>
+
+            <field name="regAfili[0].codBco"
+                value="105"/>
+
+            <field name="regAfili[0].mtoLimMin"
+                value="1"/>
+
+            <field name="regAfili[0].mtoLimMax"
+                value="9999999"/>
+
+            <field name="regAfili[0].tipoServProduc"
+                value="1"/>
+
+            <field name="regAfili[0].nroCtaComis"
+                value="0"/>
+
+            <field name="regAfili[0].nroCtaRecept"
+                value="3107142"/>
+
+            <field name="regAfili[0].codTipoProducRecept"
+                value="TE"/>
+
+            <field name="regAfili[0].observ"
+                value=""/>
+
+        </request>
+
+        <response>
+
+            <!-- ✅ afiliaciones[0] -->
+
+            <field name="bodySalidaAfiliarServiciosAmpliados.afiliaciones[0].codMsjeUsu"
+                value="0000"/>
+
+            <field name="bodySalidaAfiliarServiciosAmpliados.afiliaciones[0].nroId"
+                value="19546854"/>
+
+            <field name="bodySalidaAfiliarServiciosAmpliados.afiliaciones[0].codMsjeProgramador"
+                value="0000"/>
+
+            <field name="bodySalidaAfiliarServiciosAmpliados.afiliaciones[0].nroServProduc"
+                value="0000000000004121234778"/>
+
+            <field name="bodySalidaAfiliarServiciosAmpliados.afiliaciones[0].tipoMsje"
+                value="I"/>
+
+            <field name="bodySalidaAfiliarServiciosAmpliados.afiliaciones[0].msjeUsu"
+                value="REGISTRO GRABADO EN AFILIACIONES OK"/>
+
+            <field name="bodySalidaAfiliarServiciosAmpliados.afiliaciones[0].idNac"
+                value="V"/>
+
+            <field name="bodySalidaAfiliarServiciosAmpliados.afiliaciones[0].msjeProgramadorSist"
+                value="REGISTRO GRABADO EN AFILIACIONES OK"/>
+
+        </response>
+
+    </api>
 
 </rules>

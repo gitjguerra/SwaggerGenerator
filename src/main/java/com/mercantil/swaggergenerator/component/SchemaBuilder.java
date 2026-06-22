@@ -1109,6 +1109,54 @@ public class SchemaBuilder {
 
 			Map<String, Object> prop = new LinkedHashMap<>();
 
+			String rawType = param.getType().asString();
+
+			if (rawType.endsWith("[]")) {
+
+				String elementType = rawType.substring(0, rawType.length() - 2);
+
+				prop.put("type", "array");
+
+				String resolved = extractSimpleName(resolveFullType(elementType, clazz));
+
+				if (typeUtil.isPrimitive(resolved)) {
+
+					prop.put("items", Map.of("type", typeUtil.mapType(resolved)));
+				}
+
+				else {
+
+					prop.put("items", buildSafeSchemaReference(resolved, clazz));
+				}
+
+				properties.put(jsonName, prop);
+
+				continue;
+			}
+
+			if (rawType.contains("List<")) {
+
+				String generic = parserUtil.extractGeneric(rawType);
+
+				String resolved = extractSimpleName(resolveFullType(generic, clazz));
+
+				prop.put("type", "array");
+
+				if (typeUtil.isPrimitive(resolved)) {
+
+					prop.put("items", Map.of("type", typeUtil.mapType(resolved)));
+				}
+
+				else {
+
+					prop.put("items", buildSafeSchemaReference(resolved, clazz));
+				}
+
+				properties.put(jsonName, prop);
+
+				continue;
+			}
+
 			String typeName = parserUtil.resolveFinalType(param.getType().asString());
 
 			if (typeUtil.isPrimitive(typeName)) {
