@@ -286,7 +286,9 @@ public class RequestExampleProvider {
 		case "integer":
 			return 123;
 		case "number":
-			return 123.45;
+			return 0;
+		case "bigdecimal":
+			return 0.00;
 		case "boolean":
 			return true;
 		case "array":
