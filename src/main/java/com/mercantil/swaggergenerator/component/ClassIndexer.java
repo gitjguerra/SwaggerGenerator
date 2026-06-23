@@ -4,8 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+//import org.apache.logging.log4j.LogManager;
+//import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -13,7 +13,7 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 @Component
 public class ClassIndexer {
 
-	private static final Logger log = LogManager.getLogger(ClassIndexer.class);
+	//private static final Logger log = LogManager.getLogger(ClassIndexer.class);
 
     // ✅ mapa de clases por nombre simple
     private final Map<String, ClassOrInterfaceDeclaration> classMap = new HashMap<>();
