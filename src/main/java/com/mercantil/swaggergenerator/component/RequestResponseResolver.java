@@ -109,13 +109,6 @@ public class RequestResponseResolver {
                                 .toLowerCase();
 
                         if (!normalizedRef.endsWith(endpointKey)) {
-
-                            System.out.println(
-                                    "DESCARTANDO REF -> "
-                                            + refType
-                                            + " endpointKey="
-                                            + endpointKey);
-
                             continue;
                         }
 
@@ -134,15 +127,8 @@ public class RequestResponseResolver {
         // encontrado en el schema del request.
         // =====================================================
         if (bodyType == null && candidateBodyType != null) {
-
             bodyType = candidateBodyType;
             bodyFieldName = candidateBodyFieldName;
-
-            System.out.println(
-                    "USANDO CANDIDATO -> "
-                            + bodyType
-                            + " field="
-                            + bodyFieldName);
         }
 
         // =====================================================
@@ -155,9 +141,6 @@ public class RequestResponseResolver {
 
             bodyFieldName = decapitalize(bodyType);
 
-            System.out.println(
-                    "USANDO FALLBACK LEGACY -> "
-                            + bodyType);
         }
 
         // =====================================================
