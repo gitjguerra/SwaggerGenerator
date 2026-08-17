@@ -1,5 +1,6 @@
 package com.mercantil.swaggergenerator.component;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -293,30 +294,36 @@ public class ExampleGenerator {
 
 				if (items instanceof Map) {
 
-					Map<?, ?> itemMap = (Map<?, ?>) items;
+				    Map<?, ?> itemMap = (Map<?, ?>) items;
 
-					// ✅ ARRAY OBJETO
-					if (itemMap.containsKey("$ref")) {
+				    // ARRAY OBJETO
+				    if (itemMap.containsKey("$ref")) {
 
-						String ref = itemMap.get("$ref").toString();
+				        String ref = itemMap.get("$ref").toString();
 
-						String refType = ref.substring(ref.lastIndexOf("/") + 1);
+				        String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
-						Object nested = buildExampleFromType(refType, fullPath, apiName);
+				        Object nested = buildExampleFromType(refType, fullPath, apiName);
 
-						if (nested == null) {
+				        if (nested == null) {
 
-							nested = new LinkedHashMap<>();
-						}
+				            nested = new LinkedHashMap<>();
+				        }
 
-						example.put(jsonKey, List.of(nested));
-					}
+				        List<Object> arrayItems = new ArrayList<>();
+				        arrayItems.add(nested);
 
-					// ✅ ARRAY PRIMITIVO
-					else {
+				        example.put(jsonKey, arrayItems);
+				    }
 
-						example.put(jsonKey, List.of(""));
-					}
+				    // ARRAY PRIMITIVO
+				    else {
+
+				        List<Object> arrayItems = new ArrayList<>();
+				        arrayItems.add("");
+
+				        example.put(jsonKey, arrayItems);
+				    }
 				}
 
 				return;
@@ -427,7 +434,10 @@ public class ExampleGenerator {
 						nested = new LinkedHashMap<>();
 					}
 
-					example.put(name, List.of(nested));
+					List<Object> items = new ArrayList<>();
+					items.add(nested);
+
+					example.put(name, items);
 
 					return;
 				}

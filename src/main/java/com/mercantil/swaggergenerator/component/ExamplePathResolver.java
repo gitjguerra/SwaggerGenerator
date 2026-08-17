@@ -54,10 +54,16 @@ public class ExamplePathResolver {
 
 				List<Object> list = (List<Object>) listObj;
 
-				// ✅ expandir lista
+				if (!(list instanceof ArrayList)) {
+
+				    list = new ArrayList<>(list);
+
+				    currentMap.put(field, list);
+				}
+
 				while (list.size() <= index) {
 
-					list.add(new LinkedHashMap<String, Object>());
+				    list.add(new LinkedHashMap<String, Object>());
 				}
 
 				// ✅ último nodo
