@@ -96,4 +96,33 @@ class RequestExampleProviderTest {
 
 		assertThat(detalle).hasSize(1);
 	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void appliesRuleDefinedPathsThatDoNotExistInTheDtoSchema() throws IOException {
+
+		// ✅ simula lo que hoy solo lograban los SpecialRequestHandler: una regla
+		// en rules.xml que impone una estructura anidada/renombrada que no
+		// existe literalmente en el schema del DTO (aquí, el schema no tiene
+		// NINGÚN campo declarado).
+		RuleEngine ruleEngine = loadRuleEngineFromXml("<rules>" + "<api path=\"/test/endpoint\">" + "<request>"
+				+ "<field name=\"wrapperNoDeclaradoEnElDto.subCampo\" value=\"42\" />" + "</request>" + "</api>"
+				+ "</rules>");
+
+		RequestExampleProvider provider = new RequestExampleProvider(ruleEngine, new ClassIndexer(),
+				new ExamplePathResolver(), new ParserUtil());
+
+		Map<String, Map<String, Object>> schemaMap = new LinkedHashMap<>();
+
+		schemaMap.put("BodyEntradaTest", Map.of("type", "object", "properties", Map.of()));
+
+		Object example = provider.build("/test/endpoint", "BodyEntradaTest", schemaMap, new LinkedHashMap<>());
+
+		Map<String, Object> exampleMap = (Map<String, Object>) example;
+
+		Map<String, Object> wrapper = (Map<String, Object>) exampleMap.get("wrapperNoDeclaradoEnElDto");
+
+		assertThat(wrapper).isNotNull();
+		assertThat(wrapper.get("subCampo")).isEqualTo(42);
+	}
 }

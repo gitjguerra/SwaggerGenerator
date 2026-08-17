@@ -160,6 +160,53 @@ class SchemaBuilderTest {
 		assertThat(additionalProperties.get("$ref")).isEqualTo("#/components/schemas/Cuenta");
 	}
 
+	@Test
+	@SuppressWarnings("unchecked")
+	void resolvesTheCorrectClassWhenSimpleNameCollidesAcrossPackages() {
+
+		// ✅ dos clases "Address" reales en paquetes distintos, con campos
+		// distintos -- antes de la resolución con contexto, cualquier referencia
+		// a "Address" habría resuelto a la última registrada, sin importar
+		// cuál import tenía realmente cada archivo.
+		ClassOrInterfaceDeclaration customerAddress = classByName(StaticJavaParser
+				.parse("package com.foo.customer;\n" + "class Address { private String zonaunica; }\n")
+				.findAll(ClassOrInterfaceDeclaration.class), "Address");
+
+		ClassOrInterfaceDeclaration branchAddress = classByName(StaticJavaParser
+				.parse("package com.foo.branch;\n" + "class Address { private String marcadorx; }\n")
+				.findAll(ClassOrInterfaceDeclaration.class), "Address");
+
+		ClassOrInterfaceDeclaration pedido = classByName(StaticJavaParser
+				.parse("package com.foo.pedidos;\n" + "import com.foo.customer.Address;\n"
+						+ "class Pedido { private Address direccion; }\n")
+				.findAll(ClassOrInterfaceDeclaration.class), "Pedido");
+
+		classIndexer.register(customerAddress);
+		classIndexer.register(branchAddress);
+		classIndexer.register(pedido);
+
+		Map<String, Map<String, Object>> schemaMap = new LinkedHashMap<>();
+		schemaBuilder.setSchemaMap(schemaMap);
+
+		Map<String, Object> pedidoSchema = schemaBuilder.build(pedido);
+
+		Map<String, Object> props = (Map<String, Object>) pedidoSchema.get("properties");
+
+		assertThat(props).hasSize(1);
+
+		Map<String, Object> direccionSchema = (Map<String, Object>) props.values().iterator().next();
+
+		assertThat(direccionSchema.get("$ref")).isEqualTo("#/components/schemas/Address");
+
+		// ✅ la clave correcta: el schema generado bajo "Address" debe tener el
+		// campo de com.foo.customer.Address (zonaunica), NO el de com.foo.branch
+		// (marcadorx), porque Pedido importa explícitamente com.foo.customer.Address.
+		Map<String, Object> addressProperties = (Map<String, Object>) schemaMap.get("Address").get("properties");
+
+		assertThat(addressProperties).containsKey("zonaunica");
+		assertThat(addressProperties).doesNotContainKey("marcadorx");
+	}
+
 	private ClassOrInterfaceDeclaration classByName(List<ClassOrInterfaceDeclaration> classes, String name) {
 
 		return classes.stream().filter(c -> c.getNameAsString().equals(name)).findFirst().orElseThrow();

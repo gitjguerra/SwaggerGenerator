@@ -136,7 +136,7 @@ public class SchemaBuilder {
 			// =================================================
 			clazz.getExtendedTypes().forEach(ext -> {
 
-				classIndexer.findClass(ext.getNameAsString())
+				classIndexer.findClass(ext.getNameAsString(), clazz)
 
 						.ifPresent(parent -> {
 
@@ -373,8 +373,8 @@ public class SchemaBuilder {
 										hasExplicitJsonName = field.getAnnotationByName("JsonProperty").isPresent()
 												|| parserUtil.resolveJsonName(field, vari.getNameAsString()) != null;
 
-										if (shouldFlatten(resolved) && !hasExplicitJsonName) {
-											flattenSchemaProperties(resolved, properties);
+										if (shouldFlatten(resolved, clazz) && !hasExplicitJsonName) {
+											flattenSchemaProperties(resolved, properties, clazz);
 											flattened = true;
 										}
 
@@ -450,13 +450,13 @@ public class SchemaBuilder {
 	// =========================================================
 	// ✅ WRAPPER DETECTION
 	// =========================================================
-	private boolean shouldFlatten(String typeName) {
+	private boolean shouldFlatten(String typeName, ClassOrInterfaceDeclaration context) {
 
 		if (typeName == null || typeName.isBlank()) {
 			return false;
 		}
 
-		Optional<ClassOrInterfaceDeclaration> clazzOpt = classIndexer.findClass(typeName);
+		Optional<ClassOrInterfaceDeclaration> clazzOpt = classIndexer.findClass(typeName, context);
 
 		if (clazzOpt.isEmpty()) {
 			return false;
@@ -493,16 +493,19 @@ public class SchemaBuilder {
 	// =========================================================
 	// ✅ FLATTEN RECURSIVO
 	// =========================================================
-	private void flattenSchemaProperties(String typeName, Map<String, Object> targetProperties) {
+	private void flattenSchemaProperties(String typeName, Map<String, Object> targetProperties,
+			ClassOrInterfaceDeclaration context) {
 
-		Optional<ClassOrInterfaceDeclaration> childOpt = classIndexer.findClass(typeName);
+		Optional<ClassOrInterfaceDeclaration> childOpt = classIndexer.findClass(typeName, context);
 
 		if (childOpt.isEmpty()) {
 
 			return;
 		}
 
-		Map<String, Object> childSchema = build(childOpt.get());
+		ClassOrInterfaceDeclaration child = childOpt.get();
+
+		Map<String, Object> childSchema = build(child);
 
 		Object propsObj = childSchema.get(PROPERTIES);
 
@@ -529,9 +532,11 @@ public class SchemaBuilder {
 
 				String refType = ref.toString().substring(ref.toString().lastIndexOf("/") + 1);
 
-				if (shouldFlatten(refType)) {
+				// ✅ el ref fue declarado dentro de "child": esa es la clase correcta
+				// para resolver a qué tipo se refiere (imports/paquete propios)
+				if (shouldFlatten(refType, child)) {
 
-					flattenSchemaProperties(refType, targetProperties);
+					flattenSchemaProperties(refType, targetProperties, child);
 
 					return;
 				}
@@ -544,7 +549,7 @@ public class SchemaBuilder {
 	// =========================================================
 	// ✅ ENSURE SCHEMA
 	// =========================================================
-	private void ensureSchemaWithParsing(String type) {
+	private void ensureSchemaWithParsing(String type, ClassOrInterfaceDeclaration context) {
 
 		if (type == null || type.isBlank()) {
 
@@ -581,7 +586,7 @@ public class SchemaBuilder {
 			return;
 		}
 
-		Optional<ClassOrInterfaceDeclaration> clazzOpt = classIndexer.findClass(type);
+		Optional<ClassOrInterfaceDeclaration> clazzOpt = classIndexer.findClass(type, context);
 
 		if (clazzOpt.isPresent()) {
 
@@ -861,15 +866,15 @@ public class SchemaBuilder {
 			return Map.of("$ref", SCHEMAS + type);
 		}
 
-		// ✅ buscar clase real
+		// ✅ buscar clase real (con contexto: desambigua colisiones de nombre simple)
 		Optional<ClassOrInterfaceDeclaration> target =
 
-				classIndexer.findClass(type);
+				classIndexer.findClass(type, context);
 
 		// ✅ clase encontrada
 		if (target.isPresent()) {
 
-			ensureSchemaWithParsing(type);
+			ensureSchemaWithParsing(type, context);
 
 			return Map.of("$ref", SCHEMAS + type);
 		}

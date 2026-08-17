@@ -65,7 +65,38 @@ public class RequestExampleProvider {
 			bodyExample = flattenIfWrapper(bodyExample);
 		}
 
+		// ✅ GENERALIZACIÓN: aplicar TODAS las reglas de rules.xml para este
+		// endpoint sobre el ejemplo, aunque describan una ruta/estructura que no
+		// exista literalmente en el schema del DTO (wrappers, renombrados,
+		// arrays anidados). Antes esto solo se lograba escribiendo un
+		// SpecialRequestHandler a mano; ahora un endpoint nuevo con esa misma
+		// necesidad puede resolverse solo con rules.xml. Es puramente aditivo:
+		// para endpoints sin reglas "raras" (el caso normal) no cambia nada, y
+		// para los 5 endpoints con handler especial, SpecialRequestDispatcher
+		// corre después y sigue teniendo la última palabra.
+		if (bodyExample instanceof Map) {
+
+			applyRawRequestRules(endpointPath, (Map<String, Object>) bodyExample);
+		}
+
 		return bodyExample;
+	}
+
+	// =========================================================
+	// ✅ APLICAR REGLAS "CRUDAS" (independientes del schema del DTO)
+	// =========================================================
+	private void applyRawRequestRules(String endpointPath, Map<String, Object> bodyExample) {
+
+		Map<String, String> rules = ruleEngine.getRequestRules(endpointPath);
+
+		for (Map.Entry<String, String> entry : rules.entrySet()) {
+
+			String path = entry.getKey();
+
+			String value = entry.getValue();
+
+			examplePathResolver.setNestedValue(bodyExample, path, examplePathResolver.parseValue(path, value));
+		}
 	}
 
 	// =========================================================
