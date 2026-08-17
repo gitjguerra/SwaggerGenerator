@@ -313,26 +313,6 @@
 
 	</api>
 
-	<!-- ========================================================= -->
-	<!-- ✅ SAFE - CONSULTAR CLAVE CIFRADA -->
-	<!-- ========================================================= -->
-	<api path="/safe/consultar/clave-cifrada">
-
-		<request>
-		</request>
-
-		<response>
-
-			<field name="bodySalidaConsultarClaveCifrada.masterKey"
-				value="1FFBA2B6D39D94918C45987FB507A2681FFBA2B6D39D9491" />
-
-			<field name="bodySalidaConsultarClaveCifrada.versMasterKey"
-				value="2" />
-
-		</response>
-
-	</api>
-	
 	<!-- ===================================================== -->
 	<!-- ✅ INVERSIONES - BUSCAR INVENTARIOS -->
 	<!-- ===================================================== -->

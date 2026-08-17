@@ -27,11 +27,6 @@ public class RuleEngine {
 	private static final String FIELD = "field";
 
 	// =========================================================
-	// ✅ LEGACY (compatibilidad)
-	// =========================================================
-	private final Map<String, Map<String, String>> apiRules = new LinkedHashMap<>();
-
-	// =========================================================
 	// ✅ REQUEST RULES
 	// =========================================================
 	private final Map<String, Map<String, String>> requestRules = new LinkedHashMap<>();
@@ -142,12 +137,13 @@ public class RuleEngine {
 					}
 
 					// =================================================
-					// ✅ LEGACY SUPPORT
+					// ✅ LEGACY SUPPORT: rules.xml externos antiguos pueden traer
+					// <field> sueltos directamente bajo <api> (sin <request>/<response>);
+					// se tratan como reglas de request.
 					// =================================================
 					if (!legacyFields.isEmpty()) {
 
 						requestFields.putAll(legacyFields);
-						apiRules.put(apiKey, legacyFields);
 					}
 
 					// =================================================
