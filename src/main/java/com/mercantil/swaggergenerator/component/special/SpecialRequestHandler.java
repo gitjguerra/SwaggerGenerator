@@ -4,9 +4,10 @@ import java.util.Map;
 
 public interface SpecialRequestHandler {
 
-    boolean supports(String endpointPath, boolean hasBody);
+    boolean supports(String endpointPath, boolean hasBody, RequestPhase phase);
 
     void apply(String endpointPath,
-               Map<String, Object> requestProps,
-               Map<String, Object> requestExample);
+               Map<String, Object> props,
+               Map<String, Object> example,
+               RequestPhase phase);
 }

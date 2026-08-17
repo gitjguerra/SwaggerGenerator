@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.mercantil.swaggergenerator.component.special.RequestPhase;
 import com.mercantil.swaggergenerator.component.special.SpecialRequestDispatcher;
 
 @Component
@@ -113,7 +114,8 @@ public class RequestBuilder {
 		// =====================================================
 		// ✅ SPECIAL HANDLER
 		// =====================================================
-		boolean handled = specialDispatcher.applyIfMatch(endpointPath, hasBody, requestProps, requestExample);
+		boolean handled = specialDispatcher.applyIfMatch(endpointPath, hasBody, RequestPhase.REQUEST, requestProps,
+				requestExample);
 
 		if (handled) {
 			log.info("Request manejado por SpecialHandler");

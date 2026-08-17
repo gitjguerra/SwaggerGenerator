@@ -33,13 +33,16 @@ public class SolicitudCreditoPceHandler implements SpecialRequestHandler {
 	}
 
 	@Override
-	public boolean supports(String endpointPath, boolean hasBody) {
+	public boolean supports(String endpointPath, boolean hasBody, RequestPhase phase) {
 
-		return "/creditos/generar/solicitud-credito-pce".equalsIgnoreCase(endpointPath);
+		// ✅ este handler solo construye el body de REQUEST; en RESPONSE no hay nada que hacer
+		return phase == RequestPhase.REQUEST
+				&& "/creditos/generar/solicitud-credito-pce".equalsIgnoreCase(endpointPath);
 	}
 
 	@Override
-	public void apply(String endpointPath, Map<String, Object> props, Map<String, Object> example) {
+	public void apply(String endpointPath, Map<String, Object> props, Map<String, Object> example,
+			RequestPhase phase) {
 
 		log.info("***** SPECIAL HANDLER: solicitud-credito-pce");
 
@@ -85,15 +88,5 @@ public class SolicitudCreditoPceHandler implements SpecialRequestHandler {
 				requestExampleProvider.getRuleValue(endpointPath, TASA_PREAD)));
 
 		example.put(BODY_ENTRADA, body);
-
-		// =======================================================
-		// ✅ RESPONSE FIX (solo si estamos en response)
-		// =======================================================
-		// ⚠️ IMPORTANTE: solo limpiar si existe bodySalida (indicador de response)
-		if (props.containsKey(BODY_ENTRADA)) {
-
-			example.remove(BODY_ENTRADA);
-			props.remove(BODY_ENTRADA);
-		}
 	}
 }

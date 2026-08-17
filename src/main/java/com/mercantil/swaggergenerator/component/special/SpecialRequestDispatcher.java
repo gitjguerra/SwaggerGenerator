@@ -15,14 +15,15 @@ public class SpecialRequestDispatcher {
 
     public boolean applyIfMatch(String endpointPath,
                                 boolean hasBody,
-                                Map<String, Object> requestProps,
-                                Map<String, Object> requestExample) {
+                                RequestPhase phase,
+                                Map<String, Object> props,
+                                Map<String, Object> example) {
 
         for (SpecialRequestHandler h : handlers) {
 
-            if (h.supports(endpointPath, hasBody)) {
+            if (h.supports(endpointPath, hasBody, phase)) {
 
-                h.apply(endpointPath, requestProps, requestExample);
+                h.apply(endpointPath, props, example, phase);
                 return true;
             }
         }

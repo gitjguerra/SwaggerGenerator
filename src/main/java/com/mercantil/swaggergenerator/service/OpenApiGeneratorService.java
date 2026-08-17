@@ -58,6 +58,8 @@ public class OpenApiGeneratorService {
 
 	private String currentServiceName;
 
+	private String currentBasePath;
+
 	private static final Logger log = LogManager.getLogger(OpenApiGeneratorService.class);
 
 	// =========================================================
@@ -94,7 +96,13 @@ public class OpenApiGeneratorService {
 	// =========================================================
 	// ✅ GENERADOR PRINCIPAL
 	// =========================================================
-	public OpenApiDoc generate(ServiceItem service) {
+	// ✅ synchronized: este bean es un singleton de Spring y todo el estado de
+	// generación (schemaMap/exampleMap/currentServiceName/... y el ClassIndexer
+	// compartido) vive en campos de instancia mutables. Serializar generate()
+	// evita que dos requests concurrentes (p.ej. /api/openapi/{a} y /api/openapi/{b},
+	// o el loop de /api/openapi/all contra un request individual) mezclen el
+	// estado de un servicio con el de otro.
+	public synchronized OpenApiDoc generate(ServiceItem service) {
 
 		log.info("\n==============================");
 		log.info("Generando servicio: {}", service.getName());
@@ -116,13 +124,15 @@ public class OpenApiGeneratorService {
 
 		this.currentBeansPath = service.getBeansPath();
 		this.currentServiceName = service.getName().toLowerCase().trim();
+		this.currentBasePath = service.getBasePath();
 
 		doc.setSecurity(List.of(Map.of("bearerAuth", List.of())));
 
 		doc.getInfo().setTitle("API " + service.getName());
 
-		doc.getServers()
-				.add(Map.of("url", (service.getHost() == null ? "" : service.getHost()) + service.getBasePath()));
+		// ✅ servers solo lleva el host: el basePath ya queda reflejado en cada path
+		// generado (ver resolveServicePrefix), evitando duplicarlo entre servers.url y paths.
+		doc.getServers().add(Map.of("url", service.getHost() == null ? "" : service.getHost()));
 
 		// =====================================================
 		// ✅ BACKEND SERVICES
@@ -142,6 +152,11 @@ public class OpenApiGeneratorService {
 		List<File> beanFiles = findJavaFiles(service.getBeansPath());
 
 		log.info("Bean files encontrados: {}", beanFiles.size());
+
+		// ✅ limpiar índice del servicio anterior: evita que clases de un servicio
+		// previo queden resolviéndose (o colisionando por nombre simple) durante
+		// la generación de este servicio, ej. en el loop de /api/openapi/all.
+		classIndexer.clear();
 
 		// ✅ INDEXAR PRIMERO
 		indexAllClasses(beanFiles);
@@ -257,29 +272,15 @@ public class OpenApiGeneratorService {
 
 		Map<String, String> httpMapping = httpMethodUtil.detect(method);
 
-		String httpMethod;
-		String path;
-
+		// ✅ métodos sin anotación de mapping HTTP (helpers, overrides, etc.) no son
+		// endpoints reales: se omiten en vez de fabricar un endpoint POST sintético.
 		if (httpMapping == null) {
-
-			String methodName = method.getNameAsString();
-
-			String fallbackPath =
-
-					methodName.replaceAll("([a-z])([A-Z])", "$1-$2")
-
-							.toLowerCase();
-
-			httpMethod = "post";
-
-			path = URL_SEPARATOR + fallbackPath;
-
-		} else {
-
-			httpMethod = httpMapping.get("method");
-
-			path = httpMapping.get("path");
+			return;
 		}
+
+		String httpMethod = httpMapping.get("method");
+
+		String path = httpMapping.get("path");
 
 		String rawPath = URL_SEPARATOR + (basePath == null ? "" : basePath) + URL_SEPARATOR
 				+ (path == null ? "" : path);
@@ -765,15 +766,26 @@ public class OpenApiGeneratorService {
 
 	private String resolveServicePrefix() {
 
-		if (currentServiceName == null || currentServiceName.isBlank()) {
+		// ✅ el prefijo de path debe coincidir con el basePath configurado (el mismo
+		// valor que antes se agregaba a servers.url), no con el nombre del servicio,
+		// que es solo una etiqueta y puede no coincidir con la ruta real montada.
+		String prefix = currentBasePath;
+
+		if (prefix == null || prefix.isBlank()) {
+			prefix = currentServiceName;
+		}
+
+		if (prefix == null || prefix.isBlank()) {
 			return "";
 		}
 
-		if (!currentServiceName.startsWith(URL_SEPARATOR)) {
-			return URL_SEPARATOR + currentServiceName;
+		prefix = prefix.trim();
+
+		if (!prefix.startsWith(URL_SEPARATOR)) {
+			return URL_SEPARATOR + prefix;
 		}
 
-		return currentServiceName;
+		return prefix;
 	}
 
 	private String normalizePath(String path) {

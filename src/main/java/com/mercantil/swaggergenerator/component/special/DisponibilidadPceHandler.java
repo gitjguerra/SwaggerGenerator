@@ -24,13 +24,15 @@ public class DisponibilidadPceHandler implements SpecialRequestHandler {
 	}
 
 	@Override
-	public boolean supports(String endpointPath, boolean hasBody) {
+	public boolean supports(String endpointPath, boolean hasBody, RequestPhase phase) {
 
-		return "/creditos/consultar/disponibilidad-pce".equalsIgnoreCase(endpointPath);
+		return phase == RequestPhase.REQUEST
+				&& "/creditos/consultar/disponibilidad-pce".equalsIgnoreCase(endpointPath);
 	}
 
 	@Override
-	public void apply(String endpointPath, Map<String, Object> props, Map<String, Object> example) {
+	public void apply(String endpointPath, Map<String, Object> props, Map<String, Object> example,
+			RequestPhase phase) {
 
 		log.info("***** SPECIAL HANDLER: disponibilidad-pce");
 

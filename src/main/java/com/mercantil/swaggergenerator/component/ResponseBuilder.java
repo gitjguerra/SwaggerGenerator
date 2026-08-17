@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.mercantil.swaggergenerator.component.special.RequestPhase;
 import com.mercantil.swaggergenerator.component.special.SpecialRequestDispatcher;
 import com.mercantil.swaggergenerator.util.ParserUtil;
 
@@ -195,7 +196,8 @@ public class ResponseBuilder {
 		// =====================================================
 		// ✅ SPECIAL HANDLER (🔥 AQUÍ VA)
 		// =====================================================
-		boolean handled = specialDispatcher.applyIfMatch(endpointPath, true, propsFinal, responseExample);
+		boolean handled = specialDispatcher.applyIfMatch(endpointPath, true, RequestPhase.RESPONSE, propsFinal,
+				responseExample);
 
 		if (handled) {
 			log.info("Response manejado por SpecialHandler");

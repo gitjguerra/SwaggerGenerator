@@ -21,13 +21,16 @@ public class RifPceHandler implements SpecialRequestHandler {
 	}
 
 	@Override
-	public boolean supports(String endpointPath, boolean hasBody) {
+	public boolean supports(String endpointPath, boolean hasBody, RequestPhase phase) {
 
-		return "/creditos/consultar/rif-pce".equalsIgnoreCase(endpointPath);
+		// ✅ este handler solo reescribe el wrapper del REQUEST; el RESPONSE se deja
+		// que lo genere el pipeline genérico (antes se borraba el body de la response aquí).
+		return phase == RequestPhase.REQUEST && "/creditos/consultar/rif-pce".equalsIgnoreCase(endpointPath);
 	}
 
 	@Override
-	public void apply(String endpointPath, Map<String, Object> props, Map<String, Object> example) {
+	public void apply(String endpointPath, Map<String, Object> props, Map<String, Object> example,
+			RequestPhase phase) {
 
 		log.info("***** SPECIAL HANDLER: rif-pce");
 
@@ -48,10 +51,5 @@ public class RifPceHandler implements SpecialRequestHandler {
 
 			return Map.of("rifPce", rif);
 		});
-
-		// =======================================================
-		// ✅ RESPONSE FIX (CLAVE)
-		// =======================================================
-		example.computeIfPresent("bodySalidaConsultarRifPce", (key, value) -> null);
 	}
 }

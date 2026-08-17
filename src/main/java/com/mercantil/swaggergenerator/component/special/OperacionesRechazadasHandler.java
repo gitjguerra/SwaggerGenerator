@@ -23,8 +23,9 @@ public class OperacionesRechazadasHandler implements SpecialRequestHandler {
 	}
 	
     @Override
-    public boolean supports(String endpointPath, boolean hasBody) {
-        return "/inversiones/consultar/operaciones-rechazadas"
+    public boolean supports(String endpointPath, boolean hasBody, RequestPhase phase) {
+        return phase == RequestPhase.REQUEST
+                && "/inversiones/consultar/operaciones-rechazadas"
                 .equalsIgnoreCase(endpointPath)
                 && !hasBody;
     }
@@ -32,7 +33,8 @@ public class OperacionesRechazadasHandler implements SpecialRequestHandler {
     @Override
     public void apply(String endpointPath,
                       Map<String, Object> requestProps,
-                      Map<String, Object> requestExample) {
+                      Map<String, Object> requestExample,
+                      RequestPhase phase) {
 
         log.info(" ***** SPECIAL HANDLER: operaciones-rechazadas");
 

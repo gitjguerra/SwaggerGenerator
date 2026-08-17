@@ -1,6 +1,7 @@
 package com.mercantil.swaggergenerator.component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -677,10 +678,19 @@ public class SchemaBuilder {
 	// =========================================================
 	// ✅ VALID MODEL
 	// =========================================================
+	private static final List<String> INFRA_NAME_TOKENS = List.of("Logger", "Client", "Config", "Filter");
+
 	private boolean isValidModel(String name) {
 
-		return !(name.endsWith("Impl") || name.contains("Logger") || name.contains("Client") || name.contains("Config")
-				|| name.contains("Filter"));
+		if (name.endsWith("Impl")) {
+			return false;
+		}
+
+		// ✅ comparar por token PascalCase completo, no por substring:
+		// evita que "Cliente" sea rechazado por contener el substring "Client"
+		List<String> tokens = Arrays.asList(name.split("(?=[A-Z])"));
+
+		return INFRA_NAME_TOKENS.stream().noneMatch(excluded -> tokens.stream().anyMatch(excluded::equalsIgnoreCase));
 	}
 
 	// =========================================================

@@ -49,7 +49,11 @@ public class HttpMethodUtil {
 			return result;
 		}
 
-		return detectRequestMapping(method);
+		result = detectRequestMapping(method);
+
+		// ✅ ningún mapping HTTP encontrado: se expone como null (no como Map vacío)
+		// para que los callers puedan distinguir "no es un endpoint" de forma explícita.
+		return result.isEmpty() ? null : result;
 	}
 
 	private Map<String, String> detectMapping(MethodDeclaration method, String annotation, String httpMethod) {
@@ -99,7 +103,26 @@ public class HttpMethodUtil {
 			return "delete";
 		}
 
-		return null;
+		if (annotation.contains("RequestMethod.PATCH")) {
+			return "patch";
+		}
+
+		if (annotation.contains("RequestMethod.HEAD")) {
+			return "head";
+		}
+
+		if (annotation.contains("RequestMethod.OPTIONS")) {
+			return "options";
+		}
+
+		if (annotation.contains("RequestMethod.TRACE")) {
+			return "trace";
+		}
+
+		// ✅ @RequestMapping sin atributo "method" matchea todos los verbos en Spring;
+		// se documenta como GET (el uso real más común para mappings sin verbo explícito)
+		// en vez de tratarlo como "no es un endpoint".
+		return "get";
 	}
 
 	private String extract(MethodDeclaration method, String name) {

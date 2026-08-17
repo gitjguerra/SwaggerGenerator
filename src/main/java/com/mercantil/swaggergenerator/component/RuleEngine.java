@@ -283,17 +283,47 @@ public class RuleEngine {
 
 	private String findSuffixField(Map<String, String> fields, String fieldName) {
 
-		String lowerFieldName = fieldName.toLowerCase();
+		// ✅ matching por segmentos completos separados por "." (no por substring
+		// crudo): evita que una regla corta como "id" matchee campos no
+		// relacionados que solo terminan con esos mismos caracteres, p.ej.
+		// "producto.id" o "clienteId" cuando la regla era para "cliente.id".
+		// Ante múltiples matches, se prefiere la regla más específica (más
+		// segmentos coincidentes).
+		String[] fieldSegments = fieldName.toLowerCase().split("\\.");
+
+		String bestValue = null;
+		int bestMatchedSegments = 0;
 
 		for (Map.Entry<String, String> entry : fields.entrySet()) {
 
-			if (lowerFieldName.endsWith(entry.getKey().toLowerCase())) {
+			String[] ruleSegments = entry.getKey().toLowerCase().split("\\.");
 
-				return entry.getValue();
+			if (ruleSegments.length > fieldSegments.length || ruleSegments.length <= bestMatchedSegments) {
+				continue;
+			}
+
+			if (matchesTrailingSegments(fieldSegments, ruleSegments)) {
+
+				bestMatchedSegments = ruleSegments.length;
+				bestValue = entry.getValue();
 			}
 		}
 
-		return null;
+		return bestValue;
+	}
+
+	private boolean matchesTrailingSegments(String[] fieldSegments, String[] ruleSegments) {
+
+		int offset = fieldSegments.length - ruleSegments.length;
+
+		for (int i = 0; i < ruleSegments.length; i++) {
+
+			if (!fieldSegments[offset + i].equals(ruleSegments[i])) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	public Map<String, String> getRequestRules(String apiKey) {

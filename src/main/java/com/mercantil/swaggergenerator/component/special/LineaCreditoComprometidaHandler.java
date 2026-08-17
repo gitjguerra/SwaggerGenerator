@@ -23,15 +23,17 @@ public class LineaCreditoComprometidaHandler implements SpecialRequestHandler {
 	}
 
     @Override
-    public boolean supports(String endpointPath, boolean hasBody) {
-        return "/creditos/consultar/linea-credito-comprometida"
+    public boolean supports(String endpointPath, boolean hasBody, RequestPhase phase) {
+        return phase == RequestPhase.REQUEST
+                && "/creditos/consultar/linea-credito-comprometida"
                 .equalsIgnoreCase(endpointPath);
     }
 
     @Override
     public void apply(String endpointPath,
                       Map<String, Object> props,
-                      Map<String, Object> example) {
+                      Map<String, Object> example,
+                      RequestPhase phase) {
 
         log.info("***** SPECIAL HANDLER: linea-credito-comprometida");
 

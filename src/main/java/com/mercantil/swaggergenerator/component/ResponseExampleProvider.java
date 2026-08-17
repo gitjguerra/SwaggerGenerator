@@ -43,8 +43,23 @@ public class ResponseExampleProvider {
 		}
 
 		// =====================================================
-		// ✅ PRIORIDAD 1
-		// ✅ RULES.XML
+		// ✅ BASE: EXAMPLE MAP o GENERACIÓN AUTOMÁTICA
+		// ✅ USAR bodyKey REAL
+		// ✅ NO:
+		// ✅ bodySalida + operationName
+		// =====================================================
+		Object generated = exampleMap.get(bodyType);
+
+		if (generated == null) {
+
+			generated = exampleGenerator.buildExampleFromType(bodyType);
+		}
+
+		response.put(bodyKey, generated);
+
+		// =====================================================
+		// ✅ RULES.XML: sobreescribe SOLO los campos que define,
+		// ✅ sin descartar el resto del ejemplo autogenerado
 		// ✅ PATH-BASED LOOKUP
 		// =====================================================
 
@@ -52,37 +67,10 @@ public class ResponseExampleProvider {
 
 		Map<String, String> rules = ruleEngine.getResponseRules(endpointPath);
 
-		// =====================================================
-		// ✅ SI EXISTEN RULES
-		// =====================================================
 		if (!rules.isEmpty()) {
 
 			buildFromRules(response, rules);
-
-			return response;
 		}
-
-		// =====================================================
-		// ✅ PRIORIDAD 2
-		// ✅ EXAMPLE MAP
-		// =====================================================
-		Object generated = exampleMap.get(bodyType);
-
-		// =====================================================
-		// ✅ PRIORIDAD 3
-		// ✅ GENERACIÓN AUTOMÁTICA
-		// =====================================================
-		if (generated == null) {
-
-			generated = exampleGenerator.buildExampleFromType(bodyType);
-		}
-
-		// =====================================================
-		// ✅ USAR bodyKey REAL
-		// ✅ NO:
-		// ✅ bodySalida + operationName
-		// =====================================================
-		response.put(bodyKey, generated);
 
 		return response;
 	}
