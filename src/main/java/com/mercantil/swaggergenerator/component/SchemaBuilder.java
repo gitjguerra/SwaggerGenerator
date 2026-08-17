@@ -200,7 +200,7 @@ public class SchemaBuilder {
 
 									if (!hasExplicitJsonName && !isWrapperName(name)) {
 
-										String normalized = normalizeJsonKey(name);
+										String normalized = AbbreviationUtil.normalizeJsonKey(name);
 
 										if (!normalized.isBlank()) {
 											name = normalized;
@@ -221,8 +221,15 @@ public class SchemaBuilder {
 
 									String simpleType = parserUtil.resolveFinalType(cleanType);
 
+									// ✅ List<T>/Map<K,V> se resuelven más abajo directamente desde rawType
+									// (soportando anidamiento como List<Map<K,V>>); "simpleType" ahí puede
+									// traer comas espurias del propio Map<K,V> interno y no debe usarse
+									// como criterio para descartar el campo.
+									boolean isListOrMap = cleanType.startsWith("List<") || cleanType.startsWith("Map<");
+
 									// ✅ validar type
-									if (simpleType == null || simpleType.isBlank() || simpleType.contains(",")) {
+									if (!isListOrMap
+											&& (simpleType == null || simpleType.isBlank() || simpleType.contains(","))) {
 
 										return;
 									}
@@ -238,8 +245,10 @@ public class SchemaBuilder {
 
 										String elementType = typeNode.asArrayType().getComponentType().asString();
 
-										// ✅ byte[]
-										if ("byte".equalsIgnoreCase(elementType)) {
+										// ✅ byte[] primitivo: Jackson lo serializa como string base64.
+										// ✅ Byte[] (boxed) NO recibe este tratamiento: Jackson lo serializa
+										// como un array plano de números, así que sigue el camino normal.
+										if ("byte".equals(elementType)) {
 
 											prop.put("type", STRING);
 
@@ -279,64 +288,39 @@ public class SchemaBuilder {
 
 									// =================================================
 									// ✅ LIST<T>
+									// ✅ startsWith (no contains): "Map<String,List<Foo>>"
+									// también contiene "List<" pero NO es una lista
 									// =================================================
-									else if (rawType.contains("List<")) {
+									else if (rawType.startsWith("List<")) {
 
-										String generic = parserUtil.extractGeneric(rawType);
+										// ✅ un solo nivel: si T es a su vez "Map<K,V>" no se
+										// colapsa hasta el tipo más interno (bug anterior)
+										String generic = parserUtil.extractGenericArgument(rawType);
 
-										if (generic.contains(",")) {
+										if (generic.startsWith("Map<")) {
+
+											prop.put("type", "array");
+
+											prop.put("items", buildMapSchema(generic, clazz));
+
+										} else if (generic.contains(",")) {
 
 											return;
-										}
 
-										String res = extractSimpleName(
-
-												resolveFullType(generic, clazz));
-
-										prop.put("type", "array");
-
-										// ✅ primitivo
-										if (typeUtil.isPrimitive(res)) {
-
-											prop.put(
-
-													"items",
-
-													Map.of("type", typeUtil.mapType(res)));
-										}
-
-										// ✅ objeto
-										else {
-
-											prop.put(
-
-													"items",
-
-													buildSafeSchemaReference(res, clazz));
-										}
-									}
-
-									// =================================================
-									// ✅ MAP<K,V>
-									// =================================================
-									else if (rawType.contains("Map<")) {
-
-										prop.put("type", "object");
-
-										String valueType = parserUtil.extractMapValue(rawType);
-
-										if (valueType != null && !valueType.contains(",")) {
+										} else {
 
 											String res = extractSimpleName(
 
-													resolveFullType(valueType, clazz));
+													resolveFullType(generic, clazz));
+
+											prop.put("type", "array");
 
 											// ✅ primitivo
 											if (typeUtil.isPrimitive(res)) {
 
 												prop.put(
 
-														"additionalProperties",
+														"items",
 
 														Map.of("type", typeUtil.mapType(res)));
 											}
@@ -346,11 +330,20 @@ public class SchemaBuilder {
 
 												prop.put(
 
-														"additionalProperties",
+														"items",
 
 														buildSafeSchemaReference(res, clazz));
 											}
 										}
+									}
+
+									// =================================================
+									// ✅ MAP<K,V>
+									// ✅ startsWith (no contains): ver nota en LIST<T>
+									// =================================================
+									else if (rawType.startsWith("Map<")) {
+
+										prop.putAll(buildMapSchema(rawType, clazz));
 									}
 
 									// =================================================
@@ -790,6 +783,63 @@ public class SchemaBuilder {
 	}
 
 	// =========================================================
+	// ✅ MAP<K,V> SCHEMA (soporta value que sea a su vez List<X>)
+	// =========================================================
+	private Map<String, Object> buildMapSchema(String rawMapType, ClassOrInterfaceDeclaration clazz) {
+
+		Map<String, Object> schema = new LinkedHashMap<>();
+
+		schema.put("type", "object");
+
+		String valueTypeRaw = parserUtil.extractMapValueRaw(rawMapType);
+
+		if (valueTypeRaw == null) {
+
+			return schema;
+		}
+
+		// ✅ Map<K, List<V>>: el value es una lista, no un objeto simple
+		if (valueTypeRaw.startsWith("List<") || valueTypeRaw.startsWith("Set<")) {
+
+			String elementType = parserUtil.extractGenericArgument(valueTypeRaw);
+
+			if (elementType == null || elementType.contains(",")) {
+
+				return schema;
+			}
+
+			String res = extractSimpleName(resolveFullType(elementType, clazz));
+
+			Map<String, Object> items = typeUtil.isPrimitive(res) ? Map.of("type", typeUtil.mapType(res))
+					: buildSafeSchemaReference(res, clazz);
+
+			schema.put("additionalProperties", Map.of("type", "array", "items", items));
+
+			return schema;
+		}
+
+		if (valueTypeRaw.contains(",")) {
+
+			return schema;
+		}
+
+		String resolvedValueType = parserUtil.resolveFinalType(valueTypeRaw);
+
+		String res = extractSimpleName(resolveFullType(resolvedValueType, clazz));
+
+		if (typeUtil.isPrimitive(res)) {
+
+			schema.put("additionalProperties", Map.of("type", typeUtil.mapType(res)));
+
+		} else {
+
+			schema.put("additionalProperties", buildSafeSchemaReference(res, clazz));
+		}
+
+		return schema;
+	}
+
+	// =========================================================
 	// ✅ SAFE SCHEMA REF
 	// =========================================================
 	private Map<String, Object> buildSafeSchemaReference(String type, ClassOrInterfaceDeclaration context) {
@@ -976,38 +1026,6 @@ public class SchemaBuilder {
 		return false;
 	}
 
-	private String normalizeJsonKey(String name) {
-
-		if (name == null || name.isBlank()) {
-			return name;
-		}
-
-		String[] tokens = name.replaceAll("([A-Z])", " $1").trim().toLowerCase().split("\\s+");
-
-		StringBuilder result = new StringBuilder();
-
-		for (int i = 0; i < tokens.length; i++) {
-
-			String token = tokens[i];
-
-			String normalized = AbbreviationUtil.getAbbreviations().getOrDefault(token, token);
-
-			if (normalized == null || normalized.isBlank()) {
-				continue;
-			}
-
-			if (result.length() == 0) {
-				result.append(normalized);
-			} else {
-				result.append(Character.toUpperCase(normalized.charAt(0))).append(normalized.substring(1));
-			}
-		}
-
-		String finalName = result.toString();
-
-		return finalName.isBlank() ? name : finalName;
-	}
-
 	private boolean isWrapperName(String name) {
 
 		if (name == null) {
@@ -1144,25 +1162,40 @@ public class SchemaBuilder {
 				continue;
 			}
 
-			if (rawType.contains("List<")) {
+			if (rawType.startsWith("List<")) {
 
-				String generic = parserUtil.extractGeneric(rawType);
-
-				String resolved = extractSimpleName(resolveFullType(generic, clazz));
+				// ✅ un solo nivel (no colapsar): soporta List<Map<K,V>>
+				String generic = parserUtil.extractGenericArgument(rawType);
 
 				prop.put("type", "array");
 
-				if (typeUtil.isPrimitive(resolved)) {
+				if (generic.startsWith("Map<")) {
 
-					prop.put("items", Map.of("type", typeUtil.mapType(resolved)));
-				}
+					prop.put("items", buildMapSchema(generic, clazz));
 
-				else {
+				} else if (!generic.contains(",")) {
 
-					prop.put("items", buildSafeSchemaReference(resolved, clazz));
+					String resolved = extractSimpleName(resolveFullType(generic, clazz));
+
+					if (typeUtil.isPrimitive(resolved)) {
+
+						prop.put("items", Map.of("type", typeUtil.mapType(resolved)));
+					}
+
+					else {
+
+						prop.put("items", buildSafeSchemaReference(resolved, clazz));
+					}
 				}
 
 				properties.put(jsonName, prop);
+
+				continue;
+			}
+
+			if (rawType.startsWith("Map<")) {
+
+				properties.put(jsonName, buildMapSchema(rawType, clazz));
 
 				continue;
 			}

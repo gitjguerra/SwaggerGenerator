@@ -29,6 +29,7 @@ import com.mercantil.swaggergenerator.exception.ServiceException;
 import com.mercantil.swaggergenerator.model.OpenApiDoc;
 import com.mercantil.swaggergenerator.model.ServiceItem;
 import com.mercantil.swaggergenerator.util.HttpMethodUtil;
+import com.mercantil.swaggergenerator.util.PathUtil;
 
 @Service
 public class OpenApiGeneratorService {
@@ -158,16 +159,21 @@ public class OpenApiGeneratorService {
 		// la generación de este servicio, ej. en el loop de /api/openapi/all.
 		classIndexer.clear();
 
+		// ✅ parsear cada bean UNA sola vez y reutilizar el CompilationUnit tanto
+		// para indexar clases como para construir schemas (antes se parseaba
+		// cada archivo dos veces, una por cada pasada).
+		Map<File, CompilationUnit> parsedBeans = parseJavaFiles(beanFiles);
+
 		// ✅ INDEXAR PRIMERO
-		indexAllClasses(beanFiles);
+		indexAllClasses(parsedBeans);
 
 		// =====================================================
 		// ✅ PRIMERA PASADA
 		// SOLO SCHEMAS
 		// =====================================================
-		beanFiles.forEach(f ->
+		parsedBeans.forEach((f, cu) ->
 
-		processBeanSchemas(f, service.getBasePackage()));
+		processBeanSchemas(f, cu, service.getBasePackage()));
 
 		// =====================================================
 		// ✅ CONTROLLERS
@@ -338,11 +344,9 @@ public class OpenApiGeneratorService {
 	// =========================================================
 	// ✅ PROCESS SCHEMAS
 	// =========================================================
-	private void processBeanSchemas(File file, String basePackage) {
+	private void processBeanSchemas(File file, CompilationUnit cu, String basePackage) {
 
 		try {
-
-			CompilationUnit cu = StaticJavaParser.parse(file);
 
 			cu.findAll(ClassOrInterfaceDeclaration.class)
 
@@ -689,33 +693,45 @@ public class OpenApiGeneratorService {
 	}
 
 	// =========================================================
-	// ✅ CLASS INDEX
+	// ✅ PARSEAR UNA SOLA VEZ
 	// =========================================================
-	private void indexAllClasses(List<File> files) {
+	private Map<File, CompilationUnit> parseJavaFiles(List<File> files) {
 
-		log.info("Indexando clases...");
-
-		AtomicInteger count = new AtomicInteger(0);
+		Map<File, CompilationUnit> parsed = new LinkedHashMap<>();
 
 		for (File file : files) {
 
 			try {
 
-				CompilationUnit cu = StaticJavaParser.parse(file);
-
-				cu.findAll(ClassOrInterfaceDeclaration.class)
-
-						.forEach(clazz -> {
-
-							classIndexer.register(clazz);
-
-							count.incrementAndGet();
-						});
+				parsed.put(file, StaticJavaParser.parse(file));
 
 			} catch (Exception e) {
-				log.info("Error indexando: {}", file.getName());
+				log.info("Error parseando: {}", file.getName());
 			}
 		}
+
+		return parsed;
+	}
+
+	// =========================================================
+	// ✅ CLASS INDEX
+	// =========================================================
+	private void indexAllClasses(Map<File, CompilationUnit> parsedFiles) {
+
+		log.info("Indexando clases...");
+
+		AtomicInteger count = new AtomicInteger(0);
+
+		parsedFiles.values().forEach(cu ->
+
+		cu.findAll(ClassOrInterfaceDeclaration.class)
+
+				.forEach(clazz -> {
+
+					classIndexer.register(clazz);
+
+					count.incrementAndGet();
+				}));
 
 		log.info("Clases indexadas: {}", count.get());
 	}
@@ -790,23 +806,7 @@ public class OpenApiGeneratorService {
 
 	private String normalizePath(String path) {
 
-		if (path == null || path.isBlank()) {
-			return URL_SEPARATOR;
-		}
-
-		path = path.trim();
-
-		path = path.replaceAll("//+", URL_SEPARATOR);
-
-		if (!path.startsWith(URL_SEPARATOR)) {
-			path = URL_SEPARATOR + path;
-		}
-
-		if (path.length() > 1 && path.endsWith(URL_SEPARATOR)) {
-			path = path.substring(0, path.length() - 1);
-		}
-
-		return path;
+		return PathUtil.normalize(path);
 	}
 
 	public void generateAll() {

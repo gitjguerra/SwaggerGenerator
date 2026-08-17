@@ -159,6 +159,44 @@ public final class AbbreviationUtil {
 		return Collections.unmodifiableMap(ABBREV_MAP);
 	}
 
+	// =========================================================
+	// ✅ NORMALIZAR KEY DE JSON (camelCase + abreviaciones)
+	// =========================================================
+	public static String normalizeJsonKey(String name) {
+
+		if (name == null || name.isBlank()) {
+			return name;
+		}
+
+		// ✅ separa antes de una mayúscula que sigue a minúscula/dígito, y antes
+		// del último caracter de una racha de mayúsculas (acrónimo) que da paso
+		// a una palabra nueva: "NITCliente" -> ["NIT","Cliente"], no ["N","I","T","Cliente"]
+		String[] tokens = name.split("(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])");
+
+		StringBuilder result = new StringBuilder();
+
+		for (String token : tokens) {
+
+			String lower = token.toLowerCase();
+
+			String normalized = ABBREV_MAP.getOrDefault(lower, lower);
+
+			if (normalized == null || normalized.isBlank()) {
+				continue;
+			}
+
+			if (result.length() == 0) {
+				result.append(normalized);
+			} else {
+				result.append(Character.toUpperCase(normalized.charAt(0))).append(normalized.substring(1));
+			}
+		}
+
+		String finalName = result.toString();
+
+		return finalName.isBlank() ? name : finalName;
+	}
+
 	private static InputStream loadInputStream(String pathFile) {
 
 		try {

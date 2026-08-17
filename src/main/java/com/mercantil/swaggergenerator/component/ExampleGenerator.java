@@ -564,7 +564,16 @@ public class ExampleGenerator {
 
 			} catch (Exception e) {
 
-				return Long.parseLong(value);
+				// ✅ si tampoco cabe en Long (ej. un ID/numero muy largo), se conserva
+				// como string en vez de dejar que la excepción se propague sin capturar
+				try {
+
+					return Long.parseLong(value);
+
+				} catch (Exception ex) {
+
+					return value;
+				}
 			}
 		}
 
@@ -778,34 +787,7 @@ public class ExampleGenerator {
 
 	private String normalizeJsonKey(String name) {
 
-		if (name == null || name.isBlank()) {
-			return name;
-		}
-
-		String[] tokens = name.replaceAll("([A-Z])", " $1").trim().toLowerCase().split("\\s+");
-
-		StringBuilder result = new StringBuilder();
-
-		for (int i = 0; i < tokens.length; i++) {
-
-			String token = tokens[i];
-
-			String normalized = AbbreviationUtil.getAbbreviations().getOrDefault(token, token);
-
-			if (normalized == null || normalized.isBlank()) {
-				continue;
-			}
-
-			if (result.length() == 0) {
-				result.append(normalized);
-			} else {
-				result.append(Character.toUpperCase(normalized.charAt(0))).append(normalized.substring(1));
-			}
-		}
-
-		String finalName = result.toString();
-
-		return finalName.isBlank() ? name : finalName;
+		return AbbreviationUtil.normalizeJsonKey(name);
 	}
 
 }

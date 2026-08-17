@@ -4,8 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-//import org.apache.logging.log4j.LogManager;
-//import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -13,7 +13,7 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 @Component
 public class ClassIndexer {
 
-	//private static final Logger log = LogManager.getLogger(ClassIndexer.class);
+	private static final Logger log = LogManager.getLogger(ClassIndexer.class);
 
     // ✅ mapa de clases por nombre simple
     private final Map<String, ClassOrInterfaceDeclaration> classMap = new HashMap<>();
@@ -25,8 +25,15 @@ public class ClassIndexer {
 
         String name = clazz.getNameAsString();
 
-        // 🔥 LOG
-        //log.info("Registrando clase: {}", name);
+        // ✅ dos clases con el mismo nombre simple en paquetes distintos
+        // colisionan silenciosamente (el índice solo guarda el nombre simple);
+        // se advierte para que sea visible en logs en vez de corromper el
+        // schema sin dejar rastro.
+        ClassOrInterfaceDeclaration existing = classMap.get(name);
+
+        if (existing != null && existing != clazz) {
+            log.warn("Colision en ClassIndexer: '{}' ya estaba registrada, se sobreescribe", name);
+        }
 
         classMap.put(name, clazz);
     }

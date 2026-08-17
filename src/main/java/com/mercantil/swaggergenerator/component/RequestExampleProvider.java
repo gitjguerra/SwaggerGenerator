@@ -1,5 +1,6 @@
 package com.mercantil.swaggergenerator.component;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -172,6 +173,10 @@ public class RequestExampleProvider {
 
 						Map<?, ?> itemMap = (Map<?, ?>) items;
 
+						// ✅ construir tantos elementos como índices [N] estén definidos en
+						// rules.xml para este campo (antes solo se soportaba el índice [0])
+						int lastIndex = Math.max(0, maxRuleIndex(endpointPath, fieldPath));
+
 						// =====================================
 						// ✅ ARRAY DE OBJETOS
 						// =====================================
@@ -181,8 +186,15 @@ public class RequestExampleProvider {
 
 							String refType = ref.substring(ref.lastIndexOf("/") + 1);
 
-							example.put(jsonName, List.of(buildExampleFromSchema(endpointPath, refType,
-									fieldPath + "[0]", schemaMap, visited)));
+							List<Object> arrayItems = new ArrayList<>();
+
+							for (int i = 0; i <= lastIndex; i++) {
+
+								arrayItems.add(buildExampleFromSchema(endpointPath, refType, fieldPath + "[" + i + "]",
+										schemaMap, visited));
+							}
+
+							example.put(jsonName, arrayItems);
 
 						}
 
@@ -191,17 +203,25 @@ public class RequestExampleProvider {
 						// =====================================
 						else {
 
-							String arrayRuleValue = ruleEngine.getRequestValue(endpointPath, fieldPath + "[0]");
+							List<Object> arrayItems = new ArrayList<>();
 
-							if (arrayRuleValue != null) {
+							for (int i = 0; i <= lastIndex; i++) {
 
-								example.put(jsonName,
-										List.of(examplePathResolver.parseValue(fieldPath + "[0]", arrayRuleValue)));
+								String indexedPath = fieldPath + "[" + i + "]";
 
-							} else {
+								String arrayRuleValue = ruleEngine.getRequestValue(endpointPath, indexedPath);
 
-								example.put(jsonName, List.of(mockValue((String) itemMap.get("type"))));
+								if (arrayRuleValue != null) {
+
+									arrayItems.add(examplePathResolver.parseValue(indexedPath, arrayRuleValue));
+
+								} else {
+
+									arrayItems.add(mockValue((String) itemMap.get("type")));
+								}
 							}
+
+							example.put(jsonName, arrayItems);
 						}
 					}
 
@@ -269,6 +289,43 @@ public class RequestExampleProvider {
 						.map(field -> parserUtil.resolveJsonName(field, fieldName)))
 
 				.orElse(fieldName);
+	}
+
+	// =========================================================
+	// ✅ MAYOR ÍNDICE DEFINIDO EN RULES.XML PARA UN CAMPO ARRAY
+	// ✅ ej.: si existen "detalle[0].x" y "detalle[1].y" -> devuelve 1
+	// =========================================================
+	private int maxRuleIndex(String endpointPath, String fieldPath) {
+
+		String prefix = fieldPath + "[";
+
+		int max = -1;
+
+		for (String key : ruleEngine.getRequestRules(endpointPath).keySet()) {
+
+			if (!key.startsWith(prefix)) {
+				continue;
+			}
+
+			int closeBracket = key.indexOf(']', prefix.length());
+
+			if (closeBracket == -1) {
+				continue;
+			}
+
+			try {
+
+				int index = Integer.parseInt(key.substring(prefix.length(), closeBracket));
+
+				max = Math.max(max, index);
+
+			} catch (NumberFormatException e) {
+
+				// ✅ índice no numérico: ignorar esta entrada
+			}
+		}
+
+		return max;
 	}
 
 	// =========================================================
@@ -350,7 +407,16 @@ public class RequestExampleProvider {
 
 			} catch (Exception e) {
 
-				return Long.parseLong(value);
+				// ✅ fallback seguro: si tampoco cabe en Long, se conserva como string
+				// en vez de dejar que la excepción se propague sin capturar
+				try {
+
+					return Long.parseLong(value);
+
+				} catch (Exception ex) {
+
+					return value;
+				}
 			}
 		}
 

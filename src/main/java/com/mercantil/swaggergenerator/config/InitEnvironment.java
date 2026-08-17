@@ -3,7 +3,6 @@ package com.mercantil.swaggergenerator.config;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Paths;
 import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
@@ -58,12 +57,6 @@ public class InitEnvironment {
 			props.loadFromXML(is);
 
 			// =================================================
-			// ✅ CONFIGURAMOS EL ENTORNO (igual OSBA)
-			// =================================================
-			Utils.setListtags(Paths.get(pathFile).getParent(),
-					Boolean.parseBoolean(props.getProperty(BusinessCard.TEST_ENVIRONMENT.getValue())));
-
-			// =================================================
 			// ✅ RESOLVEMOS LAS RUTAS
 			// =================================================
 			pathFileLog4j2 = Utils.resolvePath(props.getProperty(BusinessCard.LOG4J.getValue()));
@@ -99,11 +92,13 @@ public class InitEnvironment {
 
 		} catch (IOException e) {
 			log.error("ERROR AL CARGAR LA CONFIGURACION: {}", e.getMessage());
-			System.exit(0);
+			// ✅ código de salida distinto de 0: un exit(0) aquí hace que un script/CI
+			// que solo revisa el exit code interprete un arranque fallido como exitoso.
+			System.exit(1);
 
 		} catch (ExceptionFile e) {
 			log.error("PROBLEMAS CON EL ARCHIVO: {}", e.getMessage());
-			System.exit(0);
+			System.exit(1);
 		}
 	}
 }

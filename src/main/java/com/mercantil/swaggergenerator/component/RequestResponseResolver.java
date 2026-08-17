@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.mercantil.swaggergenerator.util.StringUtil;
 
 @Component
 public class RequestResponseResolver {
@@ -139,7 +140,7 @@ public class RequestResponseResolver {
 
             bodyType = requestType.replace("Request", "BodyEntrada");
 
-            bodyFieldName = decapitalize(bodyType);
+            bodyFieldName = StringUtil.decapitalize(bodyType);
 
         }
 
@@ -209,11 +210,11 @@ public class RequestResponseResolver {
         // =====================================================
         if (bodies.isEmpty() && responseSchema == null) {
 
-            String cleanedOperation = capitalize(operationName);
+            String cleanedOperation = StringUtil.capitalize(operationName);
 
             String bodyClass = "BodySalida" + cleanedOperation;
 
-            String bodyField = decapitalize(bodyClass);
+            String bodyField = StringUtil.decapitalize(bodyClass);
 
             bodies.put(bodyField, bodyClass);
 
@@ -227,27 +228,4 @@ public class RequestResponseResolver {
         return bodies;
     }
 
-    // =========================================================
-    // ✅ CAPITALIZE
-    // =========================================================
-    private String capitalize(String str) {
-
-        if (str == null || str.isBlank()) {
-            return "";
-        }
-
-        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
-    }
-
-    // =========================================================
-    // ✅ DECAPITALIZE
-    // =========================================================
-    private String decapitalize(String str) {
-
-        if (str == null || str.isBlank()) {
-            return "";
-        }
-
-        return Character.toLowerCase(str.charAt(0)) + str.substring(1);
-    }
 }

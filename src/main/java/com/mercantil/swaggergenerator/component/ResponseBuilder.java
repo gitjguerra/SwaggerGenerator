@@ -13,6 +13,7 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.mercantil.swaggergenerator.component.special.RequestPhase;
 import com.mercantil.swaggergenerator.component.special.SpecialRequestDispatcher;
 import com.mercantil.swaggergenerator.util.ParserUtil;
+import com.mercantil.swaggergenerator.util.StringUtil;
 
 @Component
 public class ResponseBuilder {
@@ -54,7 +55,7 @@ public class ResponseBuilder {
 		// =====================================================
 		// ✅ OPERATION NAME
 		// =====================================================
-		String operationName = capitalize(method.getNameAsString());
+		String operationName = StringUtil.capitalize(method.getNameAsString());
 
 		// =====================================================
 		// ✅ RESOLVE RESPONSE BODIES
@@ -244,18 +245,4 @@ public class ResponseBuilder {
 						Map.of("application/json", responseJson)));
 	}
 
-	// =========================================================
-	// ✅ CAPITALIZE
-	// =========================================================
-	private String capitalize(String str) {
-
-		if (str == null || str.isEmpty()) {
-
-			return str;
-		}
-
-		return Character.toUpperCase(str.charAt(0))
-
-				+ str.substring(1);
-	}
 }

@@ -17,13 +17,13 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import com.mercantil.swaggergenerator.exception.RuleEngineException;
+import com.mercantil.swaggergenerator.util.PathUtil;
 
 @Component
 public class RuleEngine {
 
 	private static final Logger log = LogManager.getLogger(RuleEngine.class);
 
-	private static final String SLASH = "/";
 	private static final String FIELD = "field";
 
 	// =========================================================
@@ -154,6 +154,12 @@ public class RuleEngine {
 					// ✅ REQUEST RULES
 					// =================================================
 					if (!requestFields.isEmpty()) {
+
+						if (requestRules.containsKey(apiKey)) {
+							log.warn("api path duplicado en rules.xml (request): '{}', se sobreescribe la regla anterior",
+									apiKey);
+						}
+
 						requestRules.put(apiKey, requestFields);
 					}
 
@@ -161,6 +167,12 @@ public class RuleEngine {
 					// ✅ RESPONSE RULES
 					// =================================================
 					if (!responseFields.isEmpty()) {
+
+						if (responseRules.containsKey(apiKey)) {
+							log.warn("api path duplicado en rules.xml (response): '{}', se sobreescribe la regla anterior",
+									apiKey);
+						}
+
 						responseRules.put(apiKey, responseFields);
 					}
 				}
@@ -348,18 +360,6 @@ public class RuleEngine {
 
 	private String normalizePath(String path) {
 
-		if (path == null || path.isBlank())
-			return "";
-
-		path = path.trim().replace("\\", SLASH).replaceAll("//+", SLASH);
-
-		if (!path.startsWith(SLASH))
-			path = SLASH + path;
-
-		if (path.length() > 1 && path.endsWith(SLASH)) {
-			path = path.substring(0, path.length() - 1);
-		}
-
-		return path;
+		return PathUtil.normalize(path);
 	}
 }

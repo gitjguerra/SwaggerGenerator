@@ -218,6 +218,64 @@ public class ParserUtil {
 	}
 
 	// =========================================================
+	// ✅ EXTRAER ARGUMENTO GENÉRICO (UN SOLO NIVEL, SIN COLAPSAR)
+	// ✅ a diferencia de extractGeneric(), NO desciende recursivamente al tipo
+	// más interno: "List<Map<String,Foo>>" -> "Map<String,Foo>" (no "String,Foo")
+	// =========================================================
+	public String extractGenericArgument(String input) {
+
+		if (input == null || input.isBlank()) {
+
+			return null;
+		}
+
+		int start = input.indexOf("<");
+
+		int end = input.lastIndexOf(">");
+
+		if (start == -1 || end == -1 || end <= start) {
+
+			return input.trim();
+		}
+
+		return input.substring(start + 1, end).trim();
+	}
+
+	// =========================================================
+	// ✅ EXTRAER VALUE MAP<K,V> (UN SOLO NIVEL, SIN COLAPSAR)
+	// ✅ a diferencia de extractMapValue(), preserva "List<Foo>" tal cual en vez
+	// de resolverlo hasta "Foo", para que el caller pueda detectar que el value
+	// de un Map<K,V> es en realidad una lista.
+	// =========================================================
+	public String extractMapValueRaw(String input) {
+
+		if (input == null || !input.contains(",")) {
+
+			return null;
+		}
+
+		int start = input.indexOf("<");
+
+		int end = input.lastIndexOf(">");
+
+		if (start == -1 || end == -1) {
+
+			return null;
+		}
+
+		String inside = input.substring(start + 1, end);
+
+		String[] parts = inside.split(",", 2);
+
+		if (parts.length < 2) {
+
+			return null;
+		}
+
+		return parts[1].trim();
+	}
+
+	// =========================================================
 	// ✅ LIMPIAR TIPO FINAL
 	// =========================================================
 	public String resolveFinalType(String type) {

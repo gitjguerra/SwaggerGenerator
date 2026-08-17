@@ -49,4 +49,119 @@ class SchemaBuilderTest {
 
 		assertThat(clienteProperties).isNotEmpty();
 	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void mapOfListPreservesBothTheObjectAndArrayShape() {
+
+		CompilationUnit cu = StaticJavaParser.parse("import java.util.List;\nimport java.util.Map;\n"
+				+ "class Pedido { private Map<String, List<Cuenta>> cuentasPorTipo; }\n"
+				+ "class Cuenta { private String numero; }");
+
+		List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
+
+		ClassOrInterfaceDeclaration pedido = classByName(classes, "Pedido");
+		ClassOrInterfaceDeclaration cuenta = classByName(classes, "Cuenta");
+
+		classIndexer.register(pedido);
+		classIndexer.register(cuenta);
+
+		schemaBuilder.setSchemaMap(new LinkedHashMap<>());
+
+		Map<String, Object> pedidoSchema = schemaBuilder.build(pedido);
+
+		Map<String, Object> props = (Map<String, Object>) pedidoSchema.get("properties");
+
+		assertThat(props).hasSize(1);
+
+		Map<String, Object> fieldSchema = (Map<String, Object>) props.values().iterator().next();
+
+		// ✅ el Map exterior no debe perderse (antes se clasificaba como "array" a secas)
+		assertThat(fieldSchema.get("type")).isEqualTo("object");
+
+		Map<String, Object> additionalProperties = (Map<String, Object>) fieldSchema.get("additionalProperties");
+
+		assertThat(additionalProperties).isNotNull();
+		assertThat(additionalProperties.get("type")).isEqualTo("array");
+
+		Map<String, Object> items = (Map<String, Object>) additionalProperties.get("items");
+
+		assertThat(items.get("$ref")).isEqualTo("#/components/schemas/Cuenta");
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void listOfMapIsNotSilentlyDropped() {
+
+		CompilationUnit cu = StaticJavaParser.parse("import java.util.List;\nimport java.util.Map;\n"
+				+ "class Pedido { private List<Map<String, Cuenta>> registros; }\n"
+				+ "class Cuenta { private String numero; }");
+
+		List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
+
+		ClassOrInterfaceDeclaration pedido = classByName(classes, "Pedido");
+		ClassOrInterfaceDeclaration cuenta = classByName(classes, "Cuenta");
+
+		classIndexer.register(pedido);
+		classIndexer.register(cuenta);
+
+		schemaBuilder.setSchemaMap(new LinkedHashMap<>());
+
+		Map<String, Object> pedidoSchema = schemaBuilder.build(pedido);
+
+		Map<String, Object> props = (Map<String, Object>) pedidoSchema.get("properties");
+
+		// ✅ antes el campo desaparecía por completo de "properties"
+		assertThat(props).hasSize(1);
+
+		Map<String, Object> fieldSchema = (Map<String, Object>) props.values().iterator().next();
+
+		assertThat(fieldSchema.get("type")).isEqualTo("array");
+
+		Map<String, Object> items = (Map<String, Object>) fieldSchema.get("items");
+
+		assertThat(items.get("type")).isEqualTo("object");
+
+		Map<String, Object> itemsAdditionalProperties = (Map<String, Object>) items.get("additionalProperties");
+
+		assertThat(itemsAdditionalProperties.get("$ref")).isEqualTo("#/components/schemas/Cuenta");
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void jsonCreatorMapParameterKeepsObjectWrapperShape() {
+
+		CompilationUnit cu = StaticJavaParser.parse("import java.util.Map;\n" + "class BodyEntradaConsulta {\n"
+				+ "  private final Map<String, Cuenta> datos;\n" + "  @JsonCreator\n"
+				+ "  public BodyEntradaConsulta(@JsonProperty(\"datos\") Map<String, Cuenta> datos) { this.datos = datos; }\n"
+				+ "}\n" + "class Cuenta { private String numero; }");
+
+		List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
+
+		ClassOrInterfaceDeclaration bodyEntrada = classByName(classes, "BodyEntradaConsulta");
+		ClassOrInterfaceDeclaration cuenta = classByName(classes, "Cuenta");
+
+		classIndexer.register(bodyEntrada);
+		classIndexer.register(cuenta);
+
+		schemaBuilder.setSchemaMap(new LinkedHashMap<>());
+
+		Map<String, Object> schema = schemaBuilder.build(bodyEntrada);
+
+		Map<String, Object> props = (Map<String, Object>) schema.get("properties");
+
+		Map<String, Object> datosSchema = (Map<String, Object>) props.get("datos");
+
+		// ✅ antes se perdía el wrapper "object" y quedaba solo el $ref a Cuenta
+		assertThat(datosSchema.get("type")).isEqualTo("object");
+
+		Map<String, Object> additionalProperties = (Map<String, Object>) datosSchema.get("additionalProperties");
+
+		assertThat(additionalProperties.get("$ref")).isEqualTo("#/components/schemas/Cuenta");
+	}
+
+	private ClassOrInterfaceDeclaration classByName(List<ClassOrInterfaceDeclaration> classes, String name) {
+
+		return classes.stream().filter(c -> c.getNameAsString().equals(name)).findFirst().orElseThrow();
+	}
 }

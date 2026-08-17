@@ -1,7 +1,6 @@
 package com.mercantil.swaggergenerator.util;
 
 import java.io.File;
-import java.nio.file.Path;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -67,13 +66,6 @@ public class Utils {
         return value
                 .replace("${BM_HOME}", System.getenv(BM_HOME))
                 .replace("${env:BM_HOME}", System.getenv(BM_HOME));
-    }
-
-    /**
-     * METODO ENCARGADO DE CONFIGURAR LOS TAGS.
-     */
-    public static void setListtags(Path pathFile, boolean test) {
-        // mantener igual OSBA aunque no se use aún
     }
 
     /**

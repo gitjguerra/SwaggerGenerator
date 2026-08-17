@@ -121,27 +121,69 @@ Permite:
 
 ---
 
-<h2>⚙️ 4. Configuración application.yml</h2>
+<h2>⚙️ 4. Configuración</h2>
+
+<div class="box">
+<b>Importante:</b> la configuración NO se hace por <code>application.yml</code>.
+El generador la carga en dos pasos, antes de que arranque Spring, a partir de
+la variable de entorno <code>BM_HOME</code>.
+</div>
+
+<b>Paso 1 — archivo principal de la app</b><br>
+Ruta fija: <code>${BM_HOME}/appl/swagger-generator/config/swagger-generator.xml</code>
+(un XML de <code>java.util.Properties</code>):
 
 <div class="code">
-swagger:
-  output-dir: C:\SwaggerGenerator\openapi-json-files
-
-services:
-  list:
-    - name: creditos
-      controllersPath: ...
-      beansPath: ...
-      basePath: /creditos
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd"&gt;
+&lt;properties&gt;
+    &lt;entry key="pathLog4jFile"&gt;${BM_HOME}/appl/swagger-generator/config/log4j2.xml&lt;/entry&gt;
+    &lt;entry key="pathRules"&gt;${BM_HOME}/appl/swagger-generator/config/rules.xml&lt;/entry&gt;
+    &lt;entry key="pathAbbreviations"&gt;${BM_HOME}/appl/swagger-generator/config/abbreviations.txt&lt;/entry&gt;
+    &lt;entry key="pathServices"&gt;${BM_HOME}/appl/swagger-generator/config/services.xml&lt;/entry&gt;
+    &lt;entry key="pathOutput"&gt;${BM_HOME}/appl/swagger-generator/output&lt;/entry&gt;
+&lt;/properties&gt;
 </div>
 
 <div class="box">
 <b>Descripción:</b><br>
 <ul>
-<li>output-dir → carpeta de salida del swagger</li>
-<li>controllersPath → donde están los endpoints</li>
-<li>beansPath → donde están los DTOs</li>
-<li>basePath → prefijo del API</li>
+<li>pathLog4jFile → configuración de log4j2 a usar</li>
+<li>pathRules → rules.xml externo (si no existe, se usa el bundled en resources/rules.xml)</li>
+<li>pathAbbreviations → abbreviations.txt externo (idem, fallback al bundled)</li>
+<li>pathServices → ruta al archivo de servicios (ver Paso 2)</li>
+<li>pathOutput → carpeta donde se escriben los &lt;servicio&gt;.json generados</li>
+</ul>
+Si <code>BM_HOME</code> no está definido, o falta este archivo o alguna de las
+rutas que referencia, la aplicación registra el error en el log y termina
+(no continúa con valores por defecto).
+</div>
+
+<b>Paso 2 — servicios a generar</b><br>
+Ruta indicada por <code>pathServices</code> arriba; cada <code>&lt;service&gt;</code>
+es un servicio que luego se genera vía <code>GET /api/openapi/{name}</code>
+(el <code>name</code> debe coincidir con el atributo <code>name</code>):
+
+<div class="code">
+&lt;services&gt;
+    &lt;service name="creditos"&gt;
+        &lt;controllersPath&gt;C:\ruta\a\los\controllers&lt;/controllersPath&gt;
+        &lt;beansPath&gt;C:\ruta\a\los\dtos&lt;/beansPath&gt;
+        &lt;beansPath&gt;C:\otra\ruta\de\dtos&lt;/beansPath&gt;
+        &lt;basePackage&gt;com.mercantil.creditos&lt;/basePackage&gt;
+        &lt;basePath&gt;/creditos&lt;/basePath&gt;
+    &lt;/service&gt;
+&lt;/services&gt;
+</div>
+
+<div class="box">
+<b>Descripción:</b><br>
+<ul>
+<li>name → identificador del servicio, usado en la URL del endpoint del generador</li>
+<li>controllersPath → carpeta con los controllers a escanear</li>
+<li>beansPath → una o más carpetas con los DTOs a escanear (puede repetirse)</li>
+<li>basePackage → solo se indexan como schema los DTOs de este paquete</li>
+<li>basePath → prefijo de path que se antepone a cada endpoint generado</li>
 </ul>
 </div>
 
