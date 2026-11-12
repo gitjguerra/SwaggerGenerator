@@ -14,6 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
+import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
@@ -72,6 +73,7 @@ public class SchemaBuilder {
 	// =========================================================
 	// ✅ BUILD PRINCIPAL
 	// =========================================================
+	@SuppressWarnings("unchecked")
 	public Map<String, Object> build(ClassOrInterfaceDeclaration clazz) {
 
 		String className = clazz.getNameAsString();
@@ -209,7 +211,7 @@ public class SchemaBuilder {
 
 									Map<String, Object> prop = new LinkedHashMap<>();
 
-									var typeNode = vari.getType();
+									Type typeNode = vari.getType();
 
 									String rawType = typeNode.asString();
 
@@ -514,6 +516,7 @@ public class SchemaBuilder {
 			return;
 		}
 
+		@SuppressWarnings("unchecked")
 		Map<String, Object> props = (Map<String, Object>) propsObj;
 
 		props.forEach((k, v) -> {
@@ -524,6 +527,7 @@ public class SchemaBuilder {
 				return;
 			}
 
+			@SuppressWarnings("unchecked")
 			Map<String, Object> value = (Map<String, Object>) v;
 
 			Object ref = value.get("$ref");
